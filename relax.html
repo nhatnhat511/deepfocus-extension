@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepFocus Break Visual</title>
+<style>
+html,body{
+margin:0;
+height:100%;
+font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+color:#e2e8f0;
+overflow:hidden;
+}
+body{
+display:flex;
+align-items:center;
+justify-content:center;
+background:radial-gradient(circle at 30% 20%, #334155 0%, #111827 40%, #020617 100%);
+}
+.wrap{
+text-align:center;
+}
+.orb{
+width:220px;
+height:220px;
+margin:0 auto 24px;
+border-radius:50%;
+position:relative;
+box-shadow:0 0 80px rgba(56,189,248,0.28);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+.orb-ring{
+position:absolute;
+inset:0;
+border-radius:50%;
+background:conic-gradient(from 0deg, #60a5fa, #22d3ee, #a78bfa, #60a5fa);
+animation:spin 8s linear infinite;
+}
+.orb-inner{
+position:absolute;
+inset:18px;
+border-radius:50%;
+background:#0f172a;
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:1;
+}
+.timer{
+font-size:36px;
+font-weight:700;
+letter-spacing:1px;
+color:#e2e8f0;
+line-height:1;
+}
+h1{
+margin:0 0 8px;
+font-size:32px;
+font-weight:700;
+}
+p{
+margin:0;
+font-size:16px;
+color:#cbd5e1;
+}
+@keyframes spin{
+from{ transform:rotate(0deg); }
+to{ transform:rotate(360deg); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="orb" aria-hidden="true">
+<div class="orb-ring"></div>
+<div class="orb-inner">
+<div id="breakTimer" class="timer">--:--</div>
+</div>
+</div>
+<h1>Break Time</h1>
+<p>Take a breath. Stretch. Hydrate.</p>
+</div>
+<script src="relax.js"></script>
+</body>
+</html>

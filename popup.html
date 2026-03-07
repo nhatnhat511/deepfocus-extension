@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+
+body{
+font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+width:260px;
+padding:12px;
+margin:0;
+background:#f4f6fb;
+color:#111827;
+}
+
+.panel{
+background:#ffffff;
+border:1px solid #e5e7eb;
+border-radius:12px;
+padding:10px;
+box-shadow:0 8px 22px rgba(15,23,42,0.08);
+}
+
+.header{
+display:flex;
+flex-direction:column;
+align-items:stretch;
+gap:8px;
+margin-bottom:10px;
+}
+
+.title-row{
+display:flex;
+align-items:center;
+justify-content:flex-start;
+gap:8px;
+padding:2px 4px 6px;
+border-bottom:1px solid #e6ebf5;
+}
+
+.title-row img{
+width:21px;
+height:21px;
+filter:drop-shadow(0 1px 1px rgba(0,0,0,0.12));
+}
+
+h3{
+margin:0;
+font-family:"Segoe UI Semibold","Segoe UI",Tahoma,Arial,sans-serif;
+font-size:16px;
+font-weight:600;
+line-height:1.15;
+letter-spacing:0.005em;
+color:#111827;
+}
+
+.head-icons{
+display:flex;
+align-items:center;
+gap:4px;
+padding:6px 7px;
+border:1px solid #d7e0ef;
+border-radius:11px;
+background:linear-gradient(180deg,#fbfdff 0%,#f1f5fb 100%);
+box-shadow:0 1px 2px rgba(15,23,42,0.05), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+.head-icons .menu-spacer{
+display:none;
+width:32px;
+height:32px;
+}
+
+.head-icons.has-back .menu-spacer{
+display:none;
+}
+
+.head-icons.has-back{
+justify-content:flex-start;
+}
+
+.menu-group{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:4px;
+flex:1;
+margin-left:auto;
+}
+
+.head-icon-btn{
+width:32px;
+height:32px;
+padding:0;
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:7px;
+background:#f8fafc;
+border:1px solid #ccd7ea;
+color:#475569;
+box-shadow:0 1px 1px rgba(15,23,42,0.05);
+transition:all 120ms ease;
+}
+
+.head-icon-btn svg{
+width:17px;
+height:17px;
+stroke:currentColor;
+stroke-width:2;
+fill:none;
+stroke-linecap:round;
+stroke-linejoin:round;
+pointer-events:none;
+}
+
+.head-icon-btn:hover{
+background:#eff6ff;
+border-color:#bfdbfe;
+color:#2563eb;
+transform:translateY(-1px);
+}
+
+.head-icon-btn.active{
+background:#dbeafe;
+border-color:#93c5fd;
+color:#1d4ed8;
+box-shadow:0 0 0 3px rgba(59,130,246,0.16);
+}
+
+.head-icons.has-back .menu-group{
+gap:2px;
+justify-content:space-between;
+}
+
+.head-icons.has-back{
+gap:2px;
+padding-left:5px;
+padding-right:5px;
+}
+
+.head-icons.has-back .head-icon-btn{
+width:30px;
+height:30px;
+}
+
+.head-icons.has-back .head-icon-btn svg{
+width:16px;
+height:16px;
+}
+
+.head-back{
+display:none;
+}
+
+.head-back.show{
+display:flex;
+}
+
+.time-row{
+display:flex;
+align-items:center;
+justify-content:flex-start;
+gap:6px;
+margin:4px 0;
+font-size:14px;
+}
+
+.timer-basic{
+display:grid;
+grid-template-columns: 1fr auto;
+align-items:start;
+gap:10px;
+}
+
+.time-fields{
+display:flex;
+flex-direction:column;
+gap:4px;
+min-width:0;
+}
+
+.time-label{
+min-width:68px;
+}
+
+.time-row input{
+width:52px;
+padding:4px 6px;
+border:1px solid #d1d5db;
+border-radius:6px;
+}
+
+.sound-box{
+display:flex;
+align-items:center;
+gap:4px;
+padding:0 6px;
+border:1px solid #d1d5db;
+border-radius:6px;
+background:#f8fafc;
+white-space:nowrap;
+height:28px;
+box-sizing:border-box;
+margin-top:4px;
+}
+
+.sound-box label{
+font-size:11px;
+font-weight:600;
+color:#334155;
+cursor:pointer;
+line-height:1;
+}
+
+.sound-box input{
+margin:0;
+width:13px;
+height:13px;
+}
+
+input[type="time"]{
+width:92px;
+padding:4px 6px;
+border:1px solid #d1d5db;
+border-radius:6px;
+}
+
+button{
+padding:7px 10px;
+white-space: nowrap;
+border:1px solid #d1d5db;
+border-radius:8px;
+background:#f9fafb;
+cursor:pointer;
+font-weight:600;
+}
+
+button:hover{
+background:#eef2ff;
+}
+
+.controls{
+display:flex;
+gap:8px;
+margin-top:8px;
+}
+
+.controls button{
+flex:1;
+}
+
+.reminders{
+margin-top:8px;
+text-align:left;
+padding-top:6px;
+border-top:1px solid #eef2f7;
+}
+
+.reminder-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:8px;
+margin:7px 0;
+font-size:13px;
+}
+
+.reminder-left{
+display:flex;
+align-items:center;
+gap:6px;
+line-height:1.2;
+}
+
+.head-panel{
+display:none;
+margin:8px 0;
+padding:10px;
+border:1px solid #e5e7eb;
+border-radius:10px;
+background:#f8fafc;
+font-size:12px;
+line-height:1.4;
+text-align:left;
+}
+
+.head-panel.show{
+display:block;
+}
+
+.head-panel-title{
+font-weight:700;
+margin-bottom:6px;
+font-size:13px;
+}
+
+.head-panel-close{
+float:right;
+border:0;
+background:transparent;
+padding:0;
+font-size:14px;
+cursor:pointer;
+}
+
+.head-panel ul{
+margin:6px 0 0 16px;
+padding:0;
+}
+
+.upgrade-btn{
+margin-top:8px;
+width:100%;
+background:#111827;
+color:#fff;
+border-color:#111827;
+}
+
+.upgrade-btn:hover{
+background:#1f2937;
+}
+
+.view-main{
+display:block;
+}
+
+.view-main.hidden{
+display:none;
+}
+
+.view-detail{
+display:none;
+margin-top:6px;
+padding:10px;
+border:1px solid #e5e7eb;
+border-radius:10px;
+background:#f8fafc;
+font-size:12px;
+line-height:1.45;
+text-align:left;
+}
+
+.view-detail.show{
+display:block;
+}
+
+.detail-title{
+font-weight:700;
+font-size:13px;
+margin-bottom:6px;
+}
+
+.detail-list{
+margin:6px 0 0 16px;
+padding:0;
+}
+
+.detail-settings{
+display:none;
+margin-top:10px;
+padding-top:10px;
+border-top:1px solid #e2e8f0;
+}
+
+.detail-settings.show{
+display:block;
+}
+
+.premium-note{
+font-size:11px;
+line-height:1.35;
+color:#475569;
+margin-bottom:8px;
+}
+
+.settings-group{
+margin-top:8px;
+padding:2px 0 0;
+}
+
+.settings-group + .settings-group{
+border-top:1px solid #e2e8f0;
+padding-top:9px;
+margin-top:10px;
+}
+
+.settings-group-title{
+font-size:11px;
+font-weight:700;
+letter-spacing:0.02em;
+text-transform:uppercase;
+color:#64748b;
+margin-bottom:5px;
+}
+
+.setting-row{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:8px;
+margin:7px 0;
+font-size:12px;
+}
+
+.setting-row label{
+font-weight:600;
+color:#0f172a;
+}
+
+.setting-inline{
+display:flex;
+align-items:center;
+gap:6px;
+}
+
+.setting-stack{
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.range-wrap{
+display:flex;
+align-items:center;
+gap:6px;
+}
+
+.range-wrap input[type="range"]{
+width:110px;
+}
+
+.range-value{
+min-width:30px;
+text-align:right;
+font-size:11px;
+color:#334155;
+}
+
+.domain-list{
+width:100%;
+min-height:56px;
+resize:vertical;
+padding:6px;
+border:1px solid #d1d5db;
+border-radius:6px;
+font-size:11px;
+font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+line-height:1.35;
+}
+
+.preset-tags{
+display:flex;
+flex-wrap:wrap;
+gap:4px;
+}
+
+.preset-tag{
+padding:3px 6px;
+border:1px solid #cbd5e1;
+border-radius:999px;
+font-size:10px;
+background:#f8fafc;
+color:#334155;
+cursor:pointer;
+}
+
+.progress-note{
+font-size:11px;
+line-height:1.35;
+color:#334155;
+padding:6px 8px;
+border:1px solid #dbe4f3;
+border-radius:8px;
+background:#f8fbff;
+}
+
+.account-panel{
+display:none;
+margin-top:10px;
+padding-top:10px;
+border-top:1px solid #e2e8f0;
+}
+
+.account-panel.show{
+display:block;
+}
+
+.account-status{
+font-size:11px;
+color:#334155;
+margin-bottom:8px;
+padding:6px 8px;
+border:1px solid #dbe4f3;
+border-radius:8px;
+background:#f8fbff;
+}
+
+.account-grid{
+display:grid;
+gap:7px;
+}
+
+.account-grid.hidden{
+display:none;
+}
+
+.account-grid label{
+font-size:11px;
+font-weight:600;
+color:#334155;
+}
+
+.account-grid input{
+width:100%;
+box-sizing:border-box;
+padding:6px 8px;
+border:1px solid #d1d5db;
+border-radius:6px;
+font-size:12px;
+}
+
+.account-actions{
+display:flex;
+gap:6px;
+margin-top:8px;
+}
+
+.account-actions.hidden{
+display:none;
+}
+
+.account-actions button{
+flex:1;
+padding:6px 8px;
+font-size:12px;
+}
+
+.account-meta{
+margin-top:8px;
+font-size:11px;
+line-height:1.4;
+color:#334155;
+}
+
+.account-meta strong{
+color:#0f172a;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+<div class="header">
+<div class="title-row">
+<img src="icons/icon128.png" alt="DeepFocus icon">
+<h3>DeepFocus Time</h3>
+</div>
+<div id="headIcons" class="head-icons">
+<button id="backBtn" class="head-icon-btn head-back" title="Back" aria-label="Back">
+<svg viewBox="0 0 24 24"><path d="M14.5 6.5L9 12l5.5 5.5"></path></svg>
+</button>
+<span class="menu-spacer" aria-hidden="true"></span>
+<div class="menu-group">
+<button id="aboutBtn" class="head-icon-btn" title="About" aria-label="About">
+<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 10v6"></path><path d="M12 7h.01"></path></svg>
+</button>
+<button id="shortcutsBtn" class="head-icon-btn" title="Shortcuts" aria-label="Shortcuts">
+<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9h.01M10 9h.01M13 9h.01M16 9h.01M7 13h4M12 13h5"></path></svg>
+</button>
+<button id="settingsBtn" class="head-icon-btn" title="Premium Settings" aria-label="Premium Settings">
+<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1 1 0 0 1 0 1.4l-1.1 1.1a1 1 0 0 1-1.4 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1 1 0 0 1-1.4 0l-1.1-1.1a1 1 0 0 1 0-1.4l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a1 1 0 0 1-1-1v-1.6a1 1 0 0 1 1-1h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1 1 0 0 1 0-1.4l1.1-1.1a1 1 0 0 1 1.4 0l.1.1a1 1 0 0 0 1.1.2H9a1 1 0 0 0 .6-.9V4a1 1 0 0 1 1-1h1.6a1 1 0 0 1 1 1v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1 1 0 0 1 1.4 0l1.1 1.1a1 1 0 0 1 0 1.4l-.1.1a1 1 0 0 0-.2 1.1V9c0 .4.2.7.6.9.1 0 .3.1.4.1H20a1 1 0 0 1 1 1v1.6a1 1 0 0 1-1 1h-.1a1 1 0 0 0-.9.6z"></path></svg>
+</button>
+<button id="accountBtn" class="head-icon-btn" title="Account" aria-label="Account">
+<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.8-3.2 4.5-4.8 8-4.8s6.2 1.6 8 4.8"></path></svg>
+</button>
+<button id="supportBtn" class="head-icon-btn" title="Support" aria-label="Support">
+<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 16 0"></path><path d="M4 12v4a2 2 0 0 0 2 2h2v-6H6a2 2 0 0 0-2 2"></path><path d="M20 12v4a2 2 0 0 1-2 2h-2v-6h2a2 2 0 0 1 2 2"></path><path d="M12 20h2"></path></svg>
+</button>
+</div>
+</div>
+</div>
+
+<div id="detailView" class="view-detail">
+<div id="detailTitle" class="detail-title"></div>
+<div id="detailText"></div>
+<ul id="detailList" class="detail-list"></ul>
+<div id="accountPanel" class="account-panel">
+<div id="accountStatus" class="account-status">Not signed in.</div>
+<div id="accountAuthFields" class="account-grid">
+<label for="accountEmail">Email</label>
+<input id="accountEmail" type="email" placeholder="you@example.com">
+<label for="accountPassword">Password</label>
+<input id="accountPassword" type="password" placeholder="Enter password">
+</div>
+<div id="accountAuthActions" class="account-actions">
+<button id="accountSignInBtn" type="button">Sign In</button>
+<button id="accountSignUpBtn" type="button">Sign Up</button>
+</div>
+<div id="accountSessionActions" class="account-actions hidden">
+<button id="accountRefreshBtn" type="button">Refresh</button>
+<button id="accountSignOutBtn" type="button">Sign Out</button>
+</div>
+<div id="accountMeta" class="account-meta"></div>
+</div>
+<div id="advancedSettingsPanel" class="detail-settings">
+<div class="premium-note">Premium feature preview is temporarily enabled for testing.</div>
+<div class="settings-group">
+<div class="settings-group-title">Visual Comfort</div>
+<div class="setting-row">
+<label for="nightWorkEnabled">Night Work Mode</label>
+<input id="nightWorkEnabled" type="checkbox">
+</div>
+<div class="setting-row">
+<label for="nightWorkStrength">Night Dim Strength</label>
+<div class="range-wrap">
+<input id="nightWorkStrength" type="range" min="10" max="75" step="1" value="38">
+<span id="nightWorkStrengthValue" class="range-value">38%</span>
+</div>
+</div>
+<div class="setting-row">
+<label for="nightWorkSmart">Smart Real-Time Auto</label>
+<input id="nightWorkSmart" type="checkbox" checked>
+</div>
+<div class="setting-row">
+<label for="breakVisualEnabled">Break Visual Tab</label>
+<input id="breakVisualEnabled" type="checkbox">
+</div>
+</div>
+
+<div class="settings-group">
+<div class="settings-group-title">Focus Protection</div>
+<div class="setting-row">
+<label for="distractionMuteEnabled">Mute Distracting Sites (Focus)</label>
+<input id="distractionMuteEnabled" type="checkbox" checked>
+</div>
+<div class="setting-stack">
+<label for="distractionDomains" style="font-size:11px;color:#334155;">Blocked domain list (one per line or comma)</label>
+<textarea id="distractionDomains" class="domain-list">youtube.com
+facebook.com
+reddit.com
+x.com
+instagram.com</textarea>
+<div class="preset-tags">
+<button type="button" class="preset-tag" data-domain="youtube.com">YouTube</button>
+<button type="button" class="preset-tag" data-domain="facebook.com">Facebook</button>
+<button type="button" class="preset-tag" data-domain="reddit.com">Reddit</button>
+<button type="button" class="preset-tag" data-domain="x.com">X</button>
+<button type="button" class="preset-tag" data-domain="instagram.com">Instagram</button>
+</div>
+</div>
+</div>
+
+<div class="settings-group">
+<div class="settings-group-title">Session Automation</div>
+<div class="setting-row">
+<label for="idleAutoPauseEnabled">Idle Auto-Pause</label>
+<input id="idleAutoPauseEnabled" type="checkbox" checked>
+</div>
+<div class="setting-row">
+<label for="idleAutoPauseMinutes">Idle Threshold</label>
+<div class="setting-inline">
+<input id="idleAutoPauseMinutes" type="number" min="1" max="60" step="1" value="5" style="width:52px;padding:3px 4px;border:1px solid #d1d5db;border-radius:6px;">
+<span style="font-size:11px;color:#475569;">min</span>
+</div>
+</div>
+</div>
+
+<div class="settings-group">
+<div class="settings-group-title">Productivity</div>
+<div class="setting-row">
+<label for="dailyFocusGoal">Daily Focus Goal</label>
+<div class="setting-inline">
+<input id="dailyFocusGoal" type="number" min="1" max="20" step="1" value="6" style="width:52px;padding:3px 4px;border:1px solid #d1d5db;border-radius:6px;">
+<span style="font-size:11px;color:#475569;">sessions</span>
+</div>
+</div>
+<div id="progressReport" class="progress-note">Today: 0/6 sessions. Streak: 0 day.</div>
+</div>
+
+<div class="settings-group">
+<div class="settings-group-title">Meeting Awareness</div>
+<div class="setting-row">
+<label for="meetingAutoPauseEnabled">Meeting Auto-Pause (Meet/Zoom/Teams)</label>
+<input id="meetingAutoPauseEnabled" type="checkbox" checked>
+</div>
+</div>
+</div>
+<button id="detailActionBtn" class="upgrade-btn" style="display:none;"></button>
+</div>
+
+<div id="mainView" class="view-main">
+<div class="timer-basic">
+<div class="time-fields">
+<div class="time-row">
+<span class="time-label">&#x1F3AF; Focus</span>
+<input id="focusTime" type="number" value="25">
+</div>
+
+<div class="time-row">
+<span class="time-label">&#x2615; Break</span>
+<input id="breakTime" type="number" value="5">
+</div>
+</div>
+<div class="sound-box">
+<input id="soundEnabled" type="checkbox" checked>
+<label for="soundEnabled">&#x1F50A; Sound</label>
+</div>
+</div>
+
+<div class="reminders">
+<div class="reminder-row">
+<div class="reminder-left">
+<input id="lunchEnabled" type="checkbox">
+<label for="lunchEnabled">&#x1F35C; Lunch Break Notification</label>
+</div>
+<input id="lunchTime" type="time" value="12:00">
+</div>
+<div class="reminder-row">
+<div class="reminder-left">
+<input id="dinnerEnabled" type="checkbox">
+<label for="dinnerEnabled">&#x1F319; Evening Break Notification</label>
+</div>
+<input id="dinnerTime" type="time" value="19:00">
+</div>
+</div>
+
+<div class="controls">
+<button id="startBtn">&#x25B6; Start</button>
+<button id="pauseBtn">&#x23F8; Pause</button>
+<button id="resetBtn">&#x21BA; Reset</button>
+</div>
+</div>
+</div>
+ 
+<script src="popup.js"></script>
+<audio id="tickSound" src="sounds/tick.mp3" preload="auto"></audio>
+<audio id="dingSound" src="sounds/ding.mp3" preload="auto"></audio>
+</body>
+</html>

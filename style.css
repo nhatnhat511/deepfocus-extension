@@ -1,0 +1,21 @@
+body{
+font-family: Arial;
+width:220px;
+padding:10px;
+text-align:center;
+}
+
+input{
+width:60px;
+margin:5px;
+}
+
+button{
+margin:5px;
+padding:6px 12px;
+cursor:pointer;
+}
+
+.buttons{
+margin-top:10px;
+}
