@@ -65,6 +65,7 @@ let accountProfile = null
 const SUPABASE_URL = "https://jpgywjxztjkayynptjrs.supabase.co"
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr"
 const AUTH_STORAGE_KEY = "deepfocusSupabaseSession"
+const AUTH_EMAIL_REDIRECT_URL = "https://deepfocustime.com/auth/callback"
 
 function setPauseLabel(paused){
 isPaused = paused
@@ -403,7 +404,13 @@ setAccountStatus("Creating account...", false)
 try{
 await supabaseRequest("/auth/v1/signup", {
 method: "POST",
-body: JSON.stringify({ email, password })
+body: JSON.stringify({
+email,
+password,
+options: {
+emailRedirectTo: AUTH_EMAIL_REDIRECT_URL
+}
+})
 })
 setAccountStatus("Signup successful. Check your email to confirm account if required.", false)
 }catch(err){
