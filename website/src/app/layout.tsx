@@ -18,11 +18,18 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Image src="/logo-main.svg" alt="DeepFocus Time" width={176} height={35} priority />
+          <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2">
+            <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-semibold text-slate-900">
+              <Image
+                src="/logo-main.svg"
+                alt="DeepFocus Time"
+                width={220}
+                height={44}
+                className="h-7 w-auto sm:h-8 md:h-9"
+                priority
+              />
             </Link>
-            <nav className="flex items-center gap-4 text-sm text-slate-700">
+            <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-700">
               <Link href="/pricing" className="hover:text-slate-900">
                 Pricing
               </Link>
