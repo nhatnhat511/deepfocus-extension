@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "edge";
+
 type PaddleEvent = {
   event_type?: string;
   data?: Record<string, unknown>;
