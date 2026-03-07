@@ -20,7 +20,7 @@ export default function RootLayout({
         <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-              <Image src="/deepfocus-logo.svg" alt="DeepFocus Time" width={176} height={35} priority />
+              <Image src="/logo-main.svg" alt="DeepFocus Time" width={176} height={35} priority />
             </Link>
             <nav className="flex items-center gap-4 text-sm text-slate-700">
               <Link href="/pricing" className="hover:text-slate-900">

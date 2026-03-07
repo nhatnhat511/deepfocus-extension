@@ -71,7 +71,7 @@ export default function PricingPage() {
               <td className="py-2">Included</td>
             </tr>
             <tr className="border-b border-slate-100">
-              <td className="py-2 pr-4">Draggable in-page timer overlay with adaptive contrast</td>
+              <td className="py-2 pr-4">In-page timer overlay support</td>
               <td className="py-2 pr-4">Included</td>
               <td className="py-2">Included</td>
             </tr>
@@ -96,7 +96,7 @@ export default function PricingPage() {
               <td className="py-2">Included</td>
             </tr>
             <tr className="border-b border-slate-100">
-              <td className="py-2 pr-4">Break visual tab and guided break surface</td>
+              <td className="py-2 pr-4">Break visual mode</td>
               <td className="py-2 pr-4">Limited</td>
               <td className="py-2">Unlocked</td>
             </tr>
