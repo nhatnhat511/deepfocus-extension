@@ -1,4 +1,12 @@
 export default function PricingPage() {
+  const yes = <span className="font-semibold text-emerald-600">✓ Included</span>;
+  const no = <span className="font-semibold text-rose-600">✗ Locked</span>;
+  const limited = <span className="font-semibold text-amber-600">• Limited</span>;
+  const basic = <span className="font-semibold text-slate-600">• Basic</span>;
+  const advanced = <span className="font-semibold text-emerald-600">✓ Advanced</span>;
+  const optional = <span className="font-semibold text-slate-600">• Optional</span>;
+  const required = <span className="font-semibold text-emerald-600">✓ Required</span>;
+
   return (
     <div className="space-y-8">
       <section>
@@ -52,83 +60,83 @@ export default function PricingPage() {
           <tbody className="text-slate-700">
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Install from Chrome and use without account</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Start, pause, resume, and reset timer</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Custom focus and break durations</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Multi-tab session sync</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">In-page timer overlay support</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Countdown tick and transition sound alerts</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Lunch and evening reminder scheduling</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Reminder popup with dismiss and end-session actions</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Keyboard start, pause/resume, and reset commands</td>
-              <td className="py-2 pr-4">Included</td>
-              <td className="py-2">Included</td>
+              <td className="py-2 pr-4">{yes}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Break visual mode</td>
-              <td className="py-2 pr-4">Limited</td>
-              <td className="py-2">Unlocked</td>
+              <td className="py-2 pr-4">{limited}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Night Work Mode with smart dim strength</td>
-              <td className="py-2 pr-4">Locked</td>
-              <td className="py-2">Unlocked</td>
+              <td className="py-2 pr-4">{no}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Distracting site mute with custom domain list</td>
-              <td className="py-2 pr-4">Locked</td>
-              <td className="py-2">Unlocked</td>
+              <td className="py-2 pr-4">{no}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Idle auto-pause</td>
-              <td className="py-2 pr-4">Locked</td>
-              <td className="py-2">Unlocked</td>
+              <td className="py-2 pr-4">{no}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Meeting-aware auto-pause (Meet/Zoom/Teams)</td>
-              <td className="py-2 pr-4">Locked</td>
-              <td className="py-2">Unlocked</td>
+              <td className="py-2 pr-4">{no}</td>
+              <td className="py-2">{yes}</td>
             </tr>
             <tr className="border-b border-slate-100">
               <td className="py-2 pr-4">Daily goal and streak tracking</td>
-              <td className="py-2 pr-4">Basic</td>
-              <td className="py-2">Advanced</td>
+              <td className="py-2 pr-4">{basic}</td>
+              <td className="py-2">{advanced}</td>
             </tr>
             <tr>
               <td className="py-2 pr-4">Account and premium plan sync</td>
-              <td className="py-2 pr-4">Optional</td>
-              <td className="py-2">Required for premium unlock</td>
+              <td className="py-2 pr-4">{optional}</td>
+              <td className="py-2">{required}</td>
             </tr>
           </tbody>
         </table>

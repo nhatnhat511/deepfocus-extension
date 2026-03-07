@@ -22,12 +22,13 @@ export default function RootLayout({
             <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-semibold text-slate-900">
               <Image
                 src="/logo-main.svg"
-                alt="DeepFocus Time"
-                width={220}
+                alt="DeepFocus logo"
+                width={44}
                 height={44}
                 className="h-7 w-auto sm:h-8 md:h-9"
                 priority
               />
+              <span className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">DeepFocus Time</span>
             </Link>
             <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-700">
               <Link href="/pricing" className="hover:text-slate-900">
