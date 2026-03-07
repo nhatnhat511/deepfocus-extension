@@ -1,3 +1,5 @@
+import PaddleCheckoutCard from "@/components/PaddleCheckoutCard";
+
 export default function PricingPage() {
   const yes = <span className="font-semibold text-emerald-600">✓ Included</span>;
   const no = <span className="font-semibold text-rose-600">✗ Locked</span>;
@@ -38,12 +40,7 @@ export default function PricingPage() {
             <li>Distraction muting and custom blocked domains</li>
             <li>Idle and meeting-aware auto pause features</li>
           </ul>
-          <button
-            type="button"
-            className="mt-6 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
-          >
-            Upgrade with Paddle (coming next)
-          </button>
+          <PaddleCheckoutCard />
         </article>
       </section>
 
