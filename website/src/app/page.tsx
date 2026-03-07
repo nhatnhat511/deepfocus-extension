@@ -51,6 +51,16 @@ export default function Home() {
           </p>
         </article>
       </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-slate-900">Built for trust</h2>
+        <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+          <p>Transparent pricing and clear policy pages.</p>
+          <p>Account security powered by Supabase Auth.</p>
+          <p>Custom domain with SSL enabled on Cloudflare.</p>
+          <p>Payment integration with Paddle is being finalized.</p>
+        </div>
+      </section>
     </div>
   );
 }

@@ -109,7 +109,11 @@ support: {
 title: "Support",
 text: "Need help with DeepFocus Time? Contact the publisher support team:",
 list: [
-"Email: support@memezaar.com"
+"Email: support@deepfocustime.com",
+"Privacy: https://deepfocustime.com/privacy",
+"Terms: https://deepfocustime.com/terms",
+"Refund: https://deepfocustime.com/refund",
+"Delete Data: https://deepfocustime.com/delete-data"
 ],
 actionLabel: ""
 }
@@ -141,7 +145,34 @@ detailText.textContent = cfg.text
 detailList.innerHTML = ""
 cfg.list.forEach((item)=>{
 const li = document.createElement("li")
-li.textContent = item
+const raw = String(item || "")
+const urlMatch = raw.match(/https?:\/\/\S+/i)
+if(urlMatch){
+const url = urlMatch[0]
+const label = raw.replace(url, "").replace(/[:\s]+$/,"").trim()
+if(label){
+const prefix = document.createElement("span")
+prefix.textContent = `${label}: `
+li.appendChild(prefix)
+}
+const a = document.createElement("a")
+a.href = url
+a.textContent = url
+a.target = "_blank"
+a.rel = "noopener noreferrer"
+li.appendChild(a)
+}else if(/^email:\s*/i.test(raw)){
+const email = raw.replace(/^email:\s*/i,"").trim()
+const prefix = document.createElement("span")
+prefix.textContent = "Email: "
+li.appendChild(prefix)
+const a = document.createElement("a")
+a.href = `mailto:${email}`
+a.textContent = email
+li.appendChild(a)
+}else{
+li.textContent = raw
+}
 detailList.appendChild(li)
 })
 detailList.style.display = cfg.list.length ? "block" : "none"

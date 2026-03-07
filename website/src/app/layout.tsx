@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
@@ -18,8 +19,8 @@ export default function RootLayout({
       <body className="antialiased">
         <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-            <Link href="/" className="text-lg font-semibold text-slate-900">
-              DeepFocus Time
+            <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Image src="/deepfocus-logo.svg" alt="DeepFocus Time" width={176} height={35} priority />
             </Link>
             <nav className="flex items-center gap-4 text-sm text-slate-700">
               <Link href="/pricing" className="hover:text-slate-900">
@@ -43,7 +44,7 @@ export default function RootLayout({
         <footer className="border-t border-slate-200 bg-white">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 text-sm text-slate-600">
             <span>© {new Date().getFullYear()} DeepFocus Time</span>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Link href="/privacy" className="hover:text-slate-900">
                 Privacy
               </Link>
@@ -55,6 +56,9 @@ export default function RootLayout({
               </Link>
               <Link href="/delete-data" className="hover:text-slate-900">
                 Delete Data
+              </Link>
+              <Link href="/contact" className="hover:text-slate-900">
+                Support
               </Link>
             </div>
           </div>

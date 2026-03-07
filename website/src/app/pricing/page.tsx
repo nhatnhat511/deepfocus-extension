@@ -37,6 +37,15 @@ export default function PricingPage() {
           </button>
         </article>
       </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h3 className="text-lg font-semibold text-slate-900">Payment and billing confidence</h3>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+          <li>Checkout will be powered by Paddle.</li>
+          <li>Billing status syncs to your DeepFocus account profile.</li>
+          <li>Refund and terms policies are publicly accessible.</li>
+        </ul>
+      </section>
     </div>
   );
 }
