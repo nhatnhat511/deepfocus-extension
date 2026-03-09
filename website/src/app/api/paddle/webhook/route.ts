@@ -1,7 +1,6 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 type PaddleWebhookEvent = {
   event_id?: string;
@@ -58,22 +57,50 @@ function parseSignatureHeader(headerValue: string) {
   return { ts, signatures };
 }
 
-function verifyPaddleSignature(rawBody: string, headerValue: string, secret: string) {
+function textToBytes(input: string) {
+  return new TextEncoder().encode(input);
+}
+
+function bytesToHex(bytes: Uint8Array) {
+  let out = "";
+  for (const b of bytes) {
+    out += b.toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
+async function signHmacSha256Hex(secret: string, message: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    textToBytes(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, textToBytes(message));
+  return bytesToHex(new Uint8Array(signature));
+}
+
+function secureEqualHex(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+async function verifyPaddleSignature(rawBody: string, headerValue: string, secret: string) {
   const parsed = parseSignatureHeader(headerValue);
   if (!parsed.ts || !parsed.signatures.length) return false;
 
   const signedPayload = `${parsed.ts}:${rawBody}`;
-  const expected = crypto.createHmac("sha256", secret).update(signedPayload, "utf8").digest("hex");
-  const expectedBuf = Buffer.from(expected, "utf8");
+  const expected = await signHmacSha256Hex(secret, signedPayload);
+  const expectedLower = expected.toLowerCase();
 
   return parsed.signatures.some((candidate) => {
-    try {
-      const candidateBuf = Buffer.from(candidate, "utf8");
-      if (candidateBuf.length !== expectedBuf.length) return false;
-      return crypto.timingSafeEqual(candidateBuf, expectedBuf);
-    } catch {
-      return false;
-    }
+    const cand = String(candidate || "").toLowerCase();
+    return secureEqualHex(cand, expectedLower);
   });
 }
 
@@ -361,7 +388,7 @@ export async function POST(req: Request) {
     if (!signature) return jsonError("Missing paddle-signature header.", 400);
     if (!isRecentSignature(signature)) return jsonError("Webhook timestamp is too old.", 400);
 
-    if (!verifyPaddleSignature(rawBody, signature, PADDLE_WEBHOOK_SECRET)) {
+    if (!(await verifyPaddleSignature(rawBody, signature, PADDLE_WEBHOOK_SECRET))) {
       return jsonError("Invalid webhook signature.", 400);
     }
 
