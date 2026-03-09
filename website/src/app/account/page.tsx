@@ -81,6 +81,11 @@ function saveSession(session: AuthSession | null) {
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
+function isExpiredTokenError(message: string) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("token is expired") || text.includes("jwt expired");
+}
+
 export default function AccountPage() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
@@ -185,6 +190,24 @@ export default function AccountPage() {
     setProfile(row as ProfileRow);
   }
 
+  async function refreshAccessToken(activeSession: AuthSession) {
+    const refreshToken = String(activeSession.refresh_token || "");
+    if (!refreshToken) return null;
+    const payload = (await supabaseRequest("/auth/v1/token?grant_type=refresh_token", {
+      method: "POST",
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })) as AuthSession;
+    if (!payload?.access_token) return null;
+    const nextSession: AuthSession = {
+      ...activeSession,
+      ...payload,
+      refresh_token: payload.refresh_token || refreshToken,
+    };
+    setSession(nextSession);
+    saveSession(nextSession);
+    return nextSession;
+  }
+
   async function startTrial() {
     if (!session?.access_token || !signedIn) return;
     setError("");
@@ -212,7 +235,7 @@ export default function AccountPage() {
     }
   }
 
-  async function refreshCurrentUser(activeSession: AuthSession | null = session) {
+  async function refreshCurrentUser(activeSession: AuthSession | null = session, allowRetry = true) {
     if (!activeSession?.access_token) return;
     try {
       const profile = (await supabaseRequest("/auth/v1/user", { method: "GET" }, activeSession.access_token)) as Record<
@@ -232,6 +255,24 @@ export default function AccountPage() {
       await fetchEntitlement(updated);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Session refresh failed.";
+      if (allowRetry && isExpiredTokenError(message)) {
+        try {
+          const refreshed = await refreshAccessToken(activeSession);
+          if (refreshed?.access_token) {
+            await refreshCurrentUser(refreshed, false);
+            setError("");
+            return;
+          }
+        } catch {
+          // continue to session cleanup below
+        }
+        setSession(null);
+        setProfile(null);
+        saveSession(null);
+        setStatus("Session expired. Please sign in again.");
+        setError("");
+        return;
+      }
       setError(message);
     }
   }
