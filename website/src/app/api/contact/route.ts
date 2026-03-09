@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "edge";
+
 type ContactBody = {
   name?: string;
   email?: string;
