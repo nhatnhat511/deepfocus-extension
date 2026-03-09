@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 declare global {
   interface Window {
@@ -25,10 +25,22 @@ let paddleInitialized = false;
 
 type CreateCheckoutResponse = {
   transactionId: string;
+  accountEmail?: string;
 };
+
+type WebsiteSession = {
+  access_token?: string;
+  user?: {
+    id?: string;
+    email?: string;
+  };
+};
+
+const SESSION_KEY = "deepfocusWebsiteSession";
 
 export default function PaddleCheckoutCard() {
   const [email, setEmail] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
@@ -37,8 +49,23 @@ export default function PaddleCheckoutCard() {
   const paddleEnv = (process.env.NEXT_PUBLIC_PADDLE_ENV || "sandbox") as "sandbox" | "production";
 
   const canCheckout = useMemo(() => {
-    return ready && paddleToken && /^\S+@\S+\.\S+$/.test(email.trim()) && !loading;
-  }, [email, loading, paddleToken, ready]);
+    return ready && paddleToken && !!accessToken && /^\S+@\S+\.\S+$/.test(email.trim()) && !loading;
+  }, [accessToken, email, loading, paddleToken, ready]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const session = JSON.parse(raw) as WebsiteSession;
+      const token = String(session?.access_token || "");
+      const userEmail = String(session?.user?.email || "");
+      if (token) setAccessToken(token);
+      if (userEmail) setEmail(userEmail);
+    } catch {
+      return;
+    }
+  }, []);
 
   function initPaddleIfNeeded() {
     if (!window.Paddle || paddleInitialized || !paddleToken) return;
@@ -51,8 +78,12 @@ export default function PaddleCheckoutCard() {
 
   async function startCheckout() {
     setError("");
+    if (!accessToken) {
+      setError("Please sign in on the Account page before upgrading.");
+      return;
+    }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setError("Please enter a valid account email.");
+      setError("Unable to resolve your account email. Please sign in again.");
       return;
     }
     if (!window.Paddle) {
@@ -66,7 +97,10 @@ export default function PaddleCheckoutCard() {
 
       const res = await fetch("/api/paddle/create-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
@@ -78,6 +112,9 @@ export default function PaddleCheckoutCard() {
       const payload = (await res.json()) as CreateCheckoutResponse;
       if (!payload.transactionId) {
         throw new Error("Missing transaction id.");
+      }
+      if (payload.accountEmail && payload.accountEmail !== email.trim().toLowerCase()) {
+        setEmail(payload.accountEmail);
       }
 
       window.Paddle.Checkout.open({
@@ -107,19 +144,12 @@ export default function PaddleCheckoutCard() {
       />
 
       <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
-        <label htmlFor="checkout-email" className="mb-2 block text-sm font-semibold text-slate-800">
-          Premium account email
-        </label>
-        <input
-          id="checkout-email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
-        />
+        <label className="mb-2 block text-sm font-semibold text-slate-800">Premium account email</label>
+        <div className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900">
+          {email || "Not signed in"}
+        </div>
         <p className="mt-2 text-xs text-slate-500">
-          Use the same email as your DeepFocus account so premium can sync correctly.
+          Premium maps to your signed-in DeepFocus account.
         </p>
         {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
         <button

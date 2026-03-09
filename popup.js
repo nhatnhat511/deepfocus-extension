@@ -89,8 +89,6 @@ const BREAK_VISUAL_BG_KEY = "deepfocusBreakVisualBackground"
 const BREAK_VISUAL_BG_META_KEY = "deepfocusBreakVisualBackgroundMeta"
 const ACCOUNT_STATUS_KEY = "deepfocusAccountStatus"
 const PENDING_TRIAL_KEY = "deepfocusPendingTrialActivation"
-const TRIAL_DEVICE_MARKER_KEY = "deepfocusTrialDeviceMarker"
-const TRIAL_CROSS_ACCOUNT_MSG = "You have already started a trial on another account.\nTo continue using premium features, please upgrade to Premium."
 
 function setPauseLabel(paused){
 isPaused = paused
@@ -558,56 +556,10 @@ chrome.storage.local.set({ [PENDING_TRIAL_KEY]: !!flag }, resolve)
 })
 }
 
-function buildDeviceFingerprint(){
-const src = [
-navigator.userAgent || "",
-navigator.platform || "",
-navigator.language || "",
-String(navigator.hardwareConcurrency || ""),
-String(screen && screen.width ? screen.width : ""),
-String(screen && screen.height ? screen.height : "")
-].join("|")
-let hash = 0
-for(let i = 0; i < src.length; i += 1){
-hash = ((hash << 5) - hash) + src.charCodeAt(i)
-hash |= 0
-}
-return `df-${Math.abs(hash)}`
-}
-
-function getDeviceTrialMarker(){
-return new Promise((resolve)=>{
-chrome.storage.local.get(TRIAL_DEVICE_MARKER_KEY, (result)=>{
-resolve(result[TRIAL_DEVICE_MARKER_KEY] || null)
-})
-})
-}
-
-function setDeviceTrialMarker(marker){
-return new Promise((resolve)=>{
-chrome.storage.local.set({ [TRIAL_DEVICE_MARKER_KEY]: marker }, resolve)
-})
-}
-
 function hasUsedTrialOnAccount(){
+if(accountProfile && accountProfile.trial_used === true) return true
 const meta = authSession && authSession.user && authSession.user.user_metadata ? authSession.user.user_metadata : null
 return !!(meta && meta.deepfocus_trial_used)
-}
-
-async function markTrialUsedOnAccount(){
-if(!authSession || !authSession.access_token) return
-const meta = authSession && authSession.user && authSession.user.user_metadata ? authSession.user.user_metadata : {}
-await supabaseRequest("/auth/v1/user", {
-method: "PUT",
-body: JSON.stringify({
-data: {
-...meta,
-deepfocus_trial_used: true,
-deepfocus_trial_started_at: new Date().toISOString()
-}
-})
-}, authSession.access_token)
-await fetchCurrentUser()
 }
 
 async function clearSessionStorage(){
@@ -616,38 +568,40 @@ chrome.storage.local.remove(AUTH_STORAGE_KEY, resolve)
 })
 }
 
+function normalizeRpcRow(payload){
+if(Array.isArray(payload)) return payload[0] || null
+if(payload && typeof payload === "object") return payload
+return null
+}
+
+function mapEntitlement(row){
+if(!row) return null
+return {
+id: row.id || "",
+email: row.email || null,
+plan: row.plan || "free",
+premium_until: row.premium_until || null,
+trial_used: !!row.trial_used,
+trial_started_at: row.trial_started_at || null
+}
+}
+
+async function fetchEntitlement(){
+if(!authSession || !authSession.access_token) return null
+const payload = await supabaseRequest("/rest/v1/rpc/get_account_entitlement", {
+method: "POST",
+body: JSON.stringify({})
+}, authSession.access_token)
+return mapEntitlement(normalizeRpcRow(payload))
+}
+
 async function fetchProfile(){
 if(!authSession || !authSession.user || !authSession.access_token){
 accountProfile = null
 renderAccountMeta()
 return
 }
-
-const uid = authSession.user.id
-const rows = await supabaseRequest(`/rest/v1/profiles?id=eq.${encodeURIComponent(uid)}&select=plan,premium_until,email,display_name&limit=1`, {
-method: "GET",
-headers: {
-"Prefer": "return=representation"
-}
-}, authSession.access_token)
-
-accountProfile = Array.isArray(rows) && rows.length ? rows[0] : null
-if(accountProfile && (accountProfile.plan === "premium" || accountProfile.plan === "trial") && accountProfile.premium_until){
-const untilTs = Date.parse(accountProfile.premium_until)
-if(Number.isFinite(untilTs) && untilTs <= Date.now()){
-await supabaseRequest(`/rest/v1/profiles?id=eq.${encodeURIComponent(uid)}`, {
-method: "PATCH",
-headers: {
-"Prefer": "return=representation"
-},
-body: JSON.stringify({ plan: "free", premium_until: null })
-}, authSession.access_token)
-const expiredTrial = accountProfile.plan === "trial"
-accountProfile.plan = "free"
-accountProfile.premium_until = null
-setAccountStatus(expiredTrial ? "Trial ended. Upgrade to continue Premium features." : "Premium subscription ended. Please upgrade to continue Premium features.", true)
-}
-}
+accountProfile = await fetchEntitlement()
 renderAccountMeta()
 }
 
@@ -688,41 +642,18 @@ await savePendingTrialFlag(false)
 return false
 }
 
-const marker = await getDeviceTrialMarker()
-const uid = authSession.user.id
-if(marker && marker.used && marker.userId && marker.userId !== uid){
-setAccountStatus(TRIAL_CROSS_ACCOUNT_MSG, true)
-pendingTrialActivation = false
-await savePendingTrialFlag(false)
-return false
-}
-
 updateAccountButtonsLoading(true)
 setAccountStatus("Activating free trial...", false)
 try{
-const now = new Date()
-const until = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-const payload = {
-id: uid,
-email: authSession.user.email || null,
-plan: "trial",
-premium_until: until
-}
-await supabaseRequest("/rest/v1/profiles?on_conflict=id", {
+const payload = await supabaseRequest("/rest/v1/rpc/start_free_trial", {
 method: "POST",
-headers: {
-"Prefer": "resolution=merge-duplicates,return=representation"
-},
-body: JSON.stringify(payload)
+body: JSON.stringify({})
 }, authSession.access_token)
-await markTrialUsedOnAccount()
-await setDeviceTrialMarker({
-used: true,
-userId: uid,
-fingerprint: buildDeviceFingerprint(),
-usedAt: Date.now()
-})
+accountProfile = mapEntitlement(normalizeRpcRow(payload))
+if(!accountProfile){
 await fetchProfile()
+}
+renderAccountMeta()
 pendingTrialActivation = false
 await savePendingTrialFlag(false)
 setAccountStatus("Free trial activated. Premium unlocked.", false)
@@ -731,7 +662,12 @@ closeDetailView()
 }
 return true
 }catch(err){
-setAccountStatus(err.message || "Unable to activate trial.", true)
+const msg = (err && err.message) ? String(err.message) : "Unable to activate trial."
+if(msg.includes("TRIAL_ALREADY_USED")){
+setAccountStatus("This account has already used its free trial. Please upgrade to Premium.", true)
+}else{
+setAccountStatus(msg, true)
+}
 return false
 }finally{
 updateAccountButtonsLoading(false)
@@ -949,7 +885,7 @@ await saveSessionToStorage(authSession)
 await fetchCurrentUser()
 await fetchProfile()
 await maybeAutoActivateTrial()
-setAccountStatus("Signup completed and trial activated.", false)
+setAccountStatus("Signup completed and signed in.", false)
 syncAccountUiBySession()
 return
 }

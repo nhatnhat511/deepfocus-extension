@@ -17,12 +17,12 @@ type AuthSession = {
 type ProfileRow = {
   id: string;
   email: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
   plan: "free" | "trial" | "premium";
   premium_until: string | null;
   trial_used: boolean;
-  updated_at: string;
+  trial_started_at: string | null;
+  is_premium_active: boolean;
+  is_trial_active: boolean;
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
@@ -123,7 +123,11 @@ export default function AccountPage() {
       };
     }
 
-    return { label: "Free", detail: "No active premium access." };
+    if (profile.trial_used) {
+      return { label: "Free", detail: "Trial already used. Upgrade to unlock premium again." };
+    }
+
+    return { label: "Free", detail: "No active premium access. You can start a 7-day free trial." };
   }, [profile]);
 
   useEffect(() => {
@@ -145,7 +149,7 @@ export default function AccountPage() {
     saveSession(oauthSession);
     setStatus("Signed in successfully.");
     setError("");
-    void refreshCurrentUser(oauthSession, true);
+    void refreshCurrentUser(oauthSession);
     if (typeof window !== "undefined") {
       window.history.replaceState({}, document.title, "/account");
     }
@@ -156,7 +160,7 @@ export default function AccountPage() {
     if (!s) return;
     setSession(s);
     setStatus("Session restored.");
-    void refreshCurrentUser(s, true);
+    void refreshCurrentUser(s);
   }, []);
 
   useEffect(() => {
@@ -164,40 +168,51 @@ export default function AccountPage() {
     if (user?.email) setNewEmail(user.email);
   }, [signedIn, user?.email]);
 
-  async function upsertProfile(activeSession: AuthSession, userData: AuthSession["user"]) {
-    if (!activeSession?.access_token || !userData?.id) return;
-    const userMeta = (userData.user_metadata || {}) as Record<string, unknown>;
-    await supabaseRequest(
-      "/rest/v1/profiles?on_conflict=id",
+  async function fetchEntitlement(activeSession: AuthSession) {
+    const payload = await supabaseRequest(
+      "/rest/v1/rpc/get_account_entitlement",
       {
         method: "POST",
-        headers: {
-          Prefer: "resolution=merge-duplicates,return=minimal",
-        },
-        body: JSON.stringify({
-          id: userData.id,
-          email: userData.email || null,
-          display_name: (userMeta.full_name as string) || (userMeta.name as string) || null,
-          avatar_url: (userMeta.avatar_url as string) || null,
-          updated_at: new Date().toISOString(),
-        }),
+        body: JSON.stringify({}),
       },
       activeSession.access_token
     );
+    const row = Array.isArray(payload) ? payload[0] : payload;
+    if (!row || typeof row !== "object") {
+      setProfile(null);
+      return;
+    }
+    setProfile(row as ProfileRow);
   }
 
-  async function fetchProfile(activeSession: AuthSession, userId: string) {
-    const rows = (await supabaseRequest(
-      `/rest/v1/profiles?id=eq.${encodeURIComponent(
-        userId
-      )}&select=id,email,display_name,avatar_url,plan,premium_until,trial_used,updated_at&limit=1`,
-      { method: "GET", headers: { Prefer: "return=representation" } },
-      activeSession.access_token
-    )) as ProfileRow[];
-    setProfile(Array.isArray(rows) && rows.length ? rows[0] : null);
+  async function startTrial() {
+    if (!session?.access_token || !signedIn) return;
+    setError("");
+    setLoading(true);
+    try {
+      await supabaseRequest(
+        "/rest/v1/rpc/start_free_trial",
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        },
+        session.access_token
+      );
+      await fetchEntitlement(session);
+      setStatus("Free trial activated. Premium unlocked for 7 days.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unable to activate trial.";
+      if (msg.includes("TRIAL_ALREADY_USED")) {
+        setError("This account already used the 7-day free trial.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function refreshCurrentUser(activeSession: AuthSession | null = session, syncProfile = false) {
+  async function refreshCurrentUser(activeSession: AuthSession | null = session) {
     if (!activeSession?.access_token) return;
     try {
       const profile = (await supabaseRequest("/auth/v1/user", { method: "GET" }, activeSession.access_token)) as Record<
@@ -214,12 +229,7 @@ export default function AccountPage() {
       };
       setSession(updated);
       saveSession(updated);
-      if (syncProfile && updated.user?.id) {
-        await upsertProfile(updated, updated.user);
-      }
-      if (updated.user?.id) {
-        await fetchProfile(updated, updated.user.id);
-      }
+      await fetchEntitlement(updated);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Session refresh failed.";
       setError(message);
@@ -237,7 +247,7 @@ export default function AccountPage() {
       })) as AuthSession;
       setSession(payload);
       saveSession(payload);
-      await refreshCurrentUser(payload, true);
+      await refreshCurrentUser(payload);
       setStatus("Signed in successfully.");
       setPassword("");
     } catch (err) {
@@ -259,7 +269,7 @@ export default function AccountPage() {
       if (payload?.access_token) {
         setSession(payload);
         saveSession(payload);
-        await refreshCurrentUser(payload, true);
+        await refreshCurrentUser(payload);
         setStatus("Account created and signed in.");
       } else {
         setStatus("Account created. Check your email to confirm if required.");
@@ -318,7 +328,7 @@ export default function AccountPage() {
           session.access_token
         );
         setAvatarPreview(dataUrl);
-        await refreshCurrentUser(session, true);
+        await refreshCurrentUser(session);
         setStatus("Avatar updated.");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Avatar update failed.");
@@ -343,7 +353,7 @@ export default function AccountPage() {
         },
         session.access_token
       );
-      await refreshCurrentUser(session, true);
+      await refreshCurrentUser(session);
       setStatus("Email update requested. Check inbox for confirmation.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Email update failed.");
@@ -467,6 +477,16 @@ export default function AccountPage() {
             <strong className="text-slate-900">Plan:</strong> {accountSummary.label}
             <div className="mt-1 text-xs text-slate-600">{accountSummary.detail}</div>
           </div>
+          {!profile?.is_premium_active && !profile?.trial_used ? (
+            <button
+              type="button"
+              onClick={startTrial}
+              disabled={loading}
+              className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              Start 7-day Free Trial (No Card)
+            </button>
+          ) : null}
 
           <div className="mt-4 flex items-center gap-4">
             <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
