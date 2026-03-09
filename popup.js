@@ -331,7 +331,7 @@ accountSubmitBtn.textContent = "Sign Up"
 accountSwitchPrompt.textContent = "Already have an account?"
 accountSwitchLink.textContent = "Sign in"
 accountGoogleLabel.textContent = "Google"
-accountAppleLabel.textContent = "Apple"
+accountAppleLabel.textContent = "GitHub"
 return
 }
 
@@ -339,7 +339,7 @@ accountSubmitBtn.textContent = "Sign In"
 accountSwitchPrompt.textContent = "Don't have an account?"
 accountSwitchLink.textContent = "Sign up"
 accountGoogleLabel.textContent = "Google"
-accountAppleLabel.textContent = "Apple"
+accountAppleLabel.textContent = "GitHub"
 }
 
 function saveAdvancedSettings(){
@@ -793,7 +793,7 @@ throw new Error("Chrome Identity API is unavailable.")
 }
 
 const redirectUrl = chrome.identity.getRedirectURL("supabase-auth")
-const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(redirectUrl)}&response_type=token`
+const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(redirectUrl)}`
 const finalUrl = await launchAuthFlow(authUrl)
 const parsed = new URL(finalUrl)
 const hashParams = new URLSearchParams(parsed.hash.replace(/^#/,""))
@@ -1210,7 +1210,7 @@ e.preventDefault()
 setAccountMode(accountFormMode === "signup" ? "signin" : "signup")
 })
 accountGoogleBtn.addEventListener("click", ()=>signInWithProvider("google"))
-accountAppleBtn.addEventListener("click", ()=>signInWithProvider("apple"))
+accountAppleBtn.addEventListener("click", ()=>signInWithProvider("github"))
 if(accountTrialBtn){
 accountTrialBtn.addEventListener("click", ()=>requestTrialActivation("account"))
 }
