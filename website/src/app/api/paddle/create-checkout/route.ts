@@ -26,12 +26,30 @@ type SupabaseUser = {
   email_confirmed_at?: string | null;
 };
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+function jsonError(message: string, status = 400, debug?: Record<string, unknown>) {
+  return NextResponse.json(debug ? { error: message, debug } : { error: message }, { status });
 }
 
 function normalizeEmail(input: string) {
   return input.trim().toLowerCase();
+}
+
+function maskSecret(value: string) {
+  if (!value) return "";
+  if (value.length <= 10) return `${value.slice(0, 2)}***`;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
+function buildConfigDebug() {
+  return {
+    apiBase: PADDLE_API_BASE,
+    siteUrl: SITE_URL,
+    priceId: PADDLE_PRICE_ID || "",
+    priceIdPrefix: (PADDLE_PRICE_ID || "").split("_")[0] || "",
+    apiKeyFingerprint: maskSecret(PADDLE_API_KEY),
+    apiKeyPrefix: (PADDLE_API_KEY || "").split("_")[0] || "",
+    hasApiKey: !!PADDLE_API_KEY,
+  };
 }
 
 async function getUserFromAccessToken(accessToken: string) {
@@ -60,31 +78,31 @@ async function getUserFromAccessToken(accessToken: string) {
 
 export async function POST(req: Request) {
   try {
-    if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500);
-    if (!PADDLE_PRICE_ID) return jsonError("Missing PADDLE_PRICE_ID", 500);
+    if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500, { config: buildConfigDebug() });
+    if (!PADDLE_PRICE_ID) return jsonError("Missing PADDLE_PRICE_ID", 500, { config: buildConfigDebug() });
 
     const authHeader = req.headers.get("authorization") || "";
     const bearer = authHeader.match(/^Bearer\s+(.+)$/i);
     const accessToken = bearer ? bearer[1].trim() : "";
     if (!accessToken) {
-      return jsonError("Unauthorized. Please sign in before checkout.", 401);
+      return jsonError("Unauthorized. Please sign in before checkout.", 401, { stage: "auth_header" });
     }
 
     const user = await getUserFromAccessToken(accessToken);
     const userId = String(user.id || "");
     const email = normalizeEmail(String(user.email || ""));
     if (!userId || !/^\S+@\S+\.\S+$/.test(email)) {
-      return jsonError("Unable to resolve account identity.", 401);
+      return jsonError("Unable to resolve account identity.", 401, { stage: "resolve_identity" });
     }
 
     if (!user.email_confirmed_at) {
-      return jsonError("Please verify your email before upgrading.", 403);
+      return jsonError("Please verify your email before upgrading.", 403, { stage: "email_verification" });
     }
 
     const body = (await req.json().catch(() => ({}))) as CreateCheckoutBody;
     const requestedEmail = normalizeEmail(String(body.email || ""));
     if (requestedEmail && requestedEmail !== email) {
-      return jsonError("Checkout email must match your signed-in account.", 403);
+      return jsonError("Checkout email must match your signed-in account.", 403, { stage: "email_match" });
     }
 
     const payload = {
@@ -111,11 +129,18 @@ export async function POST(req: Request) {
     });
 
     const data = (await res.json().catch(() => ({}))) as PaddleTransactionResponse & {
-      error?: { detail?: string };
+      error?: { detail?: string; code?: string; type?: string };
     };
     if (!res.ok) {
       const detail = data?.error?.detail || `Paddle request failed (${res.status})`;
-      return jsonError(detail, res.status);
+      return jsonError(detail, res.status, {
+        stage: "paddle_transactions_create",
+        paddleStatus: res.status,
+        paddleRequestId: res.headers.get("x-request-id") || res.headers.get("request-id") || "",
+        paddleError: data?.error || null,
+        paddlePayload: data || null,
+        config: buildConfigDebug(),
+      });
     }
 
     const transactionId = String(data?.data?.id || "");
@@ -124,6 +149,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ transactionId, accountEmail: email });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unexpected server error.";
-    return jsonError(msg, 500);
+    return jsonError(msg, 500, { stage: "unhandled", config: buildConfigDebug() });
   }
 }
