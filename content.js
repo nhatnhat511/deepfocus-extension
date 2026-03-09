@@ -14,36 +14,7 @@ let lastInTransition = false
 let lastPausedState = false
 let lastAudioEventKey = null
 let lastThemeUpdateAt = 0
-
-const box = document.createElement("div")
-box.style.position = "fixed"
-box.style.top = "10px"
-box.style.left = "auto"
-box.style.right = "16px"
-box.style.pointerEvents = "auto"
-box.style.display = "flex"
-box.style.alignItems = "center"
-box.style.justifyContent = "center"
-box.style.background = "black"
-box.style.color = "white"
-box.style.width = "122px"
-box.style.height = "36px"
-box.style.padding = "0 10px"
-box.style.boxSizing = "border-box"
-box.style.borderRadius = "6px"
-box.style.fontSize = "14px"
-box.style.lineHeight = "1"
-box.style.fontFamily = "\"Segoe UI\", Tahoma, Arial, sans-serif"
-box.style.fontWeight = "600"
-box.style.letterSpacing = "0.2px"
-box.style.zIndex = "999999"
-box.style.whiteSpace = "nowrap"
-box.style.opacity = "0"
-box.style.transition = "opacity 0.12s ease"
-box.style.cursor = "grab"
-box.style.userSelect = "none"
-box.textContent = ""
-document.documentElement.appendChild(box)
+let box = null
 
 let isDragging = false
 let dragOffsetX = 0
@@ -56,6 +27,74 @@ let nightWorkStrength = 38
 let focusBlurEnabled = false
 let nightWorkOverlay = null
 let lastActivityPingAt = 0
+
+function buildTimerBoxElement() {
+    const el = document.createElement("div")
+    el.style.position = "fixed"
+    el.style.top = "10px"
+    el.style.left = "auto"
+    el.style.right = "16px"
+    el.style.pointerEvents = "auto"
+    el.style.display = "flex"
+    el.style.alignItems = "center"
+    el.style.justifyContent = "center"
+    el.style.background = "black"
+    el.style.color = "white"
+    el.style.width = "122px"
+    el.style.height = "36px"
+    el.style.padding = "0 10px"
+    el.style.boxSizing = "border-box"
+    el.style.borderRadius = "6px"
+    el.style.fontSize = "14px"
+    el.style.lineHeight = "1"
+    el.style.fontFamily = "\"Segoe UI\", Tahoma, Arial, sans-serif"
+    el.style.fontWeight = "600"
+    el.style.letterSpacing = "0.2px"
+    el.style.zIndex = "999999"
+    el.style.whiteSpace = "nowrap"
+    el.style.opacity = "0"
+    el.style.transition = "opacity 0.12s ease"
+    el.style.cursor = "grab"
+    el.style.userSelect = "none"
+    el.textContent = ""
+    return el
+}
+
+function ensureTimerBox() {
+    if (box && box.isConnected) return box
+
+    box = buildTimerBoxElement()
+    document.documentElement.appendChild(box)
+
+    box.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return
+        e.preventDefault()
+        startDrag(e.clientX, e.clientY)
+    })
+
+    box.addEventListener("touchstart", (e) => {
+        if (!e.touches.length) return
+        const t = e.touches[0]
+        startDrag(t.clientX, t.clientY)
+    }, { passive: true })
+
+    loadBoxPosition()
+    lastThemeUpdateAt = 0
+    applyAdaptiveTheme()
+    updateFocusBlur()
+    return box
+}
+
+function removeTimerBox() {
+    if (!box) return
+    if (isDragging) {
+        isDragging = false
+    }
+    if (box.isConnected) {
+        box.remove()
+    }
+    box = null
+}
 
 function hasRuntime() {
     try {
@@ -78,8 +117,7 @@ function emitAudio(eventType, mode, seconds, inTransition) {
 }
 
 function setHiddenBox() {
-    box.textContent = ""
-    box.style.opacity = "0"
+    removeTimerBox()
 }
 
 function getTimerBoxVisibleOpacity() {
@@ -87,10 +125,12 @@ function getTimerBoxVisibleOpacity() {
 }
 
 function getBoxWidth() {
+    if (!box) return 122
     return box.offsetWidth || 122
 }
 
 function getBoxHeight() {
+    if (!box) return 36
     return box.offsetHeight || 36
 }
 
@@ -112,6 +152,7 @@ function clampBoxPosition(x, y) {
 }
 
 function setBoxPosition(x, y) {
+    if (!box) return
     const p = clampBoxPosition(x, y)
     box.style.left = `${Math.round(p.x)}px`
     box.style.top = `${Math.round(p.y)}px`
@@ -119,6 +160,7 @@ function setBoxPosition(x, y) {
 }
 
 function saveBoxPosition() {
+    if (!box) return
     if (!hasRuntime()) return
     const left = parseFloat(box.style.left || "0")
     const top = parseFloat(box.style.top || "0")
@@ -128,6 +170,7 @@ function saveBoxPosition() {
 }
 
 function applyDefaultBoxPosition() {
+    if (!box) return
     const x = Math.max(BOX_MARGIN, getViewportWidth() - getBoxWidth() - BOX_MARGIN)
     const y = BOX_MARGIN
     setBoxPosition(x, y)
@@ -193,7 +236,7 @@ function parseColor(value) {
 
 function getBackgroundAtPoint(x, y) {
     let el = document.elementFromPoint(x, y)
-    if (el === box) {
+    if (box && el === box) {
         const prevPointer = box.style.pointerEvents
         box.style.pointerEvents = "none"
         el = document.elementFromPoint(x, y)
@@ -222,6 +265,7 @@ function isLightColor(c) {
 }
 
 function applyAdaptiveTheme() {
+    if (!box || !box.isConnected) return
     const now = Date.now()
     if (now - lastThemeUpdateAt < 500) return
     lastThemeUpdateAt = now
@@ -244,6 +288,7 @@ function applyAdaptiveTheme() {
 }
 
 function startDrag(clientX, clientY) {
+    if (!box) return
     const rect = box.getBoundingClientRect()
     isDragging = true
     dragOffsetX = clientX - rect.left
@@ -262,6 +307,10 @@ function dragMove(clientX, clientY) {
 
 function endDrag() {
     if (!isDragging) return
+    if (!box) {
+        isDragging = false
+        return
+    }
     isDragging = false
     box.style.cursor = "grab"
     saveBoxPosition()
@@ -357,6 +406,7 @@ function updateNightWorkOverlay() {
 }
 
 function updateFocusBlur() {
+    if (!box) return
     box.style.filter = "none"
     if (box.style.opacity !== "0") {
         box.style.opacity = getTimerBoxVisibleOpacity()
@@ -538,6 +588,8 @@ function renderFromState() {
         return
     }
 
+    if (!ensureTimerBox()) return
+
     applyAdaptiveTheme()
 
     let seconds = 0
@@ -647,6 +699,7 @@ function startRenderer() {
 }
 
 window.addEventListener("resize", () => {
+    if (!box) return
     const left = parseFloat(box.style.left || "0")
     const top = parseFloat(box.style.top || "0")
     setBoxPosition(left, top)
@@ -656,16 +709,11 @@ window.addEventListener("resize", () => {
 })
 
 window.addEventListener("scroll", () => {
+    if (!box) return
     lastThemeUpdateAt = 0
     applyAdaptiveTheme()
     updateNightWorkOverlay()
 }, { passive: true })
-
-box.addEventListener("mousedown", (e) => {
-    if (e.button !== 0) return
-    e.preventDefault()
-    startDrag(e.clientX, e.clientY)
-})
 
 document.addEventListener("mousemove", (e) => {
     reportActivity()
@@ -675,12 +723,6 @@ document.addEventListener("mousemove", (e) => {
 document.addEventListener("mouseup", () => {
     endDrag()
 })
-
-box.addEventListener("touchstart", (e) => {
-    if (!e.touches.length) return
-    const t = e.touches[0]
-    startDrag(t.clientX, t.clientY)
-}, { passive: true })
 
 document.addEventListener("touchmove", (e) => {
     reportActivity()
@@ -693,7 +735,6 @@ document.addEventListener("touchend", () => {
     endDrag()
 })
 
-loadBoxPosition()
 startRenderer()
 syncTimerState()
 setInterval(updateNightWorkOverlay, 30000)
