@@ -158,7 +158,7 @@ export default function PaddleCheckoutCard() {
           disabled={!canCheckout}
           className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Opening checkout..." : "Upgrade with Paddle"}
+          {loading ? "Opening checkout..." : "Upgrade to Premium"}
         </button>
       </div>
     </>

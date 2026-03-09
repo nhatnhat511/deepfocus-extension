@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import PaddleCheckoutCard from "@/components/PaddleCheckoutCard";
 
 type AuthSession = {
   access_token: string;
@@ -528,6 +529,7 @@ export default function AccountPage() {
               Start 7-day Free Trial (No Card)
             </button>
           ) : null}
+          {!profile?.is_premium_active ? <PaddleCheckoutCard /> : null}
 
           <div className="mt-4 flex items-center gap-4">
             <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
