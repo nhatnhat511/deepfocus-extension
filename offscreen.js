@@ -1,5 +1,5 @@
-const tick = new Audio(chrome.runtime.getURL("sounds/tick.mp3"))
-const ding = new Audio(chrome.runtime.getURL("sounds/ding.mp3"))
+const tick = new Audio(chrome.runtime.getURL("sounds/tick.MP3"))
+const ding = new Audio(chrome.runtime.getURL("sounds/ding.MP3"))
 
 tick.preload = "auto"
 ding.preload = "auto"

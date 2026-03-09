@@ -1,11 +1,15 @@
 const STORAGE_KEY = "deepfocusState"
+const BREAK_VISUAL_BG_KEY = "deepfocusBreakVisualBackground"
+const BREAK_VISUAL_BG_META_KEY = "deepfocusBreakVisualBackgroundMeta"
 const ALARM_NAME = "deepfocusTimerAlarm"
 const LUNCH_ALARM_NAME = "deepfocusLunchAlarm"
 const DINNER_ALARM_NAME = "deepfocusDinnerAlarm"
 const REMINDER_HEARTBEAT_ALARM = "deepfocusReminderHeartbeat"
+const SOUND_CUE_ALARM_NAME = "deepfocusSoundCueAlarm"
 const OFFSCREEN_URL = "offscreen.html"
 const LUNCH_NOTIFICATION_ID = "deepfocusLunchNotification"
 const DINNER_NOTIFICATION_ID = "deepfocusDinnerNotification"
+const ACCOUNT_STATUS_KEY = "deepfocusAccountStatus"
 
 let endTime = null
 let mode = "focus"
@@ -17,8 +21,8 @@ let focusMinutes = 25
 let breakMinutes = 5
 let soundEnabled = true
 let nightWorkEnabled = false
-let nightWorkSmart = true
 let nightWorkStrength = 38
+let focusBlurEnabled = false
 let idleAutoPauseEnabled = true
 let idleAutoPauseMinutes = 5
 let lastActivityAt = Date.now()
@@ -34,6 +38,7 @@ let distractionDomains = [
 let mutedByDeepFocusTabIds = {}
 let breakVisualEnabled = false
 let breakVisualTabId = null
+let breakReturnTabId = null
 let dailyFocusGoal = 6
 let todayFocusSessions = 0
 let streakDays = 0
@@ -50,6 +55,11 @@ let lastAudioEventAt = 0
 let lastAudioEventKey = ""
 let lastTickAt = 0
 let lastDingAt = 0
+let currentIdleState = "active"
+let accountPlan = "free"
+let premiumUntil = ""
+let premiumPromptedAt = 0
+let lastPlayedTickSecond = null
 
 let stateReadyResolve
 const stateReady = new Promise((resolve) => {
@@ -57,8 +67,10 @@ const stateReady = new Promise((resolve) => {
 })
 
 loadState(() => {
+    initIdleDetection()
     checkDailyProgressRollover()
     scheduleAlarm()
+    scheduleSoundCues()
     scheduleReminderAlarms()
     scheduleReminderHeartbeat()
     reinjectContentScripts()
@@ -69,6 +81,8 @@ loadState(() => {
 })
 
 chrome.runtime.onInstalled.addListener(() => {
+    initIdleDetection()
+    scheduleSoundCues()
     scheduleReminderAlarms()
     scheduleReminderHeartbeat()
     reinjectContentScripts()
@@ -76,10 +90,15 @@ chrome.runtime.onInstalled.addListener(() => {
 })
 
 chrome.runtime.onStartup.addListener(() => {
-    scheduleReminderAlarms()
-    scheduleReminderHeartbeat()
-    reinjectContentScripts()
-    ensureOffscreenDocument()
+    stateReady.then(() => {
+        resetStateForBrowserStartup()
+        initIdleDetection()
+        scheduleSoundCues()
+        scheduleReminderAlarms()
+        scheduleReminderHeartbeat()
+        reinjectContentScripts()
+        ensureOffscreenDocument()
+    })
 })
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -139,19 +158,28 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         if (msg.type === "UPDATE_AUDIO_SETTINGS") {
             soundEnabled = msg.soundEnabled !== false
             persistState()
+            scheduleSoundCues()
             sendResponse({ ok: true })
             return
         }
 
         if (msg.type === "UPDATE_ADVANCED_SETTINGS") {
+            if (!isPremiumActive()) {
+                sendResponse({ ok: false, error: "Premium is required for Advanced Settings." })
+                return
+            }
+
             nightWorkEnabled = !!msg.nightWorkEnabled
-            nightWorkSmart = msg.nightWorkSmart !== false
             if (typeof msg.nightWorkStrength === "number") {
                 nightWorkStrength = Math.max(10, Math.min(75, Math.round(msg.nightWorkStrength)))
             }
+            focusBlurEnabled = !!msg.focusBlurEnabled
             idleAutoPauseEnabled = msg.idleAutoPauseEnabled !== false
             if (typeof msg.idleAutoPauseMinutes === "number") {
                 idleAutoPauseMinutes = Math.max(1, Math.min(60, Math.round(msg.idleAutoPauseMinutes)))
+            }
+            if (!idleAutoPauseEnabled && isPaused && pauseReason === "idle" && endTime) {
+                handleResumeTimer()
             }
             distractionMuteEnabled = msg.distractionMuteEnabled !== false
             if (Array.isArray(msg.distractionDomains)) {
@@ -168,10 +196,59 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 openBreakVisualTab()
             }
             persistState()
+            updateIdleDetectionInterval()
             broadcastAdvancedSettings()
             applyDistractionMuting()
             checkMeetingActivity()
             sendResponse({ ok: true })
+            return
+        }
+
+        if (msg.type === "UPDATE_ACCOUNT_STATUS") {
+            if (typeof msg.plan === "string") {
+                const nextPlan = msg.plan.toLowerCase()
+                accountPlan = (nextPlan === "premium" || nextPlan === "trial") ? nextPlan : "free"
+            }
+            premiumUntil = typeof msg.premiumUntil === "string" ? msg.premiumUntil : ""
+            if (!isPremiumActive()) {
+                enforceFreeTierDefaults()
+            }
+            persistAccountStatus()
+            scheduleSoundCues()
+            sendResponse({ ok: true })
+            return
+        }
+
+        if (msg.type === "UPDATE_BREAK_VISUAL_BACKGROUND") {
+            const dataUrl = typeof msg.dataUrl === "string" ? msg.dataUrl : ""
+            const isValidDataUrl = !dataUrl || dataUrl.startsWith("data:image/")
+            const metadata = msg.metadata && typeof msg.metadata === "object" ? msg.metadata : null
+            if (!isValidDataUrl) {
+                sendResponse({ ok: false, error: "Invalid image payload." })
+                return
+            }
+            if (dataUrl.length > 3_200_000) {
+                sendResponse({ ok: false, error: "Image is too large. Use a smaller file." })
+                return
+            }
+            const safeMeta = dataUrl
+                ? {
+                    name: metadata && typeof metadata.name === "string" ? metadata.name.slice(0, 180) : "custom-image",
+                    size: metadata && typeof metadata.size === "number" ? Math.max(0, Math.round(metadata.size)) : 0,
+                    type: metadata && typeof metadata.type === "string" ? metadata.type.slice(0, 80) : "image",
+                    updatedAt: Date.now()
+                }
+                : null
+            chrome.storage.local.set({
+                [BREAK_VISUAL_BG_KEY]: dataUrl,
+                [BREAK_VISUAL_BG_META_KEY]: safeMeta
+            }, () => {
+                if (chrome.runtime.lastError) {
+                    sendResponse({ ok: false, error: "Unable to save background image." })
+                    return
+                }
+                sendResponse({ ok: true })
+            })
             return
         }
 
@@ -182,7 +259,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         }
 
         if (msg.type === "AUDIO_EVENT") {
-            playGlobalAudio(msg)
+            // Content-script audio events are ignored. Audio is emitted centrally in background.
             sendResponse({ ok: true })
             return
         }
@@ -209,6 +286,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.commands.onCommand.addListener((command) => {
     stateReady.then(() => {
+        if (!isPremiumActive()) return
+
         if (command === "start-timer") {
             handleStartTimer(focusMinutes, breakMinutes)
             send("UPDATE")
@@ -260,9 +339,17 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     if (breakVisualTabId === tabId) {
         breakVisualTabId = null
     }
+    if (breakReturnTabId === tabId) {
+        breakReturnTabId = null
+    }
 })
 
 chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === SOUND_CUE_ALARM_NAME) {
+        handleSoundCueAlarm()
+        return
+    }
+
     if (alarm.name === LUNCH_ALARM_NAME) {
         if (shouldFireReminderNow("lunch", new Date())) {
             fireReminder("lunch")
@@ -284,6 +371,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         checkReminderByClock()
         checkIdleAutoPause()
         checkMeetingActivity()
+        if (!isPremiumActive()) {
+            enforceFreeTierDefaults()
+        }
         applyDistractionMuting()
         return
     }
@@ -301,6 +391,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
         if (!inTransition) {
             inTransition = true
+            playGlobalAudio({ eventType: "DING", mode, seconds: 0, inTransition: true })
+            lastPlayedTickSecond = null
             endTime = now + 1000
         } else {
             inTransition = false
@@ -308,16 +400,19 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 incrementFocusProgress()
                 mode = "break"
                 endTime = now + breakMinutes * 60000
+                lastPlayedTickSecond = null
                 openBreakVisualTab()
             } else {
                 mode = "focus"
                 endTime = now + focusMinutes * 60000
+                lastPlayedTickSecond = null
                 closeBreakVisualTab()
             }
         }
 
         persistState()
         scheduleAlarm()
+        scheduleSoundCues()
         applyDistractionMuting()
         send("UPDATE")
     })
@@ -365,8 +460,8 @@ function buildPayload(type) {
         breakMinutes,
         soundEnabled,
         nightWorkEnabled,
-        nightWorkSmart,
         nightWorkStrength,
+        focusBlurEnabled,
         idleAutoPauseEnabled,
         idleAutoPauseMinutes,
         distractionMuteEnabled,
@@ -380,7 +475,10 @@ function buildPayload(type) {
         lunchReminderEnabled,
         lunchReminderTime,
         dinnerReminderEnabled,
-        dinnerReminderTime
+        dinnerReminderTime,
+        accountPlan,
+        premiumUntil,
+        premiumActive: isPremiumActive()
     }
 }
 
@@ -420,8 +518,8 @@ function persistState() {
             breakMinutes,
             soundEnabled,
             nightWorkEnabled,
-            nightWorkSmart,
             nightWorkStrength,
+            focusBlurEnabled,
             idleAutoPauseEnabled,
             idleAutoPauseMinutes,
             lastActivityAt,
@@ -430,6 +528,7 @@ function persistState() {
             mutedByDeepFocusTabIds,
             breakVisualEnabled,
             breakVisualTabId,
+            breakReturnTabId,
             dailyFocusGoal,
             todayFocusSessions,
             streakDays,
@@ -440,15 +539,25 @@ function persistState() {
             dinnerReminderEnabled,
             dinnerReminderTime,
             lastLunchReminderMinuteKey,
-            lastDinnerReminderMinuteKey
+            lastDinnerReminderMinuteKey,
+            accountPlan,
+            premiumUntil
         }
     })
 }
 
 function loadState(done) {
-    chrome.storage.local.get(STORAGE_KEY, (result) => {
+    chrome.storage.local.get([STORAGE_KEY, ACCOUNT_STATUS_KEY], (result) => {
         const state = result[STORAGE_KEY]
+        const account = result[ACCOUNT_STATUS_KEY]
+        if (account && typeof account === "object") {
+            accountPlan = (account.plan === "premium" || account.plan === "trial") ? account.plan : "free"
+            premiumUntil = typeof account.premiumUntil === "string" ? account.premiumUntil : ""
+        }
         if (!state) {
+            if (!isPremiumActive()) {
+                enforceFreeTierDefaults()
+            }
             done()
             return
         }
@@ -463,10 +572,10 @@ function loadState(done) {
         breakMinutes = state.breakMinutes ?? 5
         soundEnabled = state.soundEnabled !== false
         nightWorkEnabled = !!state.nightWorkEnabled
-        nightWorkSmart = state.nightWorkSmart !== false
         if (typeof state.nightWorkStrength === "number") {
             nightWorkStrength = Math.max(10, Math.min(75, Math.round(state.nightWorkStrength)))
         }
+        focusBlurEnabled = !!state.focusBlurEnabled
         idleAutoPauseEnabled = state.idleAutoPauseEnabled !== false
         if (typeof state.idleAutoPauseMinutes === "number") {
             idleAutoPauseMinutes = Math.max(1, Math.min(60, Math.round(state.idleAutoPauseMinutes)))
@@ -483,6 +592,7 @@ function loadState(done) {
         }
         breakVisualEnabled = !!state.breakVisualEnabled
         breakVisualTabId = typeof state.breakVisualTabId === "number" ? state.breakVisualTabId : null
+        breakReturnTabId = typeof state.breakReturnTabId === "number" ? state.breakReturnTabId : null
         if (typeof state.dailyFocusGoal === "number") {
             dailyFocusGoal = Math.max(1, Math.min(20, Math.round(state.dailyFocusGoal)))
         }
@@ -500,6 +610,15 @@ function loadState(done) {
         dinnerReminderTime = isValidTimeString(state.dinnerReminderTime) ? state.dinnerReminderTime : "19:00"
         lastLunchReminderMinuteKey = typeof state.lastLunchReminderMinuteKey === "string" ? state.lastLunchReminderMinuteKey : ""
         lastDinnerReminderMinuteKey = typeof state.lastDinnerReminderMinuteKey === "string" ? state.lastDinnerReminderMinuteKey : ""
+        if (state.accountPlan === "premium" || state.accountPlan === "trial" || state.accountPlan === "free") {
+            accountPlan = state.accountPlan
+        }
+        if (typeof state.premiumUntil === "string") {
+            premiumUntil = state.premiumUntil
+        }
+        if (!isPremiumActive()) {
+            enforceFreeTierDefaults()
+        }
 
         done()
     })
@@ -512,6 +631,7 @@ function resetState() {
     remainingMs = null
     isPaused = false
     pauseReason = "manual"
+    lastPlayedTickSecond = null
 }
 
 function handleStartTimer(nextFocusMinutes, nextBreakMinutes) {
@@ -524,15 +644,20 @@ function handleStartTimer(nextFocusMinutes, nextBreakMinutes) {
     pauseReason = "manual"
     remainingMs = null
     endTime = Date.now() + focusMinutes * 60000
+    lastPlayedTickSecond = null
     lastActivityAt = Date.now()
+    if (currentIdleState !== "active") {
+        currentIdleState = "active"
+    }
 
     persistState()
     scheduleAlarm()
+    scheduleSoundCues()
     scheduleReminderAlarms()
     ensureOffscreenDocument()
     checkDailyProgressRollover()
     applyDistractionMuting()
-    closeBreakVisualTab()
+    closeBreakVisualTab(false)
     checkMeetingActivity()
 }
 
@@ -545,6 +670,7 @@ function handlePauseTimer(reason = "manual") {
 
     persistState()
     clearAlarm()
+    clearSoundCueAlarm()
     scheduleReminderAlarms()
     applyDistractionMuting()
 }
@@ -557,9 +683,13 @@ function handleResumeTimer() {
     isPaused = false
     pauseReason = "manual"
     lastActivityAt = Date.now()
+    if (currentIdleState !== "active") {
+        currentIdleState = "active"
+    }
 
     persistState()
     scheduleAlarm()
+    scheduleSoundCues()
     scheduleReminderAlarms()
     ensureOffscreenDocument()
     applyDistractionMuting()
@@ -573,8 +703,9 @@ function handleResetTimer(resetDurations) {
     }
     persistState()
     clearAlarm()
+    clearSoundCueAlarm()
     scheduleReminderAlarms()
-    closeBreakVisualTab()
+    closeBreakVisualTab(false)
     applyDistractionMuting()
 }
 
@@ -673,19 +804,33 @@ function openBreakVisualTab() {
         return
     }
 
-    chrome.tabs.create({ url: chrome.runtime.getURL("relax.html"), active: true }, (tab) => {
-        if (chrome.runtime.lastError || !tab || !tab.id) return
-        breakVisualTabId = tab.id
-        persistState()
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+        const activeTab = tabs && tabs.length ? tabs[0] : null
+        breakReturnTabId = activeTab && activeTab.id ? activeTab.id : null
+
+        chrome.tabs.create({ url: chrome.runtime.getURL("relax.html"), active: true }, (tab) => {
+            if (chrome.runtime.lastError || !tab || !tab.id) return
+            breakVisualTabId = tab.id
+            persistState()
+        })
     })
 }
 
-function closeBreakVisualTab() {
+function closeBreakVisualTab(restorePreviousTab = true) {
     if (!breakVisualTabId) return
     const closingTabId = breakVisualTabId
+    const returnTabId = breakReturnTabId
     breakVisualTabId = null
+    breakReturnTabId = null
     chrome.tabs.remove(closingTabId, () => {
         if (chrome.runtime.lastError) return
+        if (!restorePreviousTab || !returnTabId) return
+        chrome.tabs.get(returnTabId, (tab) => {
+            if (chrome.runtime.lastError || !tab || !tab.id) return
+            chrome.tabs.update(tab.id, { active: true }, () => {
+                if (chrome.runtime.lastError) return
+            })
+        })
     })
 }
 
@@ -830,8 +975,8 @@ function broadcastAdvancedSettings() {
     broadcastToTabs({
         type: "ADVANCED_SETTINGS_UPDATED",
         nightWorkEnabled,
-        nightWorkSmart,
         nightWorkStrength,
+        focusBlurEnabled,
         idleAutoPauseEnabled,
         idleAutoPauseMinutes,
         distractionMuteEnabled,
@@ -845,6 +990,7 @@ function broadcastAdvancedSettings() {
 }
 
 function checkIdleAutoPause() {
+    if (chrome.idle && chrome.idle.onStateChanged) return
     if (!idleAutoPauseEnabled) return
     if (!isWorkSessionRunning()) return
 
@@ -853,6 +999,98 @@ function checkIdleAutoPause() {
 
     handlePauseTimer("idle")
     send("UPDATE")
+}
+
+function initIdleDetection() {
+    if (!chrome.idle || !chrome.idle.onStateChanged) return
+    updateIdleDetectionInterval()
+    chrome.idle.queryState(Math.max(15, idleAutoPauseMinutes * 60), (state) => {
+        if (chrome.runtime.lastError) return
+        currentIdleState = state
+        handleIdleStateChange(state)
+    })
+}
+
+function updateIdleDetectionInterval() {
+    if (!chrome.idle || !chrome.idle.setDetectionInterval) return
+    chrome.idle.setDetectionInterval(Math.max(15, idleAutoPauseMinutes * 60))
+}
+
+if (chrome.idle && chrome.idle.onStateChanged) {
+    chrome.idle.onStateChanged.addListener((newState) => {
+        currentIdleState = newState
+        stateReady.then(() => {
+            handleIdleStateChange(newState)
+        })
+    })
+}
+
+function handleIdleStateChange(newState) {
+    if (!idleAutoPauseEnabled) return
+
+    if ((newState === "idle" || newState === "locked") && isWorkSessionRunning()) {
+        handlePauseTimer("idle")
+        send("UPDATE")
+        return
+    }
+
+    if (newState === "active" && isPaused && pauseReason === "idle" && endTime) {
+        handleResumeTimer()
+        send("UPDATE")
+    }
+}
+
+function resetStateForBrowserStartup() {
+    resetState()
+    focusMinutes = 25
+    breakMinutes = 5
+    soundEnabled = true
+    nightWorkEnabled = false
+    nightWorkStrength = 38
+    focusBlurEnabled = false
+    idleAutoPauseEnabled = true
+    idleAutoPauseMinutes = 5
+    lastActivityAt = Date.now()
+    distractionMuteEnabled = true
+    distractionDomains = [
+        "youtube.com",
+        "facebook.com",
+        "reddit.com",
+        "x.com",
+        "instagram.com",
+        "tiktok.com"
+    ]
+    mutedByDeepFocusTabIds = {}
+    breakVisualEnabled = false
+    breakReturnTabId = null
+    dailyFocusGoal = 6
+    todayFocusSessions = 0
+    streakDays = 0
+    progressDateKey = ""
+    meetingAutoPauseEnabled = true
+    lunchReminderEnabled = false
+    lunchReminderTime = "12:00"
+    dinnerReminderEnabled = false
+    dinnerReminderTime = "19:00"
+    lastLunchReminderMinuteKey = ""
+    lastDinnerReminderMinuteKey = ""
+    lastAudioEventAt = 0
+    lastAudioEventKey = ""
+    lastTickAt = 0
+    lastDingAt = 0
+    lastPlayedTickSecond = null
+    premiumPromptedAt = 0
+    closeBreakVisualTab(false)
+    clearAlarm()
+    clearSoundCueAlarm()
+    if (!isPremiumActive()) {
+        enforceFreeTierDefaults()
+    }
+    persistState()
+    persistAccountStatus()
+    send("RESET")
+    broadcastAdvancedSettings()
+    applyDistractionMuting()
 }
 
 function scheduleReminderHeartbeat() {
@@ -918,6 +1156,138 @@ function checkReminderByClock() {
 
 function isWorkSessionRunning() {
     return !!endTime && !isPaused
+}
+
+function clearSoundCueAlarm() {
+    chrome.alarms.clear(SOUND_CUE_ALARM_NAME, () => {
+        return
+    })
+}
+
+function scheduleSoundCues() {
+    clearSoundCueAlarm()
+    if (!soundEnabled) return
+    if (!isWorkSessionRunning()) return
+    if (inTransition) return
+
+    const now = Date.now()
+    const msRemaining = endTime - now
+    if (msRemaining <= 0) return
+
+    const secRemaining = Math.ceil(msRemaining / 1000)
+    let when = 0
+
+    if (secRemaining > 10) {
+        when = endTime - 10000 + 20
+    } else if (secRemaining >= 1) {
+        when = endTime - (secRemaining * 1000) + 20
+    } else {
+        return
+    }
+
+    chrome.alarms.create(SOUND_CUE_ALARM_NAME, {
+        when: Math.max(now + 20, when)
+    })
+}
+
+function handleSoundCueAlarm() {
+    if (!soundEnabled) return
+    if (!isWorkSessionRunning()) return
+    if (inTransition) return
+
+    const secRemaining = Math.ceil((endTime - Date.now()) / 1000)
+    if (secRemaining < 1 || secRemaining > 10) {
+        scheduleSoundCues()
+        return
+    }
+
+    if (lastPlayedTickSecond !== secRemaining) {
+        playGlobalAudio({ eventType: "TICK", mode, seconds: secRemaining, inTransition: false })
+        lastPlayedTickSecond = secRemaining
+    }
+
+    const nextWhen = endTime - ((secRemaining - 1) * 1000) + 20
+    if (secRemaining > 1) {
+        chrome.alarms.create(SOUND_CUE_ALARM_NAME, {
+            when: Math.max(Date.now() + 20, nextWhen)
+        })
+    }
+}
+
+function isPremiumActive() {
+    if (accountPlan !== "premium" && accountPlan !== "trial") return false
+    if (!premiumUntil) return false
+    const untilTs = Date.parse(premiumUntil)
+    if (!Number.isFinite(untilTs)) return false
+    return untilTs > Date.now()
+}
+
+function persistAccountStatus() {
+    chrome.storage.local.set({
+        [ACCOUNT_STATUS_KEY]: {
+            plan: accountPlan,
+            premiumUntil
+        }
+    })
+}
+
+function enforceFreeTierDefaults() {
+    const now = Date.now()
+    const expiredPremium = (accountPlan === "premium" || accountPlan === "trial") && !isPremiumActive()
+    if (expiredPremium && now - premiumPromptedAt > 6 * 60 * 60 * 1000) {
+        premiumPromptedAt = now
+        showUpgradeNotification()
+    }
+    if (expiredPremium) {
+        accountPlan = "free"
+        premiumUntil = ""
+        persistAccountStatus()
+    }
+
+    const nextDomains = sanitizeDomainList(distractionDomains.length ? distractionDomains : [
+        "youtube.com",
+        "facebook.com",
+        "reddit.com",
+        "x.com",
+        "instagram.com",
+        "tiktok.com"
+    ])
+    const domainsChanged = JSON.stringify(nextDomains) !== JSON.stringify(distractionDomains)
+    const changed =
+        nightWorkEnabled ||
+        focusBlurEnabled ||
+        breakVisualEnabled ||
+        !idleAutoPauseEnabled ||
+        idleAutoPauseMinutes !== 5 ||
+        dailyFocusGoal !== 6 ||
+        !meetingAutoPauseEnabled ||
+        domainsChanged
+
+    nightWorkEnabled = false
+    focusBlurEnabled = false
+    distractionMuteEnabled = true
+    distractionDomains = nextDomains
+    breakVisualEnabled = false
+    idleAutoPauseEnabled = true
+    idleAutoPauseMinutes = 5
+    dailyFocusGoal = 6
+    meetingAutoPauseEnabled = true
+    closeBreakVisualTab(false)
+    applyDistractionMuting()
+    if (changed) {
+        broadcastAdvancedSettings()
+        persistState()
+    }
+}
+
+function showUpgradeNotification() {
+    chrome.notifications.create("deepfocusPremiumExpired", {
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "DeepFocus Premium trial ended",
+        message: "Upgrade to keep Premium shortcuts and Advanced Settings.",
+        priority: 1
+    })
 }
 
 async function ensureOffscreenDocument() {

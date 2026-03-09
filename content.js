@@ -11,6 +11,7 @@ let hydrated = false
 let lastSecond = null
 let lastMode = null
 let lastInTransition = false
+let lastPausedState = false
 let lastAudioEventKey = null
 let lastThemeUpdateAt = 0
 
@@ -51,8 +52,8 @@ const BOX_POS_KEY = "deepfocusBoxPosition"
 const BOX_MARGIN = 16
 let reminderModal = null
 let nightWorkEnabled = false
-let nightWorkSmart = true
 let nightWorkStrength = 38
+let focusBlurEnabled = false
 let nightWorkOverlay = null
 let lastActivityPingAt = 0
 
@@ -73,35 +74,16 @@ function markExtensionDead() {
 }
 
 function emitAudio(eventType, mode, seconds, inTransition) {
-    if (!hasRuntime()) return
-
-    const key = `${eventType}:${mode}:${seconds}:${inTransition ? 1 : 0}`
-    if (key === lastAudioEventKey) return
-    lastAudioEventKey = key
-
-    try {
-        chrome.runtime.sendMessage({
-            type: "AUDIO_EVENT",
-            eventType,
-            mode,
-            seconds,
-            inTransition
-        }, () => {
-            if (!hasRuntime()) return
-            if (chrome.runtime.lastError &&
-                chrome.runtime.lastError.message &&
-                chrome.runtime.lastError.message.includes("Extension context invalidated")) {
-                markExtensionDead()
-            }
-        })
-    } catch (_e) {
-        markExtensionDead()
-    }
+    return
 }
 
 function setHiddenBox() {
     box.textContent = ""
     box.style.opacity = "0"
+}
+
+function getTimerBoxVisibleOpacity() {
+    return focusBlurEnabled ? "0.6" : "1"
 }
 
 function getBoxWidth() {
@@ -330,33 +312,15 @@ function applyAdvancedSettingsFromMessage(msg) {
     if (typeof msg.nightWorkEnabled === "boolean") {
         nightWorkEnabled = msg.nightWorkEnabled
     }
-    if (typeof msg.nightWorkSmart === "boolean") {
-        nightWorkSmart = msg.nightWorkSmart
-    }
     if (typeof msg.nightWorkStrength === "number") {
         nightWorkStrength = Math.max(10, Math.min(75, Math.round(msg.nightWorkStrength)))
     }
+    if (typeof msg.focusBlurEnabled === "boolean") {
+        focusBlurEnabled = msg.focusBlurEnabled
+    }
 
     updateNightWorkOverlay()
-}
-
-function getNightWorkTimeFactor() {
-    if (!nightWorkSmart) return 1
-
-    const now = new Date()
-    const minutes = now.getHours() * 60 + now.getMinutes()
-
-    // 18:00->22:00 ramp up, 22:00->04:00 peak, 04:00->07:00 ramp down
-    if (minutes >= 1080 && minutes < 1320) {
-        return (minutes - 1080) / 240
-    }
-    if (minutes >= 1320 || minutes < 240) {
-        return 1
-    }
-    if (minutes >= 240 && minutes < 420) {
-        return 1 - (minutes - 240) / 180
-    }
-    return 0.6
+    updateFocusBlur()
 }
 
 function ensureNightWorkOverlay() {
@@ -381,22 +345,22 @@ function updateNightWorkOverlay() {
         return
     }
 
-    const timeFactor = getNightWorkTimeFactor()
-
     ensureNightWorkOverlay()
 
-    const bg = getBackgroundAtPoint(Math.floor(getViewportWidth() * 0.5), Math.floor(getViewportHeight() * 0.5))
-    const luminance = 0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b
-    const luminanceFactor = Math.max(0.8, Math.min(1.2, luminance / 165))
-
     const strength = nightWorkStrength / 100
-    const base = 0.15 + strength * 0.55
-    const opacity = Math.max(0.12, Math.min(0.78, base * timeFactor * luminanceFactor))
+    const opacity = Math.max(0.12, Math.min(0.78, 0.12 + strength * 0.66))
     const brightness = Math.max(0.62, 1 - opacity * 0.42)
 
     nightWorkOverlay.style.background = "rgba(12,18,32,1)"
     nightWorkOverlay.style.backdropFilter = `brightness(${brightness.toFixed(2)}) saturate(85%)`
     nightWorkOverlay.style.opacity = opacity.toFixed(2)
+}
+
+function updateFocusBlur() {
+    box.style.filter = "none"
+    if (box.style.opacity !== "0") {
+        box.style.opacity = getTimerBoxVisibleOpacity()
+    }
 }
 
 function reportActivity() {
@@ -601,22 +565,30 @@ function renderFromState() {
         " " +
         m + ":" + s.toString().padStart(2, "0")
 
-    box.style.opacity = "1"
+    box.style.opacity = getTimerBoxVisibleOpacity()
 
     const transitionStarted = currentState.inTransition && !lastInTransition
 
-    if (currentState.inTransition) {
-        if (transitionStarted) {
+    if (currentState.isPaused) {
+        lastSecond = null
+        lastPausedState = true
+    } else if (lastPausedState) {
+        lastSecond = null
+        lastPausedState = false
+    }
+
+    if (currentState.inTransition && !currentState.isPaused) {
+        if (transitionStarted && lastSecond !== 0) {
             emitAudio("DING", currentState.mode, seconds, true)
         }
         lastSecond = null
-    } else if (seconds !== lastSecond) {
+    } else if (!currentState.isPaused && seconds !== lastSecond) {
         if (transitionStarted || seconds === 0) {
             emitAudio("DING", currentState.mode, seconds, false)
         }
 
         if ((seconds <= 10 && seconds >= 1) ||
-            (lastSecond !== null && lastSecond > 10 && seconds < 10)) {
+            (lastSecond !== null && lastSecond > 10 && seconds <= 10)) {
             emitAudio("TICK", currentState.mode, seconds, false)
         }
 

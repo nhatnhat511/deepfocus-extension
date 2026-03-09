@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "DeepFocus – Smart Work Timer",
+  "name": "DeepFocus - Smart Work Timer",
   "homepage_url": "https://deepfocustime.com",
   "version": "1.0",
   "icons": {
@@ -13,6 +13,8 @@
     "tabs",
     "storage",
     "alarms",
+    "idle",
+    "identity",
     "scripting",
     "offscreen",
     "notifications"
@@ -67,8 +69,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "sounds/tick.mp3",
-        "sounds/ding.mp3",
+        "sounds/tick.MP3",
+        "sounds/ding.MP3",
         "offscreen.html",
         "offscreen.js"
       ],
@@ -76,3 +78,4 @@
     }
   ]
 }
+

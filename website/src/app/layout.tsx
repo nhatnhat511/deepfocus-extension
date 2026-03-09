@@ -31,6 +31,9 @@ export default function RootLayout({
               <span className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">DeepFocus Time</span>
             </Link>
             <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-700">
+              <Link href="/account" className="hover:text-slate-900">
+                Account
+              </Link>
               <Link href="/pricing" className="hover:text-slate-900">
                 Pricing
               </Link>
