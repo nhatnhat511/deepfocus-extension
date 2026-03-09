@@ -16,8 +16,9 @@ const PADDLE_API_BASE = process.env.PADDLE_API_BASE_URL || "https://api.paddle.c
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY || "";
 const PADDLE_PRICE_ID = process.env.PADDLE_PRICE_ID || "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deepfocustime.com";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
 
 type SupabaseUser = {
   id?: string;

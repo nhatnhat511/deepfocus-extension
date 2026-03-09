@@ -156,7 +156,7 @@ export default function PaddleCheckoutCard() {
           type="button"
           onClick={startCheckout}
           disabled={!canCheckout}
-          className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 inline-flex w-auto items-center justify-center rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Opening checkout..." : "Upgrade to Premium"}
         </button>
