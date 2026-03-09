@@ -1,39 +1,53 @@
 import Link from "next/link";
 
 const freeFeatures = [
-  "Focus and break timer",
-  "Start, pause, resume, and reset controls",
+  "Focus and break timer controls",
+  "Session start, pause, resume, and reset",
+  "Keyboard shortcuts support",
   "Lunch and evening break reminders",
-  "Account sync across extension and website",
+  "Account sync between extension and website",
 ];
 
 const premiumFeatures = [
   "Distraction mute for selected domains",
-  "Idle auto-pause and meeting-aware auto-pause",
+  "Idle auto-pause with custom threshold",
+  "Meeting-aware auto-pause for Meet, Zoom, and Teams",
   "Night work mode and focus blur controls",
-  "Break visual tab customization",
-  "Daily focus goal and progress tracking",
-  "Keyboard shortcuts and premium automation",
+  "Break visual customization and productivity insights",
+  "Advanced automation controls for serious workflows",
+];
+
+const compareRows = [
+  ["Core timer", "Included", "Included"],
+  ["Reminders", "Included", "Included"],
+  ["Keyboard shortcuts", "Included", "Included"],
+  ["Advanced settings", "Not included", "Included"],
+  ["Focus protection automation", "Not included", "Included"],
+  ["Best for", "Getting started", "Deep-focus daily users"],
 ];
 
 export default function PricingPage() {
   return (
     <div className="space-y-8">
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Pricing</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Choose the plan that fits your workflow. You can start with Free and upgrade anytime.
+        <p className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+          Simple plans for focused work
+        </p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">Pricing</h1>
+        <p className="mt-2 max-w-3xl text-sm text-slate-600">
+          Start free, then upgrade when you need advanced protection and automation for your focus sessions.
         </p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-slate-900">Free</h2>
-          <p className="mt-1 text-sm text-slate-600">For personal focus sessions and daily routine tracking.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">For individuals</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Free</h2>
+          <p className="mt-1 text-sm text-slate-600">Run reliable daily focus sessions with essential controls.</p>
           <p className="mt-4 text-3xl font-bold text-slate-900">$0</p>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700">
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
             {freeFeatures.map((item) => (
-              <li key={item}>• {item}</li>
+              <li key={item}>{item}</li>
             ))}
           </ul>
           <Link
@@ -45,12 +59,15 @@ export default function PricingPage() {
         </article>
 
         <article className="rounded-2xl border border-emerald-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-slate-900">Premium</h2>
-          <p className="mt-1 text-sm text-slate-600">For advanced automation and deeper focus protection.</p>
-          <p className="mt-4 text-3xl font-bold text-slate-900">$4.99<span className="text-base">/month</span></p>
-          <ul className="mt-4 space-y-2 text-sm text-slate-700">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">For deep-focus professionals</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Premium</h2>
+          <p className="mt-1 text-sm text-slate-600">Unlock advanced controls for fewer interruptions and better consistency.</p>
+          <p className="mt-4 text-3xl font-bold text-slate-900">
+            $4.99<span className="text-base">/month</span>
+          </p>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
             {premiumFeatures.map((item) => (
-              <li key={item}>• {item}</li>
+              <li key={item}>{item}</li>
             ))}
           </ul>
           <Link
@@ -61,7 +78,51 @@ export default function PricingPage() {
           </Link>
         </article>
       </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-xl font-semibold text-slate-900">Feature comparison</h2>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500">
+                <th className="py-2 pr-4 font-semibold">Capability</th>
+                <th className="py-2 pr-4 font-semibold">Free</th>
+                <th className="py-2 font-semibold">Premium</th>
+              </tr>
+            </thead>
+            <tbody>
+              {compareRows.map((row) => (
+                <tr key={row[0]} className="border-b border-slate-100 text-slate-700">
+                  <td className="py-2 pr-4">{row[0]}</td>
+                  <td className="py-2 pr-4">{row[1]}</td>
+                  <td className="py-2">{row[2]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-xl font-semibold text-slate-900">Need help choosing?</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Start on Free and move to Premium when you need advanced session automation and stronger focus protection.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/faq"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+          >
+            Read FAQ
+          </Link>
+          <Link
+            href="/contact"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+          >
+            Contact Sales
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
-

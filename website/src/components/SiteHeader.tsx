@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/account", label: "Account" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/account", label: "Account" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/support", label: "Support" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/contact", label: "Contact" },
@@ -71,4 +73,3 @@ export default function SiteHeader() {
     </header>
   );
 }
-
