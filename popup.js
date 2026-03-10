@@ -47,6 +47,7 @@ const accountPanel = document.getElementById("accountPanel")
 const accountStatus = document.getElementById("accountStatus")
 const accountEmailInput = document.getElementById("accountEmail")
 const accountPasswordInput = document.getElementById("accountPassword")
+const accountPasswordNote = document.getElementById("accountPasswordNote")
 const accountSubmitBtn = document.getElementById("accountSubmitBtn")
 const accountSwitchPrompt = document.getElementById("accountSwitchPrompt")
 const accountSwitchLink = document.getElementById("accountSwitchLink")
@@ -341,19 +342,21 @@ breakVisualBackgroundRemoveBtn.disabled = !enabled || !hasBreakVisualCustomImage
 function setAccountMode(mode){
 accountFormMode = mode === "signup" ? "signup" : "signin"
 if(accountFormMode === "signup"){
-accountSubmitBtn.textContent = "Sign Up"
+accountSubmitBtn.textContent = "Create account"
 accountSwitchPrompt.textContent = "Already have an account?"
 accountSwitchLink.textContent = "Sign in"
 accountGoogleLabel.textContent = "Google"
 accountAppleLabel.textContent = "GitHub"
+if(accountPasswordNote) accountPasswordNote.classList.remove("hidden")
 return
 }
 
 accountSubmitBtn.textContent = "Sign In"
 accountSwitchPrompt.textContent = "Don't have an account?"
-accountSwitchLink.textContent = "Sign up"
+accountSwitchLink.textContent = "Create account"
 accountGoogleLabel.textContent = "Google"
 accountAppleLabel.textContent = "GitHub"
+if(accountPasswordNote) accountPasswordNote.classList.add("hidden")
 }
 
 function saveAdvancedSettings(){

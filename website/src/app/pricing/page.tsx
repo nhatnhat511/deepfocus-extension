@@ -46,7 +46,7 @@ function renderAvailability(value: string) {
   if (text.toLowerCase() === "included") {
     return (
       <span className="inline-flex items-center gap-1 text-emerald-600">
-        <span aria-hidden="true" className="text-lg leading-none">✓</span>
+        <span aria-hidden="true" className="text-xl leading-none">✓</span>
         <span className="text-slate-700">{text}</span>
       </span>
     );
@@ -54,7 +54,7 @@ function renderAvailability(value: string) {
   if (text.toLowerCase() === "not included") {
     return (
       <span className="inline-flex items-center gap-1 text-rose-600">
-        <span aria-hidden="true" className="text-lg leading-none">✕</span>
+        <span aria-hidden="true" className="text-xl leading-none">✕</span>
         <span className="text-slate-700">{text}</span>
       </span>
     );
@@ -62,7 +62,7 @@ function renderAvailability(value: string) {
   if (text.toLowerCase() === "standard" || text.toLowerCase() === "priority") {
     return (
       <span className="inline-flex items-center gap-1 text-emerald-600">
-        <span aria-hidden="true" className="text-lg leading-none">✓</span>
+        <span aria-hidden="true" className="text-xl leading-none">✓</span>
         <span className="text-slate-700">{text}</span>
       </span>
     );

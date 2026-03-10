@@ -49,12 +49,14 @@ export default function SiteHeader() {
       className="h-[22px] w-[22px]"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.2"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      <path d="M20 21c0-3.2-3.6-5.6-8-5.6s-8 2.4-8 5.6" />
       <circle cx="12" cy="8" r="3.6" />
-      <path d="M4.2 19.6c1.9-3.3 4.9-5 7.8-5s5.9 1.7 7.8 5" />
+      <path d="M18 8.2h2.6" />
+      <path d="M19.3 6.9v2.6" />
     </svg>
   ) : (
     <svg
@@ -62,14 +64,12 @@ export default function SiteHeader() {
       className="h-[22px] w-[22px]"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.2"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <circle cx="9" cy="8" r="3.6" />
-      <path d="M2.8 19.6c1.6-3 4.1-4.7 6.2-4.7" />
-      <path d="M16 7.4v6.2" />
-      <path d="M12.9 10.5h6.2" />
+      <path d="M20 21c0-3.2-3.6-5.6-8-5.6s-8 2.4-8 5.6" />
+      <circle cx="12" cy="8" r="3.6" />
     </svg>
   );
 
