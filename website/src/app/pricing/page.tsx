@@ -10,7 +10,7 @@ const freeFeatures = [
 ];
 
 const premiumFeatures = [
-  "Everything in Free",
+  "All features included in the Free plan",
   "Night Work Mode with adjustable strength",
   "Focus Blur for the timer box",
   "Break Visual Tab with a customizable background",
@@ -21,18 +21,24 @@ const premiumFeatures = [
   "Best Focus Hours analysis",
   "Interruption Rate diagnostics",
   "Smart Insight with weekly recommendations",
-  "Meeting Auto-Pause for Meet, Zoom, and Teams",
+  "Auto-pauses the timer when Meet, Zoom, or Teams tabs are active",
   "Future premium feature upgrades",
   "Priority, friendly customer support",
 ];
 
 const compareRows = [
-  ["Core timer", "Included", "Included"],
-  ["Reminders", "Included", "Included"],
+  ["Focus & break timer", "Included", "Included"],
+  ["Start / pause / resume / reset", "Included", "Included"],
   ["Keyboard shortcuts", "Included", "Included"],
-  ["Sound + draggable timer box", "Included", "Included"],
-  ["Advanced focus tools", "Not included", "Included"],
-  ["Insights & automation", "Not included", "Included"],
+  ["Lunch & evening break reminders", "Included", "Included"],
+  ["Sound toggle + draggable timer box", "Included", "Included"],
+  ["Night Work Mode + Focus Blur", "Not included", "Included"],
+  ["Break Visual Tab + custom background", "Not included", "Included"],
+  ["Mute distracting sites", "Not included", "Included"],
+  ["Idle Auto-Pause (minutes)", "Not included", "Included"],
+  ["Daily goal + weekly insights", "Not included", "Included"],
+  ["Meeting auto-pause (Meet/Zoom/Teams)", "Not included", "Included"],
+  ["Support", "Standard", "Priority"],
 ];
 
 export default function PricingPage() {
