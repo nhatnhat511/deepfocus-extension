@@ -329,8 +329,8 @@ async function handleWebhookEvent(eventType: string, data: Record<string, unknow
   }
 
   const resolved = await resolveIdentityForEvent(eventType, data);
-  if (!resolved.userId && !resolved.email) {
-    throw new Error(`Unable to resolve account identity for ${eventType}`);
+  if (!resolved.userId) {
+    throw new Error(`Missing deepfocus_user_id for ${eventType}`);
   }
 
   if (!resolved.subscription && eventType === "transaction.paid" && resolved.subscriptionId) {
@@ -344,24 +344,8 @@ async function handleWebhookEvent(eventType: string, data: Record<string, unknow
   }
 
   const entitlement = derivePlanAndUntilFromSubscription(resolved.subscription);
-  if (resolved.userId) {
-    const resultById = await applyProfileEntitlementByUserId({
-      userId: resolved.userId,
-      email: resolved.email,
-      plan: entitlement.plan,
-      premiumUntil: entitlement.premiumUntil,
-      paddleSubscriptionId: resolved.subscriptionId,
-      paddleCustomerId: resolved.customerId,
-      paddleStatus: entitlement.status,
-    });
-    const okById = Array.isArray(resultById) && resultById[0] && resultById[0].success === true;
-    if (!okById) {
-      throw new Error(`Profile mapping failed for user id: ${resolved.userId}`);
-    }
-    return;
-  }
-
-  const resultByEmail = await applyProfileEntitlementByEmail({
+  const resultById = await applyProfileEntitlementByUserId({
+    userId: resolved.userId,
     email: resolved.email,
     plan: entitlement.plan,
     premiumUntil: entitlement.premiumUntil,
@@ -369,9 +353,9 @@ async function handleWebhookEvent(eventType: string, data: Record<string, unknow
     paddleCustomerId: resolved.customerId,
     paddleStatus: entitlement.status,
   });
-  const okByEmail = Array.isArray(resultByEmail) && resultByEmail[0] && resultByEmail[0].success === true;
-  if (!okByEmail) {
-    throw new Error(`Profile mapping failed for email: ${resolved.email}`);
+  const okById = Array.isArray(resultById) && resultById[0] && resultById[0].success === true;
+  if (!okById) {
+    throw new Error(`Profile mapping failed for user id: ${resolved.userId}`);
   }
 }
 
