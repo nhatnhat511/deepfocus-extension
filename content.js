@@ -3,6 +3,13 @@
 if (window.deepfocusLoaded) return
 window.deepfocusLoaded = true
 
+const isSvgDocument =
+    document.contentType === "image/svg+xml" ||
+    (document.documentElement && document.documentElement.tagName && document.documentElement.tagName.toLowerCase() === "svg")
+if (isSvgDocument || !document.body) {
+    return
+}
+
 let extensionAlive = true
 let currentState = null
 let renderTimer = null

@@ -92,6 +92,7 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [status, setStatus] = useState("Not signed in.");
@@ -278,8 +279,7 @@ export default function AccountPage() {
     }
   }
 
-  async function onSignIn(e: FormEvent) {
-    e.preventDefault();
+  async function onSignIn() {
     setError("");
     setLoading(true);
     try {
@@ -299,8 +299,7 @@ export default function AccountPage() {
     }
   }
 
-  async function onSignUp(e: FormEvent) {
-    e.preventDefault();
+  async function onSignUp() {
     setError("");
     setLoading(true);
     try {
@@ -328,6 +327,15 @@ export default function AccountPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onAuthSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (authMode === "signup") {
+      await onSignUp();
+      return;
+    }
+    await onSignIn();
   }
 
   async function onSignOut() {
@@ -449,73 +457,107 @@ export default function AccountPage() {
       </section>
 
       {!signedIn ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Sign in or register</h2>
-          <form className="mt-4 space-y-3" onSubmit={onSignIn}>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              required
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              required
-            />
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={onSignUp}
-                disabled={loading}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-              >
-                Register
-              </button>
-            </div>
-          </form>
-          <div className="mt-5 border-t border-slate-200 pt-4">
-            <p className="text-center text-sm font-medium text-slate-600">Or continue with</p>
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => startOAuth("google")}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
-                  <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.6 2.8-4 2.8-6.8 0-.6-.1-1.2-.2-1.8H12z"/>
-                  <path fill="#34A853" d="M6.5 14.3l-.7.5-2.5 2c1.6 3.1 4.8 5.2 8.7 5.2 2.5 0 4.6-.8 6.1-2.3l-3-2.3c-.8.5-1.9.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8z"/>
-                  <path fill="#4A90E2" d="M3.3 7.2C2.8 8.2 2.5 9.4 2.5 10.7c0 1.3.3 2.5.8 3.5 0 0 3.2-2.5 3.2-2.5-.2-.4-.3-.9-.3-1.4s.1-.9.3-1.4z"/>
-                  <path fill="#FBBC05" d="M12 5.1c1.4 0 2.6.5 3.6 1.4l2.7-2.7C16.6 2.2 14.5 1.3 12 1.3 8.1 1.3 4.9 3.4 3.3 6.5l3.2 2.5c.7-2.2 2.7-3.9 5.5-3.9z"/>
-                </svg>
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={() => startOAuth("github")}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
-                  <path fill="currentColor" d="M12 .5C5.65.5.5 5.74.5 12.2c0 5.17 3.3 9.55 7.87 11.1.58.11.79-.26.79-.57 0-.28-.01-1.2-.02-2.18-3.2.71-3.88-1.39-3.88-1.39-.52-1.35-1.28-1.71-1.28-1.71-1.05-.73.08-.72.08-.72 1.16.08 1.77 1.22 1.77 1.22 1.03 1.81 2.71 1.29 3.37.99.1-.76.4-1.29.73-1.59-2.55-.3-5.23-1.31-5.23-5.83 0-1.29.45-2.35 1.19-3.18-.12-.3-.52-1.51.11-3.15 0 0 .97-.32 3.19 1.21a10.8 10.8 0 0 1 5.8 0c2.22-1.53 3.19-1.21 3.19-1.21.63 1.64.23 2.85.11 3.15.74.83 1.19 1.89 1.19 3.18 0 4.53-2.68 5.52-5.24 5.82.41.36.78 1.08.78 2.18 0 1.57-.01 2.84-.01 3.22 0 .31.21.69.8.57 4.57-1.55 7.86-5.93 7.86-11.1C23.5 5.74 18.35.5 12 .5z"/>
-                </svg>
-                GitHub
-              </button>
+        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-6 text-white shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold">Welcome back!</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                {authMode === "signin" ? "New to DeepFocus?" : "Already have an account?"}{" "}
+                <button
+                  type="button"
+                  onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
+                  className="text-emerald-300 underline-offset-2 hover:underline"
+                >
+                  {authMode === "signin" ? "Create account" : "Sign in"}
+                </button>
+              </p>
             </div>
           </div>
+
+          <form className="mt-6 space-y-4" onSubmit={onAuthSubmit}>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                required
+              />
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>{authMode === "signup" ? "Minimum 8 characters recommended." : " "}</span>
+                <a
+                  href="/support"
+                  className="text-emerald-300 hover:underline"
+                >
+                  Forgot password?
+                </a>
+              </div>
+            </div>
+
+            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Working..." : authMode === "signup" ? "Create account" : "Login"}
+            </button>
+          </form>
+
+          <div className="mt-6 flex items-center gap-3 text-xs text-slate-400">
+            <span className="h-px w-full bg-slate-800" />
+            <span>or</span>
+            <span className="h-px w-full bg-slate-800" />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => startOAuth("google")}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:border-slate-700 disabled:opacity-60"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.6 2.8-4 2.8-6.8 0-.6-.1-1.2-.2-1.8H12z"/>
+                <path fill="#34A853" d="M6.5 14.3l-.7.5-2.5 2c1.6 3.1 4.8 5.2 8.7 5.2 2.5 0 4.6-.8 6.1-2.3l-3-2.3c-.8.5-1.9.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8z"/>
+                <path fill="#4A90E2" d="M3.3 7.2C2.8 8.2 2.5 9.4 2.5 10.7c0 1.3.3 2.5.8 3.5 0 0 3.2-2.5 3.2-2.5-.2-.4-.3-.9-.3-1.4s.1-.9.3-1.4z"/>
+                <path fill="#FBBC05" d="M12 5.1c1.4 0 2.6.5 3.6 1.4l2.7-2.7C16.6 2.2 14.5 1.3 12 1.3 8.1 1.3 4.9 3.4 3.3 6.5l3.2 2.5c.7-2.2 2.7-3.9 5.5-3.9z"/>
+              </svg>
+              Google
+            </button>
+            <button
+              type="button"
+              onClick={() => startOAuth("github")}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:border-slate-700 disabled:opacity-60"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+                <path fill="currentColor" d="M12 .5C5.65.5.5 5.74.5 12.2c0 5.17 3.3 9.55 7.87 11.1.58.11.79-.26.79-.57 0-.28-.01-1.2-.02-2.18-3.2.71-3.88-1.39-3.88-1.39-.52-1.35-1.28-1.71-1.28-1.71-1.05-.73.08-.72.08-.72 1.16.08 1.77 1.22 1.77 1.22 1.03 1.81 2.71 1.29 3.37.99.1-.76.4-1.29.73-1.59-2.55-.3-5.23-1.31-5.23-5.83 0-1.29.45-2.35 1.19-3.18-.12-.3-.52-1.51.11-3.15 0 0 .97-.32 3.19 1.21a10.8 10.8 0 0 1 5.8 0c2.22-1.53 3.19-1.21 3.19-1.21.63 1.64.23 2.85.11 3.15.74.83 1.19 1.89 1.19 3.18 0 4.53-2.68 5.52-5.24 5.82.41.36.78 1.08.78 2.18 0 1.57-.01 2.84-.01 3.22 0 .31.21.69.8.57 4.57-1.55 7.86-5.93 7.86-11.1C23.5 5.74 18.35.5 12 .5z"/>
+              </svg>
+              GitHub
+            </button>
+          </div>
+
+          <p className="mt-6 text-xs text-slate-400">
+            By signing in you confirm that you have read our{" "}
+            <a className="text-emerald-300 hover:underline" href="/privacy">Privacy Policy</a>{" "}
+            and that you accept our{" "}
+            <a className="text-emerald-300 hover:underline" href="/terms">Terms of Service</a>.
+          </p>
         </section>
       ) : (
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
