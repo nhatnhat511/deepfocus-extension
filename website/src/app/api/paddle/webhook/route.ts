@@ -180,25 +180,22 @@ async function recordWebhookEvent(eventId: string, eventType: string, payload: R
   throw new Error(`Unable to record webhook event (${res.status})`);
 }
 
-async function isWebhookEventProcessed(eventId: string) {
+async function removeWebhookEvent(eventId: string) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/paddle_webhook_events?event_id=eq.${encodeURIComponent(eventId)}&select=event_id&limit=1`,
+    `${SUPABASE_URL}/rest/v1/paddle_webhook_events?event_id=eq.${encodeURIComponent(eventId)}`,
     {
-      method: "GET",
+      method: "DELETE",
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        Prefer: "return=minimal",
       },
       cache: "no-store",
     }
   );
-
-  if (!res.ok) {
-    throw new Error(`Unable to check webhook idempotency (${res.status})`);
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Unable to rollback webhook event (${res.status})`);
   }
-
-  const rows = (await res.json().catch(() => [])) as Array<{ event_id?: string }>;
-  return Array.isArray(rows) && rows.length > 0;
 }
 
 function toLowerEmail(value: unknown) {
@@ -384,11 +381,15 @@ export async function POST(req: Request) {
 
     if (!eventId || !eventType) return jsonError("Invalid webhook payload.", 400);
 
-    const alreadyProcessed = await isWebhookEventProcessed(eventId);
-    if (alreadyProcessed) return jsonOk({ ok: true, duplicate: true });
+    const recorded = await recordWebhookEvent(eventId, eventType, payloadForStore);
+    if (!recorded) return jsonOk({ ok: true, duplicate: true });
 
-    await handleWebhookEvent(eventType, data);
-    await recordWebhookEvent(eventId, eventType, payloadForStore);
+    try {
+      await handleWebhookEvent(eventType, data);
+    } catch (err) {
+      await removeWebhookEvent(eventId);
+      throw err;
+    }
     return jsonOk({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Webhook processing failed.";

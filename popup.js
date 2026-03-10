@@ -96,7 +96,7 @@ let pendingTrialActivation = false
 const SUPABASE_URL = "https://jpgywjxztjkayynptjrs.supabase.co"
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr"
 const AUTH_STORAGE_KEY = "deepfocusSupabaseSession"
-const AUTH_EMAIL_REDIRECT_URL = "https://deepfocustime.com/auth/callback"
+const AUTH_EMAIL_REDIRECT_URL = "https://deepfocustime.com/account"
 const AUTH_EXTENSION_BRIDGE_URL = "https://deepfocustime.com/auth/extension-callback"
 const BREAK_VISUAL_BG_KEY = "deepfocusBreakVisualBackground"
 const BREAK_VISUAL_BG_META_KEY = "deepfocusBreakVisualBackgroundMeta"
@@ -1195,9 +1195,7 @@ method: "POST",
 body: JSON.stringify({
 email,
 password,
-options: {
-emailRedirectTo: AUTH_EMAIL_REDIRECT_URL
-}
+email_redirect_to: AUTH_EMAIL_REDIRECT_URL
 })
 })
 if(signupPayload && signupPayload.access_token){
@@ -1489,7 +1487,7 @@ accountTrialBtn.addEventListener("click", ()=>requestTrialActivation("account"))
 }
 if(accountEditProfileBtn){
 accountEditProfileBtn.addEventListener("click", ()=>{
-chrome.tabs.create({ url: "https://deepfocustime.com/" })
+chrome.tabs.create({ url: "https://deepfocustime.com/account" })
 })
 }
 accountRefreshBtn.addEventListener("click", async ()=>{
