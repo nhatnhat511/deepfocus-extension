@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Refund Policy",
+  description: "Learn how refunds are handled for DeepFocus Time subscriptions.",
+};
+
 export default function RefundPage() {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6">

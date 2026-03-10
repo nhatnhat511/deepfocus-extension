@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "FAQ",
+  description: "Answers to common questions about DeepFocus Time setup, plans, and account sync.",
+};
 
 const faqs = [
   {

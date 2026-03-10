@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Changelog",
+  description: "Latest DeepFocus Time product updates and improvements.",
+};
+
 const changes = [
   {
     date: "March 2026",

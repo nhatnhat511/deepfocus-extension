@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description: "Review how DeepFocus Time collects, uses, and protects your data.",
+};
+
 export default function PrivacyPage() {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6">

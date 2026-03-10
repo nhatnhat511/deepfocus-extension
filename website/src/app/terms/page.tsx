@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "Review the DeepFocus Time terms of service and account responsibilities.",
+};
+
 export default function TermsPage() {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6">

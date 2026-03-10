@@ -298,7 +298,7 @@ export default function AccountPage() {
     setLoading(true);
     try {
       const redirectTo =
-        typeof window !== "undefined" ? `${window.location.origin}/account` : undefined;
+        typeof window !== "undefined" ? `${window.location.origin}/auth/confirm?next=/account` : undefined;
       const payload = (await supabaseRequest("/auth/v1/signup", {
         method: "POST",
         body: JSON.stringify({
@@ -532,59 +532,72 @@ export default function AccountPage() {
         </section>
       ) : (
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
-          <p className="mt-1 text-sm text-slate-600">{user?.email || "-"}</p>
-          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            <strong className="text-slate-900">Plan:</strong> {accountSummary.label}
-            <div className="mt-1 text-xs text-slate-600">{accountSummary.detail}</div>
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
+            <p className="mt-1 text-sm text-slate-600">Keep your profile details and security settings up to date.</p>
           </div>
-          {!profile?.is_premium_active && !profile?.trial_used ? (
-            <button
-              type="button"
-              onClick={startTrial}
-              disabled={loading}
-              className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              Start 7-day Free Trial (No Card)
-            </button>
-          ) : null}
-          {profile?.plan !== "premium" ? <PaddleCheckoutCard /> : null}
 
-          <div className="mt-4 flex items-center gap-4">
-            <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-              {(avatarPreview || avatarUrl) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarPreview || avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-              ) : null}
+          <div className="mt-5 grid gap-4 sm:grid-cols-[auto,1fr]">
+            <div className="flex flex-col items-start gap-3">
+              <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                {(avatarPreview || avatarUrl) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarPreview || avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                ) : null}
+              </div>
+              <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Upload Avatar
+                <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
+              </label>
             </div>
-            <label className="cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800">
-              Upload Avatar
-              <input type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
-            </label>
+
+            <div className="space-y-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{user?.email || "-"}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Plan</p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">{accountSummary.label}</p>
+                <p className="mt-1 text-xs text-slate-600">{accountSummary.detail}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            Email changes are not supported at this time. Please contact support if you need help updating your email.
+          <div className="mt-5 space-y-3">
+            {!profile?.is_premium_active && !profile?.trial_used ? (
+              <button
+                type="button"
+                onClick={startTrial}
+                disabled={loading}
+                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                Start 7-day Free Trial (No Card)
+              </button>
+            ) : null}
+            {profile?.plan !== "premium" ? <PaddleCheckoutCard /> : null}
           </div>
 
-          <form className="mt-5 space-y-3" onSubmit={onUpdatePassword}>
-            <label className="block text-sm font-semibold text-slate-800">Change password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New password"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-            >
-              Update Password
-            </button>
-          </form>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <form className="space-y-3" onSubmit={onUpdatePassword}>
+              <label className="block text-sm font-semibold text-slate-800">Change password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="New password"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                required
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+              >
+                Update Password
+              </button>
+            </form>
+          </div>
 
           <button
             type="button"

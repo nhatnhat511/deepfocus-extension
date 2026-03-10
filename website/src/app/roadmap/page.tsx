@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Roadmap",
+  description: "See what the DeepFocus Time team is building next.",
+};
+
 const roadmap = [
   {
     stage: "Now",

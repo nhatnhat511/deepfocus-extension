@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Pricing",
+  description:
+    "Compare Free and Premium plans for DeepFocus Time, including feature breakdowns and subscription details.",
+};
 
 const freeFeatures = [
   "Focus and break timer controls",
