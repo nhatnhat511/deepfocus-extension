@@ -43,6 +43,14 @@ let dailyFocusGoal = 6
 let todayFocusSessions = 0
 let streakDays = 0
 let progressDateKey = ""
+let statsDailyHistory = {}
+let statsHourBuckets = Array(24).fill(0)
+let statsInterruptions = {
+    idlePause: 0,
+    meetingPause: 0,
+    manualReset: 0
+}
+let statsInterruptionDaily = {}
 let meetingAutoPauseEnabled = true
 let pauseReason = "manual"
 let lunchReminderEnabled = false
@@ -188,6 +196,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             breakVisualEnabled = !!msg.breakVisualEnabled
             if (typeof msg.dailyFocusGoal === "number") {
                 dailyFocusGoal = Math.max(1, Math.min(20, Math.round(msg.dailyFocusGoal)))
+                const todayKey = getLocalDateKey(new Date())
+                ensureDailyHistoryEntry(todayKey)
+                statsDailyHistory[todayKey].goal = dailyFocusGoal
             }
             meetingAutoPauseEnabled = msg.meetingAutoPauseEnabled !== false
             if (!breakVisualEnabled) {
@@ -213,6 +224,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             if (!isPremiumActive()) {
                 enforceFreeTierDefaults()
             }
+            // Keep STORAGE_KEY and ACCOUNT_STATUS_KEY aligned so command gating
+            // still works after service worker restarts.
+            persistState()
             persistAccountStatus()
             scheduleSoundCues()
             sendResponse({ ok: true })
@@ -286,8 +300,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.commands.onCommand.addListener((command) => {
     stateReady.then(() => {
-        if (!isPremiumActive()) return
-
         if (command === "start-timer") {
             handleStartTimer(focusMinutes, breakMinutes)
             send("UPDATE")
@@ -471,6 +483,10 @@ function buildPayload(type) {
         todayFocusSessions,
         streakDays,
         progressDateKey,
+        statsDailyHistory,
+        statsHourBuckets,
+        statsInterruptions,
+        statsInterruptionDaily,
         meetingAutoPauseEnabled,
         lunchReminderEnabled,
         lunchReminderTime,
@@ -533,6 +549,10 @@ function persistState() {
             todayFocusSessions,
             streakDays,
             progressDateKey,
+            statsDailyHistory,
+            statsHourBuckets,
+            statsInterruptions,
+            statsInterruptionDaily,
             meetingAutoPauseEnabled,
             lunchReminderEnabled,
             lunchReminderTime,
@@ -550,6 +570,7 @@ function loadState(done) {
     chrome.storage.local.get([STORAGE_KEY, ACCOUNT_STATUS_KEY], (result) => {
         const state = result[STORAGE_KEY]
         const account = result[ACCOUNT_STATUS_KEY]
+        const hasAccountStatusOverride = !!(account && typeof account === "object")
         if (account && typeof account === "object") {
             accountPlan = (account.plan === "premium" || account.plan === "trial") ? account.plan : "free"
             premiumUntil = typeof account.premiumUntil === "string" ? account.premiumUntil : ""
@@ -603,6 +624,22 @@ function loadState(done) {
             streakDays = Math.max(0, Math.round(state.streakDays))
         }
         progressDateKey = typeof state.progressDateKey === "string" ? state.progressDateKey : ""
+        if (state.statsDailyHistory && typeof state.statsDailyHistory === "object") {
+            statsDailyHistory = sanitizeDailyHistory(state.statsDailyHistory)
+        }
+        if (Array.isArray(state.statsHourBuckets) && state.statsHourBuckets.length === 24) {
+            statsHourBuckets = state.statsHourBuckets.map((v) => Math.max(0, Math.round(Number(v) || 0)))
+        }
+        if (state.statsInterruptions && typeof state.statsInterruptions === "object") {
+            statsInterruptions = {
+                idlePause: Math.max(0, Math.round(Number(state.statsInterruptions.idlePause) || 0)),
+                meetingPause: Math.max(0, Math.round(Number(state.statsInterruptions.meetingPause) || 0)),
+                manualReset: Math.max(0, Math.round(Number(state.statsInterruptions.manualReset) || 0))
+            }
+        }
+        if (state.statsInterruptionDaily && typeof state.statsInterruptionDaily === "object") {
+            statsInterruptionDaily = sanitizeInterruptionDaily(state.statsInterruptionDaily)
+        }
         meetingAutoPauseEnabled = state.meetingAutoPauseEnabled !== false
         lunchReminderEnabled = !!state.lunchReminderEnabled
         lunchReminderTime = isValidTimeString(state.lunchReminderTime) ? state.lunchReminderTime : "12:00"
@@ -610,11 +647,13 @@ function loadState(done) {
         dinnerReminderTime = isValidTimeString(state.dinnerReminderTime) ? state.dinnerReminderTime : "19:00"
         lastLunchReminderMinuteKey = typeof state.lastLunchReminderMinuteKey === "string" ? state.lastLunchReminderMinuteKey : ""
         lastDinnerReminderMinuteKey = typeof state.lastDinnerReminderMinuteKey === "string" ? state.lastDinnerReminderMinuteKey : ""
-        if (state.accountPlan === "premium" || state.accountPlan === "trial" || state.accountPlan === "free") {
-            accountPlan = state.accountPlan
-        }
-        if (typeof state.premiumUntil === "string") {
-            premiumUntil = state.premiumUntil
+        if (!hasAccountStatusOverride) {
+            if (state.accountPlan === "premium" || state.accountPlan === "trial" || state.accountPlan === "free") {
+                accountPlan = state.accountPlan
+            }
+            if (typeof state.premiumUntil === "string") {
+                premiumUntil = state.premiumUntil
+            }
         }
         if (!isPremiumActive()) {
             enforceFreeTierDefaults()
@@ -667,6 +706,9 @@ function handlePauseTimer(reason = "manual") {
     remainingMs = Math.max(0, endTime - Date.now())
     isPaused = true
     pauseReason = reason
+    if (reason === "idle" || reason === "meeting") {
+        recordInterruption(reason)
+    }
 
     persistState()
     clearAlarm()
@@ -696,6 +738,10 @@ function handleResumeTimer() {
 }
 
 function handleResetTimer(resetDurations) {
+    const hadRunningSession = !!endTime
+    if (hadRunningSession) {
+        recordInterruption("manual-reset")
+    }
     resetState()
     if (resetDurations) {
         focusMinutes = 25
@@ -838,6 +884,7 @@ function checkDailyProgressRollover() {
     const todayKey = getLocalDateKey(new Date())
     if (!progressDateKey) {
         progressDateKey = todayKey
+        ensureDailyHistoryEntry(todayKey)
         persistState()
         return
     }
@@ -852,12 +899,24 @@ function checkDailyProgressRollover() {
 
     todayFocusSessions = 0
     progressDateKey = todayKey
+    ensureDailyHistoryEntry(todayKey)
     persistState()
 }
 
 function incrementFocusProgress() {
     checkDailyProgressRollover()
     todayFocusSessions += 1
+    const now = new Date()
+    const todayKey = getLocalDateKey(now)
+    ensureDailyHistoryEntry(todayKey)
+    statsDailyHistory[todayKey].sessions += 1
+    statsDailyHistory[todayKey].focusMinutes += Math.max(1, Math.round(focusMinutes))
+    statsDailyHistory[todayKey].goal = dailyFocusGoal
+    const h = now.getHours()
+    if (h >= 0 && h < 24) {
+        statsHourBuckets[h] = Math.max(0, Math.round(Number(statsHourBuckets[h]) || 0)) + 1
+    }
+    pruneStatsHistory()
     persistState()
 }
 
@@ -1106,6 +1165,92 @@ function getLocalDateKey(dateObj) {
     return `${y}-${m}-${d}`
 }
 
+function sanitizeDailyHistory(raw) {
+    const out = {}
+    Object.keys(raw || {}).forEach((key) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return
+        const row = raw[key]
+        if (!row || typeof row !== "object") return
+        out[key] = {
+            sessions: Math.max(0, Math.round(Number(row.sessions) || 0)),
+            focusMinutes: Math.max(0, Math.round(Number(row.focusMinutes) || 0)),
+            goal: Math.max(1, Math.min(20, Math.round(Number(row.goal) || dailyFocusGoal)))
+        }
+    })
+    return out
+}
+
+function ensureDailyHistoryEntry(dateKey) {
+    if (!statsDailyHistory[dateKey]) {
+        statsDailyHistory[dateKey] = {
+            sessions: 0,
+            focusMinutes: 0,
+            goal: dailyFocusGoal
+        }
+    }
+}
+
+function pruneStatsHistory() {
+    const keys = Object.keys(statsDailyHistory).sort()
+    const maxDays = 35
+    if (keys.length <= maxDays) return
+    const removeCount = keys.length - maxDays
+    for (let i = 0; i < removeCount; i += 1) {
+        delete statsDailyHistory[keys[i]]
+    }
+
+    const interruptionKeys = Object.keys(statsInterruptionDaily).sort()
+    if (interruptionKeys.length <= maxDays) return
+    const interruptionRemoveCount = interruptionKeys.length - maxDays
+    for (let i = 0; i < interruptionRemoveCount; i += 1) {
+        delete statsInterruptionDaily[interruptionKeys[i]]
+    }
+}
+
+function recordInterruption(reason) {
+    const todayKey = getLocalDateKey(new Date())
+    ensureInterruptionDailyEntry(todayKey)
+    if (reason === "idle") {
+        statsInterruptions.idlePause += 1
+        statsInterruptionDaily[todayKey].idlePause += 1
+        return
+    }
+    if (reason === "meeting") {
+        statsInterruptions.meetingPause += 1
+        statsInterruptionDaily[todayKey].meetingPause += 1
+        return
+    }
+    if (reason === "manual-reset") {
+        statsInterruptions.manualReset += 1
+        statsInterruptionDaily[todayKey].manualReset += 1
+    }
+}
+
+function sanitizeInterruptionDaily(raw) {
+    const out = {}
+    Object.keys(raw || {}).forEach((key) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return
+        const row = raw[key]
+        if (!row || typeof row !== "object") return
+        out[key] = {
+            idlePause: Math.max(0, Math.round(Number(row.idlePause) || 0)),
+            meetingPause: Math.max(0, Math.round(Number(row.meetingPause) || 0)),
+            manualReset: Math.max(0, Math.round(Number(row.manualReset) || 0))
+        }
+    })
+    return out
+}
+
+function ensureInterruptionDailyEntry(dateKey) {
+    if (!statsInterruptionDaily[dateKey]) {
+        statsInterruptionDaily[dateKey] = {
+            idlePause: 0,
+            meetingPause: 0,
+            manualReset: 0
+        }
+    }
+}
+
 function shouldFireReminderNow(kind, now) {
     if (!isWorkSessionRunning()) return false
 
@@ -1285,7 +1430,7 @@ function showUpgradeNotification() {
         type: "basic",
         iconUrl: "icons/icon128.png",
         title: "DeepFocus Premium trial ended",
-        message: "Upgrade to keep Premium shortcuts and Advanced Settings.",
+        message: "Upgrade to keep Advanced Settings.",
         priority: 1
     })
 }

@@ -1,4 +1,4 @@
-const pauseBtn = document.getElementById("pauseBtn")
+﻿const pauseBtn = document.getElementById("pauseBtn")
 const focusInput = document.getElementById("focusTime")
 const breakInput = document.getElementById("breakTime")
 const soundEnabledInput = document.getElementById("soundEnabled")
@@ -18,6 +18,8 @@ const detailView = document.getElementById("detailView")
 const detailTitle = document.getElementById("detailTitle")
 const detailText = document.getElementById("detailText")
 const detailList = document.getElementById("detailList")
+const shortcutSettingsBtn = document.getElementById("shortcutSettingsBtn")
+const advancedQuickBtn = document.getElementById("advancedQuickBtn")
 const detailActionBtn = document.getElementById("detailActionBtn")
 const advancedSettingsPanel = document.getElementById("advancedSettingsPanel")
 const nightWorkEnabledInput = document.getElementById("nightWorkEnabled")
@@ -34,6 +36,12 @@ const idleAutoPauseEnabledInput = document.getElementById("idleAutoPauseEnabled"
 const idleAutoPauseMinutesInput = document.getElementById("idleAutoPauseMinutes")
 const dailyFocusGoalInput = document.getElementById("dailyFocusGoal")
 const progressReport = document.getElementById("progressReport")
+const weeklyStatsReport = document.getElementById("weeklyStatsReport")
+const weeklyOverviewChart = document.getElementById("weeklyOverviewChart")
+const bestFocusHoursReport = document.getElementById("bestFocusHoursReport")
+const interruptionRateReport = document.getElementById("interruptionRateReport")
+const smartInsightHeadline = document.getElementById("smartInsightHeadline")
+const smartInsightAction = document.getElementById("smartInsightAction")
 const meetingAutoPauseEnabledInput = document.getElementById("meetingAutoPauseEnabled")
 const accountPanel = document.getElementById("accountPanel")
 const accountStatus = document.getElementById("accountStatus")
@@ -73,6 +81,10 @@ let idleAutoPauseMinutes = 5
 let dailyFocusGoal = 6
 let todayFocusSessions = 0
 let streakDays = 0
+let statsDailyHistory = {}
+let statsHourBuckets = Array(24).fill(0)
+let statsInterruptions = { idlePause: 0, meetingPause: 0, manualReset: 0 }
+let statsInterruptionDaily = {}
 let meetingAutoPauseEnabled = true
 let authSession = null
 let accountProfile = null
@@ -85,6 +97,7 @@ const SUPABASE_URL = "https://jpgywjxztjkayynptjrs.supabase.co"
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr"
 const AUTH_STORAGE_KEY = "deepfocusSupabaseSession"
 const AUTH_EMAIL_REDIRECT_URL = "https://deepfocustime.com/auth/callback"
+const AUTH_EXTENSION_BRIDGE_URL = "https://deepfocustime.com/auth/extension-callback"
 const BREAK_VISUAL_BG_KEY = "deepfocusBreakVisualBackground"
 const BREAK_VISUAL_BG_META_KEY = "deepfocusBreakVisualBackgroundMeta"
 const ACCOUNT_STATUS_KEY = "deepfocusAccountStatus"
@@ -146,7 +159,7 @@ return
 const name = breakVisualBackgroundMeta && breakVisualBackgroundMeta.name ? breakVisualBackgroundMeta.name : "custom-image"
 const type = breakVisualBackgroundMeta && breakVisualBackgroundMeta.type ? breakVisualBackgroundMeta.type : "image"
 const size = breakVisualBackgroundMeta ? formatFileSize(breakVisualBackgroundMeta.size) : "unknown size"
-breakVisualBackgroundInfo.textContent = `${name} • ${type} • ${size}`
+breakVisualBackgroundInfo.textContent = `${name} | ${type} | ${size}`
 }
 
 const detailConfig = {
@@ -157,15 +170,15 @@ list: [],
 actionLabel: ""
 },
 shortcuts: {
-title: "Keyboard Shortcuts (Premium)",
-text: "Use these DeepFocus shortcuts to control your work session quickly.",
+title: "Keyboard Shortcuts",
+text: "Use these suggested shortcuts to control your work session quickly. You can customize them in Chrome shortcut settings.",
 list: [
-"Alt+S: Start timer",
-"Alt+P: Pause/Resume",
-"Alt+R: Reset timer",
-"Alt+B: Go back (inside popup)"
+"Suggested: Alt+S - Start timer",
+"Suggested: Alt+P - Pause/Resume",
+"Suggested: Alt+R - Reset timer",
+"Suggested: Alt+B - Go back (inside popup)"
 ],
-actionLabel: "Start 7-day Free Trial (No Card)"
+actionLabel: ""
 },
 settings: {
 title: "Advanced Settings (Premium)",
@@ -249,6 +262,9 @@ li.textContent = raw
 detailList.appendChild(li)
 })
 detailList.style.display = cfg.list.length ? "block" : "none"
+if(shortcutSettingsBtn){
+shortcutSettingsBtn.style.display = key==="shortcuts" ? "inline-flex" : "none"
+}
 advancedSettingsPanel.classList.toggle("show", key==="settings")
 accountPanel.classList.toggle("show", key==="account")
 
@@ -401,6 +417,291 @@ const goal = Math.max(1, dailyFocusGoal)
 const pct = Math.min(100, Math.round((todayFocusSessions / goal) * 100))
 const streakLabel = streakDays === 1 ? "day" : "days"
 progressReport.textContent = `Today: ${todayFocusSessions}/${goal} sessions (${pct}%). Streak: ${streakDays} ${streakLabel}.`
+renderAdvancedStats()
+}
+
+function getDateKeyFromOffset(daysAgo){
+const now = new Date()
+now.setHours(0,0,0,0)
+now.setDate(now.getDate() - daysAgo)
+const y = now.getFullYear()
+const m = String(now.getMonth() + 1).padStart(2, "0")
+const d = String(now.getDate()).padStart(2, "0")
+return `${y}-${m}-${d}`
+}
+
+function collectWeeklySnapshot(){
+let totalSessions = 0
+let totalMinutes = 0
+let daysGoalHit = 0
+for(let i = 0; i < 7; i += 1){
+const key = getDateKeyFromOffset(i)
+const row = statsDailyHistory && statsDailyHistory[key] ? statsDailyHistory[key] : null
+const sessions = row && typeof row.sessions === "number" ? Math.max(0, Math.round(row.sessions)) : 0
+const minutes = row && typeof row.focusMinutes === "number" ? Math.max(0, Math.round(row.focusMinutes)) : 0
+const goal = row && typeof row.goal === "number" ? Math.max(1, Math.round(row.goal)) : dailyFocusGoal
+totalSessions += sessions
+totalMinutes += minutes
+if(sessions >= goal) daysGoalHit += 1
+}
+return { totalSessions, totalMinutes, daysGoalHit }
+}
+
+function collectWindowSnapshot(startOffset, days){
+let totalSessions = 0
+let totalMinutes = 0
+let daysGoalHit = 0
+for(let i = startOffset; i < startOffset + days; i += 1){
+const key = getDateKeyFromOffset(i)
+const row = statsDailyHistory && statsDailyHistory[key] ? statsDailyHistory[key] : null
+const sessions = row && typeof row.sessions === "number" ? Math.max(0, Math.round(row.sessions)) : 0
+const minutes = row && typeof row.focusMinutes === "number" ? Math.max(0, Math.round(row.focusMinutes)) : 0
+const goal = row && typeof row.goal === "number" ? Math.max(1, Math.round(row.goal)) : dailyFocusGoal
+totalSessions += sessions
+totalMinutes += minutes
+if(sessions >= goal) daysGoalHit += 1
+}
+return { totalSessions, totalMinutes, daysGoalHit }
+}
+
+function collectInterruptionWindow(startOffset, days){
+let idle = 0
+let meeting = 0
+let reset = 0
+for(let i = startOffset; i < startOffset + days; i += 1){
+const key = getDateKeyFromOffset(i)
+const row = statsInterruptionDaily && statsInterruptionDaily[key] ? statsInterruptionDaily[key] : null
+idle += row && typeof row.idlePause === "number" ? Math.max(0, Math.round(row.idlePause)) : 0
+meeting += row && typeof row.meetingPause === "number" ? Math.max(0, Math.round(row.meetingPause)) : 0
+reset += row && typeof row.manualReset === "number" ? Math.max(0, Math.round(row.manualReset)) : 0
+}
+return { idle, meeting, reset, total: idle + meeting + reset }
+}
+
+function safeRate(numerator, denominator){
+if(!denominator || denominator <= 0) return 0
+return Math.round((numerator / denominator) * 100)
+}
+
+function getConfidenceLevel(totalSessions, signalGap){
+if(totalSessions >= 18 && signalGap >= 6) return "High"
+if(totalSessions >= 8 && signalGap >= 3) return "Medium"
+return "Low"
+}
+
+function renderWeeklyOverviewChart(){
+if(!weeklyOverviewChart) return
+
+const EN_WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const points = []
+for(let i = 6; i >= 0; i -= 1){
+const key = getDateKeyFromOffset(i)
+const row = statsDailyHistory && statsDailyHistory[key] ? statsDailyHistory[key] : null
+const sessions = row && typeof row.sessions === "number" ? Math.max(0, Math.round(row.sessions)) : 0
+const goal = row && typeof row.goal === "number" ? Math.max(1, Math.round(row.goal)) : dailyFocusGoal
+const d = new Date()
+d.setHours(0,0,0,0)
+d.setDate(d.getDate() - i)
+const dayLabel = EN_WEEKDAY_LABELS[d.getDay()] || "Day"
+points.push({ dayLabel, sessions, goal, hitGoal: sessions >= goal })
+}
+
+const maxSessions = Math.max(1, ...points.map((p)=>p.sessions))
+weeklyOverviewChart.innerHTML = ""
+
+points.forEach((point)=>{
+const col = document.createElement("div")
+col.className = "weekly-col"
+
+const barWrap = document.createElement("div")
+barWrap.className = "weekly-bar-wrap"
+barWrap.title = `${point.dayLabel}: ${point.sessions} sessions`
+
+const bar = document.createElement("div")
+bar.className = "weekly-bar"
+bar.classList.add(point.hitGoal ? "goal-hit" : "goal-miss")
+const heightPct = point.sessions <= 0 ? 4 : Math.max(10, Math.round((point.sessions / maxSessions) * 100))
+bar.style.height = `${heightPct}%`
+barWrap.appendChild(bar)
+
+const value = document.createElement("div")
+value.className = "weekly-value"
+value.textContent = String(point.sessions)
+
+const label = document.createElement("div")
+label.className = "weekly-label"
+label.textContent = point.dayLabel
+
+col.appendChild(barWrap)
+col.appendChild(value)
+col.appendChild(label)
+weeklyOverviewChart.appendChild(col)
+})
+}
+
+function renderWeeklyStats(isPremium){
+if(!weeklyStatsReport) return
+if(!isPremium){
+weeklyStatsReport.textContent = "Upgrade to Premium to view full 7-day analytics."
+if(weeklyOverviewChart) weeklyOverviewChart.innerHTML = ""
+return
+}
+const { totalSessions, totalMinutes, daysGoalHit } = collectWeeklySnapshot()
+const goalHitPct = Math.round((daysGoalHit / 7) * 100)
+weeklyStatsReport.textContent = `7-day totals: ${totalSessions} sessions, ${totalMinutes} focus min. Goal hit: ${daysGoalHit}/7 days (${goalHitPct}%).`
+renderWeeklyOverviewChart()
+}
+
+function formatHourRange(hour){
+const start = `${String(hour).padStart(2,"0")}:00`
+const endHour = (hour + 1) % 24
+const end = `${String(endHour).padStart(2,"0")}:00`
+return `${start}-${end}`
+}
+
+function renderBestFocusHours(isPremium){
+if(!bestFocusHoursReport) return
+if(!isPremium){
+bestFocusHoursReport.textContent = "Premium unlocks your top productivity hours."
+return
+}
+if(!Array.isArray(statsHourBuckets) || statsHourBuckets.length !== 24){
+bestFocusHoursReport.textContent = "Not enough data yet."
+return
+}
+const ranked = statsHourBuckets
+.map((count, hour) => ({ hour, count: Math.max(0, Math.round(Number(count) || 0)) }))
+.filter((row) => row.count > 0)
+.sort((a, b) => b.count - a.count)
+.slice(0, 2)
+if(!ranked.length){
+bestFocusHoursReport.textContent = "Not enough completed sessions yet."
+return
+}
+const summary = ranked
+.map((row) => `${formatHourRange(row.hour)} (${row.count} sessions)`)
+.join(" | ")
+bestFocusHoursReport.textContent = `Top hours: ${summary}`
+}
+
+function renderInterruptionRate(isPremium){
+if(!interruptionRateReport) return
+if(!isPremium){
+interruptionRateReport.textContent = "Premium unlocks interruption diagnostics."
+return
+}
+const idle = Math.max(0, Math.round(Number(statsInterruptions.idlePause) || 0))
+const meeting = Math.max(0, Math.round(Number(statsInterruptions.meetingPause) || 0))
+const manualReset = Math.max(0, Math.round(Number(statsInterruptions.manualReset) || 0))
+const totalInterruptions = idle + meeting + manualReset
+if(totalInterruptions <= 0){
+interruptionRateReport.textContent = "No interruptions tracked yet."
+return
+}
+let weeklySessions = 0
+for(let i = 0; i < 7; i += 1){
+const key = getDateKeyFromOffset(i)
+const row = statsDailyHistory && statsDailyHistory[key] ? statsDailyHistory[key] : null
+const sessions = row && typeof row.sessions === "number" ? Math.max(0, Math.round(row.sessions)) : 0
+weeklySessions += sessions
+}
+const totalSessions = Math.max(1, weeklySessions)
+const interruptionRate = Math.round((totalInterruptions / totalSessions) * 100)
+interruptionRateReport.textContent = `Idle: ${idle} | Meeting: ${meeting} | Reset: ${manualReset}. Estimated interruption rate: ${interruptionRate}%.`
+}
+
+function renderSmartInsight(isPremium){
+if(!smartInsightHeadline || !smartInsightAction) return
+if(!isPremium){
+smartInsightHeadline.textContent = "Premium unlocks personalized coaching."
+smartInsightAction.textContent = "Upgrade to get weekly insights and concrete next-step recommendations."
+return
+}
+
+const current = collectWindowSnapshot(0, 7)
+const previous = collectWindowSnapshot(7, 7)
+const currentInterruptions = collectInterruptionWindow(0, 7)
+const previousInterruptions = collectInterruptionWindow(7, 7)
+const totalSessions = current.totalSessions
+const daysGoalHit = current.daysGoalHit
+const interruptionRate = safeRate(currentInterruptions.total, Math.max(1, totalSessions))
+const previousInterruptionRate = safeRate(previousInterruptions.total, Math.max(1, previous.totalSessions))
+const goalHitRate = safeRate(daysGoalHit, 7)
+const previousGoalHitRate = safeRate(previous.daysGoalHit, 7)
+const sessionMomentum = totalSessions - previous.totalSessions
+const consistencyMomentum = goalHitRate - previousGoalHitRate
+const interruptionMomentum = previousInterruptionRate - interruptionRate
+const momentumScore = (sessionMomentum * 2) + (consistencyMomentum * 1.5) + (interruptionMomentum * 1.2)
+
+const consistencyScore = Math.max(0, Math.min(100, goalHitRate))
+const interruptionScore = Math.max(0, Math.min(100, 100 - interruptionRate))
+const throughputScore = Math.max(0, Math.min(100, Math.round((totalSessions / Math.max(1, dailyFocusGoal * 7)) * 100)))
+const compositeScore = Math.round((consistencyScore * 0.45) + (interruptionScore * 0.35) + (throughputScore * 0.2))
+
+const ranked = (Array.isArray(statsHourBuckets) ? statsHourBuckets : [])
+.map((count, hour) => ({ hour, count: Math.max(0, Math.round(Number(count) || 0)) }))
+.filter((row) => row.count > 0)
+.sort((a, b) => b.count - a.count)
+
+const topSignal = ranked[0] ? ranked[0].count : 0
+const secondSignal = ranked[1] ? ranked[1].count : 0
+const confidence = getConfidenceLevel(totalSessions, topSignal - secondSignal)
+const trendLabel = momentumScore > 4 ? "improving" : (momentumScore < -4 ? "declining" : "stable")
+
+if(totalSessions < 3){
+smartInsightHeadline.textContent = "Complete 3 focus sessions to unlock high-confidence insights."
+smartInsightAction.textContent = "Confidence: Low | Trend: calibrating. Next step: finish a few sessions today, then we will identify your strongest focus window."
+return
+}
+
+if(interruptionRate >= 35 && currentInterruptions.idle >= currentInterruptions.meeting && currentInterruptions.idle >= currentInterruptions.reset){
+smartInsightHeadline.textContent = "Idle interruptions are your biggest drag this week."
+const loopStatus = currentInterruptions.idle < previousInterruptions.idle ? "closed-loop: better vs last week" : "closed-loop: not better yet"
+smartInsightAction.textContent = `Confidence: ${confidence} | Trend: ${trendLabel}. Action: lower Idle Threshold to 3-4 minutes and keep one active task tab before each focus block (${loopStatus}).`
+return
+}
+
+if(interruptionRate >= 30 && currentInterruptions.meeting >= currentInterruptions.idle && currentInterruptions.meeting >= currentInterruptions.reset && currentInterruptions.meeting >= 2){
+smartInsightHeadline.textContent = "Meetings are fragmenting your deep-work rhythm."
+const loopStatus = currentInterruptions.meeting < previousInterruptions.meeting ? "closed-loop: better vs last week" : "closed-loop: not better yet"
+smartInsightAction.textContent = `Confidence: ${confidence} | Trend: ${trendLabel}. Action: keep Meeting Auto-Pause on and reserve one no-meeting block during your top focus hour (${loopStatus}).`
+return
+}
+
+if(currentInterruptions.reset >= 2 && currentInterruptions.reset >= currentInterruptions.idle && currentInterruptions.reset >= currentInterruptions.meeting){
+smartInsightHeadline.textContent = "Frequent resets suggest sessions are too ambitious."
+const loopStatus = currentInterruptions.reset < previousInterruptions.reset ? "closed-loop: better vs last week" : "closed-loop: not better yet"
+smartInsightAction.textContent = `Confidence: ${confidence} | Trend: ${trendLabel}. Action: run the next 3 cycles at 25/5, then increase duration after completing all three cleanly (${loopStatus}).`
+return
+}
+
+if(ranked.length && totalSessions >= 4){
+const top = ranked[0]
+const concentration = Math.round((top.count / Math.max(1, totalSessions)) * 100)
+if(concentration >= 35){
+smartInsightHeadline.textContent = `You perform best around ${formatHourRange(top.hour)}.`
+smartInsightAction.textContent = `Confidence: ${confidence} | Trend: ${trendLabel}. Action: place your highest-value task in this window and protect it from meetings/social tabs.`
+return
+}
+}
+
+if(daysGoalHit <= 1){
+smartInsightHeadline.textContent = "Consistency is the biggest growth lever right now."
+const loopStatus = goalHitRate > previousGoalHitRate ? "closed-loop: better vs last week" : "closed-loop: not better yet"
+smartInsightAction.textContent = `Confidence: ${confidence} | Trend: ${trendLabel}. Action: set a realistic Daily Focus Goal you can hit 4+ days per week, then scale up gradually (${loopStatus}).`
+return
+}
+
+smartInsightHeadline.textContent = `Performance score: ${compositeScore}/100 (${trendLabel}).`
+smartInsightAction.textContent = `Confidence: ${confidence}. Action: keep current settings and increase challenge by +1 goal session after 3 consistent days.`
+}
+
+function renderAdvancedStats(){
+const premium = isPremiumActive()
+renderWeeklyStats(premium)
+renderBestFocusHours(premium)
+renderInterruptionRate(premium)
+renderSmartInsight(premium)
 }
 
 function setAccountStatus(message, isError){
@@ -468,6 +769,7 @@ note.textContent = premium
 if(activeDetailKey === "shortcuts" || activeDetailKey === "settings"){
 openDetailView(activeDetailKey)
 }
+renderAdvancedStats()
 }
 
 function renderAccountMeta(){
@@ -719,6 +1021,25 @@ resolve(redirectUrl)
 })
 }
 
+function extractAuthResponseParams(urlString){
+const parsed = new URL(urlString)
+const hashParams = new URLSearchParams(parsed.hash.replace(/^#/,""))
+const queryParams = new URLSearchParams(parsed.search)
+const merged = new URLSearchParams()
+
+hashParams.forEach((value, key)=>{
+merged.set(key, value)
+})
+queryParams.forEach((value, key)=>{
+if(key === "ext_redirect") return
+if(!merged.has(key)){
+merged.set(key, value)
+}
+})
+
+return merged
+}
+
 async function signInWithProvider(provider){
 updateAccountButtonsLoading(true)
 const actionLabel = accountFormMode === "signup" ? "sign up" : "sign in"
@@ -729,25 +1050,25 @@ throw new Error("Chrome Identity API is unavailable.")
 }
 
 const redirectUrl = chrome.identity.getRedirectURL("supabase-auth")
-const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(redirectUrl)}`
+const bridgeRedirectUrl = `${AUTH_EXTENSION_BRIDGE_URL}?ext_redirect=${encodeURIComponent(redirectUrl)}`
+const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(bridgeRedirectUrl)}`
 const finalUrl = await launchAuthFlow(authUrl)
-const parsed = new URL(finalUrl)
-const hashParams = new URLSearchParams(parsed.hash.replace(/^#/,""))
-const authError = hashParams.get("error_description") || hashParams.get("error")
+const authParams = extractAuthResponseParams(finalUrl)
+const authError = authParams.get("error_description") || authParams.get("error")
 if(authError){
 throw new Error(authError)
 }
 
-const accessToken = hashParams.get("access_token")
+const accessToken = authParams.get("access_token")
 if(!accessToken){
 throw new Error("No access token returned.")
 }
 
 authSession = {
 access_token: accessToken,
-refresh_token: hashParams.get("refresh_token") || "",
-token_type: hashParams.get("token_type") || "bearer",
-expires_in: Number(hashParams.get("expires_in") || 0)
+refresh_token: authParams.get("refresh_token") || "",
+token_type: authParams.get("token_type") || "bearer",
+expires_in: Number(authParams.get("expires_in") || 0)
 }
 await saveSessionToStorage(authSession)
 await fetchCurrentUser()
@@ -1014,6 +1335,22 @@ todayFocusSessions = Math.max(0, Math.round(state.todayFocusSessions))
 if(typeof state.streakDays === "number"){
 streakDays = Math.max(0, Math.round(state.streakDays))
 }
+if(state.statsDailyHistory && typeof state.statsDailyHistory === "object"){
+statsDailyHistory = state.statsDailyHistory
+}
+if(Array.isArray(state.statsHourBuckets) && state.statsHourBuckets.length === 24){
+statsHourBuckets = state.statsHourBuckets.map((v)=>Math.max(0, Math.round(Number(v) || 0)))
+}
+if(state.statsInterruptions && typeof state.statsInterruptions === "object"){
+statsInterruptions = {
+idlePause: Math.max(0, Math.round(Number(state.statsInterruptions.idlePause) || 0)),
+meetingPause: Math.max(0, Math.round(Number(state.statsInterruptions.meetingPause) || 0)),
+manualReset: Math.max(0, Math.round(Number(state.statsInterruptions.manualReset) || 0))
+}
+}
+if(state.statsInterruptionDaily && typeof state.statsInterruptionDaily === "object"){
+statsInterruptionDaily = state.statsInterruptionDaily
+}
 if(typeof state.meetingAutoPauseEnabled === "boolean"){
 meetingAutoPauseEnabled = state.meetingAutoPauseEnabled
 meetingAutoPauseEnabledInput.checked = state.meetingAutoPauseEnabled
@@ -1203,6 +1540,9 @@ settingsBtn.addEventListener("click", ()=>openDetailView("settings"))
 accountBtn.addEventListener("click", ()=>openDetailView("account"))
 supportBtn.addEventListener("click", ()=>openDetailView("support"))
 backBtn.addEventListener("click", closeDetailView)
+if(advancedQuickBtn){
+advancedQuickBtn.addEventListener("click", ()=>openDetailView("settings"))
+}
 
 detailActionBtn.addEventListener("click", ()=>{
 if(activeDetailKey==="shortcuts"){
@@ -1214,6 +1554,11 @@ requestTrialActivation("settings")
 return
 }
 })
+if(shortcutSettingsBtn){
+shortcutSettingsBtn.addEventListener("click", ()=>{
+chrome.tabs.create({ url: "chrome://extensions/shortcuts" })
+})
+}
 
 document.addEventListener("keydown", (e)=>{
 if(!e.altKey) return

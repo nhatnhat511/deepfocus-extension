@@ -162,7 +162,7 @@ display:flex;
 align-items:center;
 justify-content:flex-start;
 gap:6px;
-margin:4px 0;
+margin:0;
 font-size:14px;
 }
 
@@ -176,7 +176,7 @@ gap:10px;
 .time-fields{
 display:flex;
 flex-direction:column;
-gap:4px;
+gap:8px;
 min-width:0;
 }
 
@@ -186,9 +186,11 @@ min-width:68px;
 
 .time-row input{
 width:52px;
+height:28px;
 padding:4px 6px;
 border:1px solid #d1d5db;
 border-radius:6px;
+box-sizing:border-box;
 }
 
 .sound-box{
@@ -202,7 +204,33 @@ background:#f8fafc;
 white-space:nowrap;
 height:28px;
 box-sizing:border-box;
-margin-top:4px;
+}
+.sound-stack{
+display:flex;
+flex-direction:column;
+gap:8px;
+align-items:stretch;
+}
+.advanced-quick-btn{
+height:28px;
+min-height:28px;
+max-height:28px;
+padding:0 6px;
+border:1px solid #1d4ed8;
+border-radius:6px;
+box-sizing:border-box;
+background:#2563eb;
+color:#ffffff;
+font-size:11px;
+font-weight:600;
+line-height:1;
+display:flex;
+align-items:center;
+justify-content:center;
+white-space:nowrap;
+}
+.advanced-quick-btn:hover{
+background:#1d4ed8;
 }
 
 .sound-box label{
@@ -355,6 +383,18 @@ margin-bottom:6px;
 margin:6px 0 0 16px;
 padding:0;
 }
+.shortcut-settings-btn{
+display:none;
+margin-top:8px;
+padding:5px 9px;
+font-size:11px;
+line-height:1.1;
+border:1px solid #cbd5e1;
+border-radius:999px;
+background:#f8fafc;
+color:#334155;
+cursor:pointer;
+}
 
 .detail-settings{
 display:none;
@@ -479,6 +519,79 @@ padding:6px 8px;
 border:1px solid #dbe4f3;
 border-radius:8px;
 background:#f8fbff;
+}
+.stats-grid{
+display:grid;
+gap:6px;
+margin-top:6px;
+}
+.stats-card-title{
+font-size:10px;
+font-weight:700;
+letter-spacing:0.02em;
+text-transform:uppercase;
+color:#64748b;
+margin-bottom:3px;
+}
+.weekly-chart{
+display:grid;
+grid-template-columns:repeat(7, minmax(0,1fr));
+gap:4px;
+align-items:end;
+margin-top:7px;
+padding-top:7px;
+border-top:1px solid #e2e8f0;
+}
+.weekly-col{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:3px;
+min-width:0;
+}
+.weekly-bar-wrap{
+width:100%;
+height:42px;
+display:flex;
+align-items:flex-end;
+justify-content:center;
+background:#f8fafc;
+border:1px solid #e2e8f0;
+border-radius:6px;
+padding:2px;
+}
+.weekly-bar{
+width:100%;
+max-width:12px;
+border-radius:4px;
+background:linear-gradient(180deg,#34d399 0%, #059669 100%);
+min-height:2px;
+transition:height 160ms ease;
+}
+.weekly-bar.goal-hit{
+background:linear-gradient(180deg,#10b981 0%, #047857 100%);
+}
+.weekly-bar.goal-miss{
+background:linear-gradient(180deg,#86efac 0%, #22c55e 100%);
+}
+.weekly-label{
+font-size:9px;
+line-height:1;
+color:#64748b;
+}
+.weekly-value{
+font-size:9px;
+line-height:1;
+color:#475569;
+font-weight:600;
+}
+.insight-headline{
+font-weight:700;
+color:#0f172a;
+margin-bottom:3px;
+}
+.insight-action{
+color:#334155;
 }
 
 .account-panel{
@@ -659,6 +772,7 @@ color:#64748b;
 <div id="detailTitle" class="detail-title"></div>
 <div id="detailText"></div>
 <ul id="detailList" class="detail-list"></ul>
+<button id="shortcutSettingsBtn" type="button" class="shortcut-settings-btn">Open Shortcut Settings</button>
 <div id="accountPanel" class="account-panel">
 <div id="accountStatus" class="account-status">Not signed in.</div>
 <div id="accountAuthFields" class="account-grid">
@@ -793,6 +907,26 @@ instagram.com</textarea>
 </div>
 <div class="setting-desc">Tracks your completed focus sessions against this goal.</div>
 <div id="progressReport" class="progress-note">Today: 0/6 sessions. Streak: 0 day.</div>
+<div class="stats-grid">
+<div class="progress-note">
+<div class="stats-card-title">Weekly Overview</div>
+<div id="weeklyStatsReport">No data yet.</div>
+<div id="weeklyOverviewChart" class="weekly-chart"></div>
+</div>
+<div class="progress-note">
+<div class="stats-card-title">Best Focus Hours</div>
+<div id="bestFocusHoursReport">No data yet.</div>
+</div>
+<div class="progress-note">
+<div class="stats-card-title">Interruption Rate</div>
+<div id="interruptionRateReport">No data yet.</div>
+</div>
+<div class="progress-note">
+<div class="stats-card-title">Smart Insight</div>
+<div id="smartInsightHeadline" class="insight-headline">No data yet.</div>
+<div id="smartInsightAction" class="insight-action"></div>
+</div>
+</div>
 </div>
 
 <div class="settings-group">
@@ -820,9 +954,12 @@ instagram.com</textarea>
 <input id="breakTime" type="number" value="5">
 </div>
 </div>
+<div class="sound-stack">
 <div class="sound-box">
 <input id="soundEnabled" type="checkbox" checked>
 <label for="soundEnabled">&#x1F50A; Sound</label>
+</div>
+<button id="advancedQuickBtn" type="button" class="advanced-quick-btn">Advanced</button>
 </div>
 </div>
 
