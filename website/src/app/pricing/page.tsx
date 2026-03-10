@@ -5,25 +5,34 @@ const freeFeatures = [
   "Session start, pause, resume, and reset",
   "Keyboard shortcuts support",
   "Lunch and evening break reminders",
-  "Account sync between extension and website",
+  "Sound on/off toggle",
+  "Drag-and-drop timer box anywhere on the page",
 ];
 
 const premiumFeatures = [
-  "Distraction mute for selected domains",
-  "Idle auto-pause with custom threshold",
-  "Meeting-aware auto-pause for Meet, Zoom, and Teams",
-  "Night work mode and focus blur controls",
-  "Break visual customization and productivity insights",
-  "Advanced automation controls for serious workflows",
+  "Everything in Free",
+  "Night Work Mode with adjustable strength",
+  "Focus Blur for the timer box",
+  "Break Visual Tab with a customizable background",
+  "Mute Distracting Sites during Focus sessions",
+  "Idle Auto-Pause with minute-based threshold",
+  "Daily Focus Goal tracking",
+  "Weekly Overview mini chart",
+  "Best Focus Hours analysis",
+  "Interruption Rate diagnostics",
+  "Smart Insight with weekly recommendations",
+  "Meeting Auto-Pause for Meet, Zoom, and Teams",
+  "Future premium feature upgrades",
+  "Priority, friendly customer support",
 ];
 
 const compareRows = [
   ["Core timer", "Included", "Included"],
   ["Reminders", "Included", "Included"],
   ["Keyboard shortcuts", "Included", "Included"],
-  ["Advanced settings", "Not included", "Included"],
-  ["Focus protection automation", "Not included", "Included"],
-  ["Best for", "Getting started", "Deep-focus daily users"],
+  ["Sound + draggable timer box", "Included", "Included"],
+  ["Advanced focus tools", "Not included", "Included"],
+  ["Insights & automation", "Not included", "Included"],
 ];
 
 export default function PricingPage() {
@@ -63,8 +72,9 @@ export default function PricingPage() {
           <h2 className="mt-2 text-xl font-semibold text-slate-900">Premium</h2>
           <p className="mt-1 text-sm text-slate-600">Unlock advanced controls for fewer interruptions and better consistency.</p>
           <p className="mt-4 text-3xl font-bold text-slate-900">
-            $4.99<span className="text-base">/month</span>
+            $1.99<span className="text-base">/month</span>
           </p>
+          <p className="mt-2 text-xs text-slate-500">Auto-renews. Cancel anytime.</p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
             {premiumFeatures.map((item) => (
               <li key={item}>{item}</li>

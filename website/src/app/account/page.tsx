@@ -457,16 +457,16 @@ export default function AccountPage() {
       </section>
 
       {!signedIn ? (
-        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-6 text-white shadow-2xl">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold">Welcome back!</h2>
-              <p className="mt-2 text-sm text-slate-300">
+              <h2 className="text-2xl font-semibold text-slate-900">Welcome back!</h2>
+              <p className="mt-2 text-sm text-slate-600">
                 {authMode === "signin" ? "New to DeepFocus?" : "Already have an account?"}{" "}
                 <button
                   type="button"
                   onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
-                  className="text-emerald-300 underline-offset-2 hover:underline"
+                  className="text-emerald-600 underline-offset-2 hover:underline"
                 >
                   {authMode === "signin" ? "Create account" : "Sign in"}
                 </button>
@@ -476,52 +476,52 @@ export default function AccountPage() {
 
           <form className="mt-6 space-y-4" onSubmit={onAuthSubmit}>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</label>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
                 required
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Password</label>
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
                 required
               />
-              <div className="flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>{authMode === "signup" ? "Minimum 8 characters recommended." : " "}</span>
                 <a
                   href="/support"
-                  className="text-emerald-300 hover:underline"
+                  className="text-emerald-600 hover:underline"
                 >
                   Forgot password?
                 </a>
               </div>
             </div>
 
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Working..." : authMode === "signup" ? "Create account" : "Login"}
             </button>
           </form>
 
-          <div className="mt-6 flex items-center gap-3 text-xs text-slate-400">
-            <span className="h-px w-full bg-slate-800" />
+          <div className="mt-6 flex items-center gap-3 text-xs text-slate-500">
+            <span className="h-px w-full bg-slate-200" />
             <span>or</span>
-            <span className="h-px w-full bg-slate-800" />
+            <span className="h-px w-full bg-slate-200" />
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -529,7 +529,7 @@ export default function AccountPage() {
               type="button"
               onClick={() => startOAuth("google")}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:border-slate-700 disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:border-slate-300 disabled:opacity-60"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                 <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-.9 2.2-1.9 2.9l3 2.3c1.8-1.6 2.8-4 2.8-6.8 0-.6-.1-1.2-.2-1.8H12z"/>
@@ -543,7 +543,7 @@ export default function AccountPage() {
               type="button"
               onClick={() => startOAuth("github")}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:border-slate-700 disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:border-slate-300 disabled:opacity-60"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
                 <path fill="currentColor" d="M12 .5C5.65.5.5 5.74.5 12.2c0 5.17 3.3 9.55 7.87 11.1.58.11.79-.26.79-.57 0-.28-.01-1.2-.02-2.18-3.2.71-3.88-1.39-3.88-1.39-.52-1.35-1.28-1.71-1.28-1.71-1.05-.73.08-.72.08-.72 1.16.08 1.77 1.22 1.77 1.22 1.03 1.81 2.71 1.29 3.37.99.1-.76.4-1.29.73-1.59-2.55-.3-5.23-1.31-5.23-5.83 0-1.29.45-2.35 1.19-3.18-.12-.3-.52-1.51.11-3.15 0 0 .97-.32 3.19 1.21a10.8 10.8 0 0 1 5.8 0c2.22-1.53 3.19-1.21 3.19-1.21.63 1.64.23 2.85.11 3.15.74.83 1.19 1.89 1.19 3.18 0 4.53-2.68 5.52-5.24 5.82.41.36.78 1.08.78 2.18 0 1.57-.01 2.84-.01 3.22 0 .31.21.69.8.57 4.57-1.55 7.86-5.93 7.86-11.1C23.5 5.74 18.35.5 12 .5z"/>
@@ -552,11 +552,11 @@ export default function AccountPage() {
             </button>
           </div>
 
-          <p className="mt-6 text-xs text-slate-400">
+          <p className="mt-6 text-xs text-slate-500">
             By signing in you confirm that you have read our{" "}
-            <a className="text-emerald-300 hover:underline" href="/privacy">Privacy Policy</a>{" "}
+            <a className="text-emerald-600 hover:underline" href="/privacy">Privacy Policy</a>{" "}
             and that you accept our{" "}
-            <a className="text-emerald-300 hover:underline" href="/terms">Terms of Service</a>.
+            <a className="text-emerald-600 hover:underline" href="/terms">Terms of Service</a>.
           </p>
         </section>
       ) : (

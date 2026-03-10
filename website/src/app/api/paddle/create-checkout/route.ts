@@ -19,6 +19,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deepfocustime.com"
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
+const CHECKOUT_RATE_LIMIT_MAX = Math.max(1, Number(process.env.PADDLE_CHECKOUT_RATE_LIMIT_MAX || 10));
+const CHECKOUT_RATE_LIMIT_WINDOW_MS = Math.max(
+  5_000,
+  Number(process.env.PADDLE_CHECKOUT_RATE_LIMIT_WINDOW_SECONDS || 60) * 1000
+);
 
 type SupabaseUser = {
   id?: string;
@@ -26,29 +31,64 @@ type SupabaseUser = {
   email_confirmed_at?: string | null;
 };
 
-function jsonError(message: string, status = 400, debug?: Record<string, unknown>) {
-  return NextResponse.json(debug ? { error: message, debug } : { error: message }, { status });
+type RateLimitEntry = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+function jsonError(message: string, status = 400, headers?: HeadersInit) {
+  return NextResponse.json({ error: message }, { status, headers });
 }
 
 function normalizeEmail(input: string) {
   return input.trim().toLowerCase();
 }
 
-function maskSecret(value: string) {
-  if (!value) return "";
-  if (value.length <= 10) return `${value.slice(0, 2)}***`;
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+function getRequestOrigin(req: Request) {
+  return req.headers.get("origin") || "";
 }
 
-function buildConfigDebug() {
+function getRequestReferer(req: Request) {
+  return req.headers.get("referer") || "";
+}
+
+function getRequestIp(req: Request) {
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf;
+  const xff = req.headers.get("x-forwarded-for") || "";
+  if (!xff) return "unknown";
+  return xff.split(",")[0]?.trim() || "unknown";
+}
+
+function isAllowedRequestOrigin(req: Request) {
+  const allowedOrigin = SITE_URL;
+  const origin = getRequestOrigin(req);
+  if (origin) return origin === allowedOrigin;
+  const referer = getRequestReferer(req);
+  if (referer) return referer.startsWith(allowedOrigin);
+  return false;
+}
+
+function isRateLimited(key: string) {
+  const now = Date.now();
+  const current = rateLimitStore.get(key);
+  if (!current || current.resetAt <= now) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + CHECKOUT_RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  if (current.count >= CHECKOUT_RATE_LIMIT_MAX) {
+    return true;
+  }
+  current.count += 1;
+  return false;
+}
+
+function buildRateLimitHeaders() {
+  const retryAfter = Math.ceil(CHECKOUT_RATE_LIMIT_WINDOW_MS / 1000);
   return {
-    apiBase: PADDLE_API_BASE,
-    siteUrl: SITE_URL,
-    priceId: PADDLE_PRICE_ID || "",
-    priceIdPrefix: (PADDLE_PRICE_ID || "").split("_")[0] || "",
-    apiKeyFingerprint: maskSecret(PADDLE_API_KEY),
-    apiKeyPrefix: (PADDLE_API_KEY || "").split("_")[0] || "",
-    hasApiKey: !!PADDLE_API_KEY,
+    "Retry-After": String(retryAfter),
   };
 }
 
@@ -78,31 +118,43 @@ async function getUserFromAccessToken(accessToken: string) {
 
 export async function POST(req: Request) {
   try {
-    if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500, { config: buildConfigDebug() });
-    if (!PADDLE_PRICE_ID) return jsonError("Missing PADDLE_PRICE_ID", 500, { config: buildConfigDebug() });
+    if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500);
+    if (!PADDLE_PRICE_ID) return jsonError("Missing PADDLE_PRICE_ID", 500);
+    if (!isAllowedRequestOrigin(req)) {
+      return jsonError("Forbidden origin.", 403);
+    }
+
+    const ip = getRequestIp(req);
+    if (isRateLimited(`ip:${ip}`)) {
+      return jsonError("Too many requests. Please wait and try again.", 429, buildRateLimitHeaders());
+    }
 
     const authHeader = req.headers.get("authorization") || "";
     const bearer = authHeader.match(/^Bearer\s+(.+)$/i);
     const accessToken = bearer ? bearer[1].trim() : "";
     if (!accessToken) {
-      return jsonError("Unauthorized. Please sign in before checkout.", 401, { stage: "auth_header" });
+      return jsonError("Unauthorized. Please sign in before checkout.", 401);
     }
 
     const user = await getUserFromAccessToken(accessToken);
     const userId = String(user.id || "");
     const email = normalizeEmail(String(user.email || ""));
     if (!userId || !/^\S+@\S+\.\S+$/.test(email)) {
-      return jsonError("Unable to resolve account identity.", 401, { stage: "resolve_identity" });
+      return jsonError("Unable to resolve account identity.", 401);
     }
 
     if (!user.email_confirmed_at) {
-      return jsonError("Please verify your email before upgrading.", 403, { stage: "email_verification" });
+      return jsonError("Please verify your email before upgrading.", 403);
     }
 
     const body = (await req.json().catch(() => ({}))) as CreateCheckoutBody;
     const requestedEmail = normalizeEmail(String(body.email || ""));
     if (requestedEmail && requestedEmail !== email) {
-      return jsonError("Checkout email must match your signed-in account.", 403, { stage: "email_match" });
+      return jsonError("Checkout email must match your signed-in account.", 403);
+    }
+
+    if (isRateLimited(`user:${userId}`)) {
+      return jsonError("Too many checkout attempts. Please wait and try again.", 429, buildRateLimitHeaders());
     }
 
     const payload = {
@@ -133,14 +185,7 @@ export async function POST(req: Request) {
     };
     if (!res.ok) {
       const detail = data?.error?.detail || `Paddle request failed (${res.status})`;
-      return jsonError(detail, res.status, {
-        stage: "paddle_transactions_create",
-        paddleStatus: res.status,
-        paddleRequestId: res.headers.get("x-request-id") || res.headers.get("request-id") || "",
-        paddleError: data?.error || null,
-        paddlePayload: data || null,
-        config: buildConfigDebug(),
-      });
+      return jsonError(detail, res.status);
     }
 
     const transactionId = String(data?.data?.id || "");
@@ -149,6 +194,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ transactionId, accountEmail: email });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unexpected server error.";
-    return jsonError(msg, 500, { stage: "unhandled", config: buildConfigDebug() });
+    return jsonError(msg, 500);
   }
 }
