@@ -644,6 +644,21 @@ export default function AccountPage() {
         <p className="text-slate-700">{status}</p>
         {error ? <p className="mt-2 text-rose-600">{error}</p> : null}
       </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <h2 className="text-lg font-semibold text-slate-900">Get the Chrome Extension</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Install DeepFocus Time on Chrome to start focused sessions right from your browser.
+        </p>
+        <a
+          href="https://chromewebstore.google.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+        >
+          Open Chrome Web Store
+        </a>
+      </section>
     </div>
   );
 }

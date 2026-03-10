@@ -41,6 +41,35 @@ const compareRows = [
   ["Support", "Standard", "Priority"],
 ];
 
+function renderAvailability(value: string) {
+  const text = value.trim();
+  if (text.toLowerCase() === "included") {
+    return (
+      <span className="inline-flex items-center gap-1 text-emerald-600">
+        <span aria-hidden="true">✓</span>
+        <span className="text-slate-700">{text}</span>
+      </span>
+    );
+  }
+  if (text.toLowerCase() === "not included") {
+    return (
+      <span className="inline-flex items-center gap-1 text-rose-600">
+        <span aria-hidden="true">✕</span>
+        <span className="text-slate-700">{text}</span>
+      </span>
+    );
+  }
+  if (text.toLowerCase() === "standard" || text.toLowerCase() === "priority") {
+    return (
+      <span className="inline-flex items-center gap-1 text-emerald-600">
+        <span aria-hidden="true">✓</span>
+        <span className="text-slate-700">{text}</span>
+      </span>
+    );
+  }
+  return text;
+}
+
 export default function PricingPage() {
   return (
     <div className="space-y-8">
@@ -110,8 +139,8 @@ export default function PricingPage() {
               {compareRows.map((row) => (
                 <tr key={row[0]} className="border-b border-slate-100 text-slate-700">
                   <td className="py-2 pr-4">{row[0]}</td>
-                  <td className="py-2 pr-4">{row[1]}</td>
-                  <td className="py-2">{row[2]}</td>
+                  <td className="py-2 pr-4">{renderAvailability(row[1])}</td>
+                  <td className="py-2">{renderAvailability(row[2])}</td>
                 </tr>
               ))}
             </tbody>
