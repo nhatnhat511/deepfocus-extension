@@ -9,7 +9,7 @@ export default function RefundPage() {
           <h2 className="text-base font-semibold text-slate-900">1. Eligibility</h2>
           <p>
             Refund requests are reviewed case by case for accidental charges, duplicate charges, or confirmed billing
-            issues.
+            errors. Approved refunds are issued to the original payment method.
           </p>
         </section>
 
@@ -24,7 +24,7 @@ export default function RefundPage() {
         <section>
           <h2 className="text-base font-semibold text-slate-900">3. Processing</h2>
           <p>
-            Approved refunds are processed through the billing provider. Timelines may vary based on payment method and
+            Approved refunds are processed through our billing provider. Timelines may vary based on payment method and
             bank processing windows.
           </p>
         </section>
@@ -33,7 +33,15 @@ export default function RefundPage() {
           <h2 className="text-base font-semibold text-slate-900">4. Subscription cancellation</h2>
           <p>
             Cancellation stops future renewals. Cancellation alone does not automatically create a refund for previous
-            charges unless specifically approved.
+            charges unless specifically approved or required by law.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-slate-900">5. Billing provider</h2>
+          <p>
+            Subscriptions are billed by our merchant of record. For disputes or chargebacks, we may request additional
+            information to investigate and resolve the issue quickly.
           </p>
         </section>
       </div>

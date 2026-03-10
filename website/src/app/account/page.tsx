@@ -93,7 +93,6 @@ export default function AccountPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [status, setStatus] = useState("Not signed in.");
   const [error, setError] = useState("");
@@ -169,11 +168,6 @@ export default function AccountPage() {
     setStatus("Session restored.");
     void refreshCurrentUser(s);
   }, []);
-
-  useEffect(() => {
-    if (!signedIn) return;
-    if (user?.email) setNewEmail(user.email);
-  }, [signedIn, user?.email]);
 
   async function fetchEntitlement(activeSession: AuthSession) {
     const payload = await supabaseRequest(
@@ -395,29 +389,6 @@ export default function AccountPage() {
     reader.readAsDataURL(file);
   }
 
-  async function onUpdateEmail(e: FormEvent) {
-    e.preventDefault();
-    if (!session?.access_token) return;
-    setError("");
-    setLoading(true);
-    try {
-      await supabaseRequest(
-        "/auth/v1/user",
-        {
-          method: "PUT",
-          body: JSON.stringify({ email: newEmail.trim() }),
-        },
-        session.access_token
-      );
-      await refreshCurrentUser(session);
-      setStatus("Email update requested. Check inbox for confirmation.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Email update failed.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function onUpdatePassword(e: FormEvent) {
     e.preventDefault();
     if (!session?.access_token) return;
@@ -592,23 +563,9 @@ export default function AccountPage() {
             </label>
           </div>
 
-          <form className="mt-5 space-y-3" onSubmit={onUpdateEmail}>
-            <label className="block text-sm font-semibold text-slate-800">Change email</label>
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-            >
-              Update Email
-            </button>
-          </form>
+          <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            Email changes are not supported at this time. Please contact support if you need help updating your email.
+          </div>
 
           <form className="mt-5 space-y-3" onSubmit={onUpdatePassword}>
             <label className="block text-sm font-semibold text-slate-800">Change password</label>
