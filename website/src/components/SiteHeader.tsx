@@ -44,16 +44,32 @@ export default function SiteHeader() {
   }, []);
 
   const accountIcon = signedIn ? (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M4.5 19.5c1.8-3.2 4.7-4.8 7.5-4.8s5.7 1.6 7.5 4.8" />
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[22px] w-[22px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.2 19.6c1.9-3.3 4.9-5 7.8-5s5.9 1.7 7.8 5" />
     </svg>
   ) : (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 19.5c1.6-3 4.2-4.6 6.5-4.6" />
-      <path d="M16 7v6" />
-      <path d="M13 10h6" />
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[22px] w-[22px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="9" cy="8" r="3.6" />
+      <path d="M2.8 19.6c1.6-3 4.1-4.7 6.2-4.7" />
+      <path d="M16 7.4v6.2" />
+      <path d="M12.9 10.5h6.2" />
     </svg>
   );
 
@@ -135,7 +151,7 @@ export default function SiteHeader() {
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-[1px]"
           />
-          <nav className="fixed left-0 top-0 z-50 h-full w-[68%] max-w-xs border-r border-slate-200 bg-white px-4 py-6 shadow-2xl">
+          <nav className="fixed left-0 top-0 z-50 h-full w-[68%] max-w-xs border-r border-slate-200 bg-white px-4 py-6 shadow-2xl ring-1 ring-slate-200/70">
             <div className="mb-5 flex items-center justify-between">
               <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Menu</span>
               <button
