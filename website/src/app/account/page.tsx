@@ -304,9 +304,15 @@ export default function AccountPage() {
     setError("");
     setLoading(true);
     try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/account` : undefined;
       const payload = (await supabaseRequest("/auth/v1/signup", {
         method: "POST",
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          ...(redirectTo ? { email_redirect_to: redirectTo } : {}),
+        }),
       })) as AuthSession;
       if (payload?.access_token) {
         setSession(payload);

@@ -28,7 +28,7 @@ type PaddleCustomer = {
 const PADDLE_API_BASE = process.env.PADDLE_API_BASE_URL || "https://api.paddle.com";
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY || "";
 const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET || "";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 function jsonOk(data: Record<string, unknown> = {}) {
