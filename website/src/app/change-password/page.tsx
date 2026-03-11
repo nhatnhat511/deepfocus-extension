@@ -70,6 +70,7 @@ export default function ChangePasswordPage() {
   const [statusType, setStatusType] = useState<"info" | "success">("info");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [postUpdateHref, setPostUpdateHref] = useState("/account");
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -153,8 +154,20 @@ export default function ChangePasswordPage() {
         },
         updateToken
       );
-      setStatus("Password updated.");
-      setStatusType("success");
+      // Attempt to re-authenticate so /account works without redirecting to /login
+      const { error: reauthError } = await supabaseRef.current.auth.signInWithPassword({
+        email: user.email,
+        password: newPassword,
+      });
+      if (reauthError) {
+        setPostUpdateHref("/login");
+        setStatus("Password updated. Please sign in again.");
+        setStatusType("info");
+      } else {
+        setPostUpdateHref("/account");
+        setStatus("Password updated.");
+        setStatusType("success");
+      }
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -204,13 +217,13 @@ export default function ChangePasswordPage() {
             {status}
           </p>
         ) : null}
-        {statusType === "success" ? (
+        {status ? (
           <div className="mt-3">
             <a
-              href="/account"
+              href={postUpdateHref}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
             >
-              Back to account
+              {postUpdateHref === "/account" ? "Back to account" : "Back to sign in"}
             </a>
           </div>
         ) : null}

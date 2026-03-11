@@ -349,6 +349,21 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (!isValidEmail(email.trim())) return setError("Please enter a valid email address.");
     setLoading(true);
     try {
+      const checkResponse = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!checkResponse.ok) {
+        const payload = (await checkResponse.json().catch(() => ({}))) as { error?: string };
+        throw new Error(payload?.error || "Unable to verify email.");
+      }
+      const checkPayload = (await checkResponse.json().catch(() => ({}))) as { exists?: boolean };
+      if (!checkPayload?.exists) {
+        setError("No account found for this email.");
+        return;
+      }
+
       const redirectTo = `${window.location.origin}/update-password`;
       // Use implicit flow for recovery to avoid PKCE code verifier mismatches
       const { error: resetError } = await recoveryClientRef.current.auth.resetPasswordForEmail(email.trim(), {

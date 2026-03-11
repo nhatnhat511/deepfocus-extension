@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type AuthSession = {
   access_token: string;
@@ -16,7 +17,6 @@ type AuthSession = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
-const SESSION_KEY = "deepfocusWebsiteSession";
 
 async function supabaseRequest(path: string, options: RequestInit = {}, accessToken = "") {
   const headers: Record<string, string> = {
@@ -50,15 +50,6 @@ async function supabaseRequest(path: string, options: RequestInit = {}, accessTo
   return payload;
 }
 
-function saveSession(session: AuthSession | null) {
-  if (typeof window === "undefined") return;
-  if (!session) {
-    window.localStorage.removeItem(SESSION_KEY);
-    return;
-  }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
 function getSafeNextPath(rawNext: string | null) {
   if (!rawNext) return "/account";
   if (!rawNext.startsWith("/") || rawNext.startsWith("//")) return "/account";
@@ -67,6 +58,7 @@ function getSafeNextPath(rawNext: string | null) {
 }
 
 export default function AuthConfirmClient() {
+  const supabaseRef = useRef(createSupabaseBrowserClient());
   const [status, setStatus] = useState("Confirming your email...");
   const [detail, setDetail] = useState("Please keep this tab open while we complete verification.");
   const [error, setError] = useState("");
@@ -100,7 +92,10 @@ export default function AuthConfirmClient() {
             token_type: hashParams.get("token_type") || "bearer",
             expires_in: Number(hashParams.get("expires_in") || 0),
           };
-          saveSession(session);
+          await supabaseRef.current.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token || "",
+          });
           await supabaseRequest("/auth/v1/user", { method: "GET" }, session.access_token);
           setStatus("Email verified");
           setDetail("Your account is now confirmed. Redirecting you now.");
@@ -123,7 +118,10 @@ export default function AuthConfirmClient() {
             setTimeout(() => window.location.replace(next), 1200);
             return;
           }
-          saveSession(payload);
+          await supabaseRef.current.auth.setSession({
+            access_token: payload.access_token,
+            refresh_token: payload.refresh_token || "",
+          });
           await supabaseRequest("/auth/v1/user", { method: "GET" }, payload.access_token);
           setStatus("Email verified");
           setDetail("Your account is now confirmed. Redirecting you now.");
@@ -143,7 +141,10 @@ export default function AuthConfirmClient() {
             setTimeout(() => window.location.replace(next), 1200);
             return;
           }
-          saveSession(payload);
+          await supabaseRef.current.auth.setSession({
+            access_token: payload.access_token,
+            refresh_token: payload.refresh_token || "",
+          });
           await supabaseRequest("/auth/v1/user", { method: "GET" }, payload.access_token);
           setStatus("Email verified");
           setDetail("Your account is now confirmed. Redirecting you now.");

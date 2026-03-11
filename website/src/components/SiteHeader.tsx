@@ -2,16 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-type WebsiteSession = {
-  access_token?: string;
-  user?: {
-    id?: string;
-  };
-};
-
-const SESSION_KEY = "deepfocusWebsiteSession";
+import { useEffect, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const navLinks = [
   { href: "/pricing", label: "Pricing" },
@@ -27,30 +19,21 @@ const navLinks = [
 export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const supabaseRef = useRef(createSupabaseBrowserClient());
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const readSession = () => {
-      try {
-        const raw = window.localStorage.getItem(SESSION_KEY);
-        if (!raw) {
-          setSignedIn(false);
-          return;
-        }
-        const session = JSON.parse(raw) as WebsiteSession;
-        const hasSession = !!(session?.access_token && session?.user?.id);
-        setSignedIn(hasSession);
-      } catch {
-        setSignedIn(false);
-      }
+    const supabase = supabaseRef.current;
+    supabase.auth.getSession().then(({ data }) => {
+      const hasSession = !!(data.session?.access_token && data.session?.user?.id);
+      setSignedIn(hasSession);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const hasSession = !!(nextSession?.access_token && nextSession?.user?.id);
+      setSignedIn(hasSession);
+    });
+    return () => {
+      listener?.subscription?.unsubscribe();
     };
-    readSession();
-    const handler = (event: StorageEvent) => {
-      if (event.key !== SESSION_KEY) return;
-      readSession();
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
   }, []);
 
   const accountIcon = signedIn ? (
