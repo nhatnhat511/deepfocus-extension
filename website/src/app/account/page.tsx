@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import PaddleCheckoutCard from "@/components/PaddleCheckoutCard";
 
-type AuthSession = Awaited<ReturnType<ReturnType<typeof createSupabaseBrowserClient>["auth"]["getSession"]>>["data"]["session"];
+type AuthSession = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof createSupabaseBrowserClient>["auth"]["getSession"]>>["data"]["session"]
+>;
 
 type ProfileRow = {
   id: string;
@@ -238,7 +240,8 @@ export default function AccountPage() {
     }
   }, []);
 
-  async function fetchEntitlement(activeSession: AuthSession) {
+  async function fetchEntitlement(activeSession: AuthSession | null) {
+    if (!activeSession?.access_token) return;
     const payload = await supabaseRequest(
       "/rest/v1/rpc/get_account_entitlement",
       {
