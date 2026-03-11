@@ -63,6 +63,20 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       }
     )
   );
+  const oauthClientRef = useRef(
+    createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr",
+      {
+        auth: {
+          flowType: "implicit",
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+      }
+    )
+  );
   const [session, setSession] = useState<Awaited<ReturnType<typeof supabaseRef.current.auth.getSession>>["data"]["session"] | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -456,7 +470,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
 
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
-    const supabase = supabaseRef.current;
+    const supabase = oauthClientRef.current;
     supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/auth/callback` },
