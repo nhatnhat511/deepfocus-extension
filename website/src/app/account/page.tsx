@@ -499,11 +499,6 @@ export default function AccountPage() {
                 <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                   Password: ********
                 </div>
-                <p className="mt-3 text-xs text-slate-600">
-                  {canManagePassword
-                    ? `Sign-in method: ${providerLabel}. Manage your password securely on the dedicated page.`
-                    : `Sign-in method: ${providerLabel}. Password changes are managed by your ${providerLabel} account.`}
-                </p>
                 {canManagePassword ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <a

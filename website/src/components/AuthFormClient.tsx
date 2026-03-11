@@ -89,9 +89,6 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [sessionVerified, setSessionVerified] = useState(false);
-  const [showResend, setShowResend] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [resendLoading, setResendLoading] = useState(false);
   const [recoveryReady, setRecoveryReady] = useState(false);
 
   const signedIn = !!(session?.access_token && session?.user?.id);
@@ -260,6 +257,27 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (password !== confirmPassword) return setError("Passwords do not match.");
     setLoading(true);
     try {
+      const checkResponse = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (checkResponse.ok) {
+        const checkPayload = (await checkResponse.json().catch(() => ({}))) as {
+          exists?: boolean;
+          provider?: string;
+        };
+        if (checkPayload?.exists) {
+          const provider = String(checkPayload?.provider || "email").toLowerCase();
+          if (provider && provider !== "email") {
+            setError(`This email is already registered with ${provider} sign-in.`);
+            return;
+          }
+          setError("This email is already registered. Please sign in instead.");
+          return;
+        }
+      }
+
       const supabase = supabaseRef.current;
       const emailRedirectTo = `${window.location.origin}/auth/confirm`;
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -273,8 +291,6 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         setSession(data.session);
         setStatus("Account created and signed in.");
         setStatusType("success");
-        setShowResend(false);
-        setPendingEmail("");
         if (typeof window !== "undefined") {
           window.location.replace("/account");
         } else {
@@ -284,13 +300,9 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         const identities = Array.isArray(data?.user?.identities) ? data.user.identities : [];
         if (identities.length === 0) {
           setError("Email already registered. Please sign in instead.");
-          setShowResend(true);
-          setPendingEmail(email.trim());
         } else {
           setStatus("Account created. Check your email to confirm within 24 hours.");
           setStatusType("info");
-          setPendingEmail(email.trim());
-          setShowResend(true);
         }
       }
       setPassword("");
@@ -301,15 +313,11 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       if (isNetworkError(message)) return setError("Network error. Please try again.");
       if (isAlreadyRegistered(message)) {
         setError("Email already registered. Please sign in instead.");
-        setShowResend(true);
-        setPendingEmail(email.trim());
         return;
       }
       if (isEmailNotConfirmed(message)) {
-        setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
+        setStatus("Please confirm your email within 24 hours.");
         setStatusType("info");
-        setShowResend(true);
-        setPendingEmail(email.trim());
         return;
       }
       setError(message);
@@ -337,8 +345,6 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setSession(data.session);
       setStatus("Signed in successfully.");
       setStatusType("success");
-      setShowResend(false);
-      setPendingEmail("");
       setPassword("");
       if (typeof window !== "undefined") {
         window.location.replace("/account");
@@ -352,10 +358,8 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       if (isInvalidCredentials(message)) return setError("Incorrect email or password.");
       if (isUserNotFound(message)) return setError("No account found for this email.");
       if (isEmailNotConfirmed(message)) {
-        setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
+        setStatus("Please confirm your email within 24 hours.");
         setStatusType("info");
-        setShowResend(true);
-        setPendingEmail(email.trim());
         return;
       }
       setError(message);
@@ -445,36 +449,6 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     }
   }
 
-  async function resendConfirmationEmail() {
-    const targetEmail = pendingEmail || email.trim();
-    if (!targetEmail) {
-      setError("Please enter your email first.");
-      return;
-    }
-    setError("");
-    setResendLoading(true);
-    try {
-      const supabase = supabaseRef.current;
-      const emailRedirectTo = `${window.location.origin}/auth/confirm`;
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email: targetEmail,
-        options: { emailRedirectTo },
-      });
-      if (resendError) throw new Error(resendError.message);
-      setStatus("Confirmation email resent. Please check your inbox.");
-      setStatusType("info");
-      setShowResend(true);
-      setPendingEmail(targetEmail);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unable to resend confirmation email.";
-      if (isRateLimited(msg)) return setError("Too many requests. Please wait before trying again.");
-      if (isNetworkError(msg)) return setError("Network error. Please try again.");
-      setError(msg);
-    } finally {
-      setResendLoading(false);
-    }
-  }
 
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
@@ -717,23 +691,6 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           </form>
         ) : null}
 
-        {showResend ? (
-          <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-            <p>
-              {pendingEmail
-                ? `We can resend the confirmation email to ${pendingEmail}.`
-                : "Need a new confirmation email?"}
-            </p>
-            <button
-              type="button"
-              onClick={resendConfirmationEmail}
-              disabled={resendLoading}
-              className="mt-3 inline-flex rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 disabled:opacity-60"
-            >
-              {resendLoading ? "Sending..." : "Resend confirmation email"}
-            </button>
-          </div>
-        ) : null}
       </section>
 
       {mode === "login" ? (
