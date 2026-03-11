@@ -109,6 +109,47 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     }
   }, [mode]);
 
+  const headlineIcon = useMemo(() => {
+    switch (mode) {
+      case "signup":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+            <path
+              fill="currentColor"
+              d="M15 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4m-9 7v-1.5C6 15.01 10.03 13 15 13c.7 0 1.37.04 2 .12V11h2v2h2v2h-2v2h-2v-2h-.74c-3.1 0-6.26 1.23-6.26 2.5V19Z"
+            />
+          </svg>
+        );
+      case "forgot":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+            <path
+              fill="currentColor"
+              d="M7 10a5 5 0 1 1 8.9 3H20v8h-6v-3H8v3H2v-8h3.1A4.98 4.98 0 0 1 7 10m0 0a3 3 0 1 0 6 0a3 3 0 0 0-6 0"
+            />
+          </svg>
+        );
+      case "update":
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+            <path
+              fill="currentColor"
+              d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5"
+            />
+          </svg>
+        );
+      default:
+        return (
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+            <path
+              fill="currentColor"
+              d="M12 3a5 5 0 0 1 5 5v2h1a2 2 0 0 1 2 2v9H4v-9a2 2 0 0 1 2-2h1V8a5 5 0 0 1 5-5m-3 7h6V8a3 3 0 0 0-6 0Z"
+            />
+          </svg>
+        );
+    }
+  }, [mode]);
+
   useEffect(() => {
     const supabase = supabaseRef.current;
     if (typeof window !== "undefined" && (mode === "login" || mode === "signup")) {
@@ -542,7 +583,12 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
-        <h1 className="text-2xl font-semibold text-slate-900">{headline}</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+            {headlineIcon}
+          </span>
+          {headline}
+        </h1>
         <p className="mt-2 text-sm text-slate-600">
           {mode === "signup"
             ? "Create your account to sync DeepFocus Time across devices."

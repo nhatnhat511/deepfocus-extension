@@ -182,7 +182,7 @@ export default function PaddleCheckoutCard({
         }}
       />
 
-      <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mt-5 rounded-xl border border-emerald-200 bg-gradient-to-br from-white via-emerald-50 to-slate-50 p-4 shadow-sm">
         <label className="mb-2 block text-sm font-semibold text-slate-800">Premium account email</label>
         <div className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900">
           {email || "Not signed in"}
@@ -197,9 +197,9 @@ export default function PaddleCheckoutCard({
               type="button"
               onClick={() => setPlan("monthly")}
               disabled={!normalizedAllowedPlans.includes("monthly")}
-              className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm ${
                 plan === "monthly"
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                  ? "border-emerald-400 bg-emerald-100 text-emerald-800"
                   : "border-slate-200 text-slate-700 hover:bg-slate-50"
               } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-pressed={plan === "monthly"}
@@ -210,9 +210,9 @@ export default function PaddleCheckoutCard({
               type="button"
               onClick={() => setPlan("yearly")}
               disabled={!normalizedAllowedPlans.includes("yearly")}
-              className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm ${
                 plan === "yearly"
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                  ? "border-emerald-400 bg-emerald-100 text-emerald-800"
                   : "border-slate-200 text-slate-700 hover:bg-slate-50"
               } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-pressed={plan === "yearly"}
@@ -230,7 +230,7 @@ export default function PaddleCheckoutCard({
           type="button"
           onClick={startCheckout}
           disabled={!canCheckout}
-          className="mt-4 inline-flex w-auto items-center justify-center rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Opening checkout..." : plan === "yearly" ? "Upgrade to Yearly" : "Upgrade to Premium"}
         </button>

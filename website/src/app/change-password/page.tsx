@@ -186,7 +186,17 @@ export default function ChangePasswordPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
-        <h1 className="text-2xl font-semibold text-slate-900">Change password</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+              <path
+                fill="currentColor"
+                d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5"
+              />
+            </svg>
+          </span>
+          Change password
+        </h1>
         <p className="mt-2 text-sm text-slate-600">
           Update your account password. If you signed in with a social provider, manage it there.
         </p>
