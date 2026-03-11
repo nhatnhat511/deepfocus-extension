@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import type { UserIdentity } from "@supabase/auth-js";
+import type { User, UserIdentity } from "@supabase/auth-js";
 import PaddleCheckoutCard from "@/components/PaddleCheckoutCard";
 
 type AuthSession = NonNullable<
@@ -322,16 +322,19 @@ export default function AccountPage() {
         string,
         unknown
       >;
+      const rawUser = profile as User;
+      const updatedUser: User = {
+        ...rawUser,
+        id: String(rawUser.id || profile.id || ""),
+        email: rawUser.email ?? String((profile as Record<string, unknown>).email || ""),
+        created_at: String(rawUser.created_at || (profile as Record<string, unknown>).created_at || ""),
+        user_metadata: (rawUser.user_metadata as Record<string, unknown>) || {},
+        app_metadata: (rawUser.app_metadata as Record<string, unknown>) || {},
+        identities: Array.isArray(rawUser.identities) ? rawUser.identities : [],
+      };
       const updated: AuthSession = {
         ...activeSession,
-        user: {
-          id: String(profile.id || ""),
-          email: String(profile.email || ""),
-          created_at: String(profile.created_at || ""),
-          user_metadata: (profile.user_metadata as Record<string, unknown>) || {},
-          app_metadata: (profile.app_metadata as Record<string, unknown>) || {},
-          identities: Array.isArray(profile.identities) ? (profile.identities as UserIdentity[]) : [],
-        },
+        user: updatedUser,
       };
       setSession(updated);
       saveSession(updated);
