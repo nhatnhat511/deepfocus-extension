@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import type { UserIdentity } from "@supabase/auth-js";
 import PaddleCheckoutCard from "@/components/PaddleCheckoutCard";
 
 type AuthSession = NonNullable<
@@ -329,7 +330,7 @@ export default function AccountPage() {
           created_at: String(profile.created_at || ""),
           user_metadata: (profile.user_metadata as Record<string, unknown>) || {},
           app_metadata: (profile.app_metadata as Record<string, unknown>) || {},
-          identities: (profile.identities as Array<Record<string, unknown>>) || [],
+          identities: Array.isArray(profile.identities) ? (profile.identities as UserIdentity[]) : [],
         },
       };
       setSession(updated);
