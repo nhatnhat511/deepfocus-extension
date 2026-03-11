@@ -74,6 +74,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [sessionVerified, setSessionVerified] = useState(false);
   const [showResend, setShowResend] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
@@ -100,6 +101,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       if (!data.session) {
         setSession(null);
         setSessionLoading(false);
+        setSessionVerified(true);
         return;
       }
       const { data: userData, error } = await supabase.auth.getUser();
@@ -110,6 +112,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         setSession(data.session);
       }
       setSessionLoading(false);
+      setSessionVerified(true);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
@@ -120,6 +123,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   }, []);
 
   useEffect(() => {
+    if (sessionLoading || !sessionVerified) return;
     if (!signedIn) return;
     if (mode === "login" || mode === "signup") {
       if (typeof window !== "undefined") {
