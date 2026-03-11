@@ -181,7 +181,7 @@ export default function PaddleCheckoutCard({
         setEmail(payload.accountEmail);
       }
 
-      window.Paddle.Checkout.open({
+      window.Paddle?.Checkout.open({
         transactionId: payload.transactionId,
         settings: {
           displayMode: "overlay",
