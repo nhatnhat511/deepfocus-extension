@@ -5,5 +5,15 @@ const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
 
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const cookieDomain =
+    typeof window !== "undefined" && window.location.hostname.endsWith("deepfocustime.com")
+      ? ".deepfocustime.com"
+      : undefined;
+  return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookieOptions: {
+      domain: cookieDomain,
+      path: "/",
+      sameSite: "lax",
+    },
+  });
 }
