@@ -71,6 +71,10 @@ export default function AuthConfirmClient() {
   const [detail, setDetail] = useState("Please keep this tab open while we complete verification.");
   const [error, setError] = useState("");
   const [nextPath, setNextPath] = useState("/account");
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendStatus, setResendStatus] = useState("");
+  const [resendError, setResendError] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -174,11 +178,61 @@ export default function AuthConfirmClient() {
     void run();
   }, []);
 
+  async function resendConfirmationEmail() {
+    if (!resendEmail.trim()) {
+      setResendError("Please enter your email.");
+      return;
+    }
+    setResendError("");
+    setResendStatus("");
+    setResendLoading(true);
+    try {
+      await supabaseRequest("/auth/v1/resend", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "signup",
+          email: resendEmail.trim(),
+          email_redirect_to: typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : undefined,
+        }),
+      });
+      setResendStatus("Confirmation email sent. Please check your inbox.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to resend confirmation email.";
+      setResendError(message);
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6">
       <h1 className="text-xl font-semibold text-slate-900">{status}</h1>
       <p className="mt-2 text-sm text-slate-600">{detail}</p>
       {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+      {status.toLowerCase().includes("expired") || status.toLowerCase().includes("incomplete") ? (
+        <div className="mt-5 space-y-3">
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
+            <input
+              type="email"
+              value={resendEmail}
+              onChange={(e) => setResendEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </div>
+          {resendError ? <p className="text-sm text-rose-600">{resendError}</p> : null}
+          {resendStatus ? <p className="text-sm text-emerald-600">{resendStatus}</p> : null}
+          <button
+            type="button"
+            onClick={resendConfirmationEmail}
+            disabled={resendLoading}
+            className="inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+          >
+            {resendLoading ? "Sending..." : "Resend confirmation email"}
+          </button>
+        </div>
+      ) : null}
       <a
         href={nextPath}
         className="mt-5 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
