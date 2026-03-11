@@ -206,13 +206,22 @@ function toUserId(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizePlanHint(value: unknown) {
+  const text = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!text) return "";
+  if (text.includes("year")) return "premium_yearly";
+  if (text.includes("month")) return "premium_monthly";
+  if (text === "premium") return "premium";
+  return "";
+}
+
 function parseSubscriptionWindow(data: PaddleSubscription) {
   const fromCurrentPeriod = data.current_billing_period?.ends_at || null;
   const fromNextBilled = data.next_billed_at || null;
   return fromCurrentPeriod || fromNextBilled;
 }
 
-function derivePlanAndUntilFromSubscription(data: PaddleSubscription) {
+function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: string) {
   const status = String(data.status || "").toLowerCase();
   const rawUntil = parseSubscriptionWindow(data);
   const untilTs = rawUntil ? Date.parse(rawUntil) : NaN;
@@ -220,9 +229,10 @@ function derivePlanAndUntilFromSubscription(data: PaddleSubscription) {
 
   const activeByStatus = status === "active" || status === "trialing" || status === "past_due";
   const shouldGrantPremium = activeByStatus || hasFutureWindow;
+  const normalizedPlan = normalizePlanHint(planHint) || "premium";
 
   return {
-    plan: shouldGrantPremium ? "premium" : "free",
+    plan: shouldGrantPremium ? normalizedPlan : "free",
     premiumUntil: shouldGrantPremium && rawUntil ? rawUntil : null,
     status,
   };
@@ -237,10 +247,12 @@ async function resolveIdentityForEvent(
   customerId: string;
   subscriptionId: string;
   subscription: PaddleSubscription | null;
+  planHint: string;
 }> {
   const customData = (data.custom_data || {}) as Record<string, unknown>;
   const directEmail = toLowerEmail(customData.deepfocus_email);
   const directUserId = toUserId(customData.deepfocus_user_id);
+  let planHint = normalizePlanHint(customData.deepfocus_plan);
   const customerId = String(data.customer_id || "");
   let subscriptionId = String(data.subscription_id || "");
   let resolvedEmail = directEmail;
@@ -253,8 +265,10 @@ async function resolveIdentityForEvent(
     const subCustomData = (subscription.custom_data || {}) as Record<string, unknown>;
     const subEmail = toLowerEmail(subCustomData.deepfocus_email);
     const subUserId = toUserId(subCustomData.deepfocus_user_id);
+    const subPlanHint = normalizePlanHint(subCustomData.deepfocus_plan);
     if (!resolvedEmail && subEmail) resolvedEmail = subEmail;
     if (!resolvedUserId && subUserId) resolvedUserId = subUserId;
+    if (!planHint && subPlanHint) planHint = subPlanHint;
   }
 
   if (!subscription && subscriptionId) {
@@ -266,6 +280,9 @@ async function resolveIdentityForEvent(
   }
   if (!resolvedUserId && subscription?.custom_data) {
     resolvedUserId = toUserId((subscription.custom_data as Record<string, unknown>).deepfocus_user_id);
+  }
+  if (!planHint && subscription?.custom_data) {
+    planHint = normalizePlanHint((subscription.custom_data as Record<string, unknown>).deepfocus_plan);
   }
 
   if (!resolvedEmail && customerId) {
@@ -279,6 +296,7 @@ async function resolveIdentityForEvent(
     customerId: customerId || String(subscription?.customer_id || ""),
     subscriptionId: subscriptionId || String(subscription?.id || ""),
     subscription,
+    planHint,
   };
 }
 
@@ -340,7 +358,7 @@ async function handleWebhookEvent(eventType: string, data: Record<string, unknow
     return;
   }
 
-  const entitlement = derivePlanAndUntilFromSubscription(resolved.subscription);
+  const entitlement = derivePlanAndUntilFromSubscription(resolved.subscription, resolved.planHint);
   const resultById = await applyProfileEntitlementByUserId({
     userId: resolved.userId,
     email: resolved.email,

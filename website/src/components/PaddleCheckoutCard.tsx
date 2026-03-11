@@ -28,6 +28,8 @@ type CreateCheckoutResponse = {
   accountEmail?: string;
 };
 
+type PlanOption = "monthly" | "yearly";
+
 type WebsiteSession = {
   access_token?: string;
   user?: {
@@ -38,12 +40,13 @@ type WebsiteSession = {
 
 const SESSION_KEY = "deepfocusWebsiteSession";
 
-export default function PaddleCheckoutCard() {
+export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaultPlan?: PlanOption }) {
   const [email, setEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
+  const [plan, setPlan] = useState<PlanOption>(defaultPlan);
 
   const paddleToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "";
   const paddleEnv = (process.env.NEXT_PUBLIC_PADDLE_ENV || "sandbox") as "sandbox" | "production";
@@ -66,6 +69,10 @@ export default function PaddleCheckoutCard() {
       return;
     }
   }, []);
+
+  useEffect(() => {
+    setPlan(defaultPlan);
+  }, [defaultPlan]);
 
   function initPaddleIfNeeded() {
     if (!window.Paddle || paddleInitialized || !paddleToken) return;
@@ -101,7 +108,7 @@ export default function PaddleCheckoutCard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), plan }),
       });
 
       if (!res.ok) {
@@ -151,14 +158,47 @@ export default function PaddleCheckoutCard() {
         <p className="mt-2 text-xs text-slate-500">
           Premium maps to your signed-in DeepFocus account.
         </p>
-        {error ? <p className="mt-2 text-xs text-rose-600">{error}</p> : null}
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Billing plan</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setPlan("monthly")}
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+                plan === "monthly"
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+              aria-pressed={plan === "monthly"}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setPlan("yearly")}
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+                plan === "yearly"
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+              aria-pressed={plan === "yearly"}
+            >
+              Yearly (30% off)
+            </button>
+          </div>
+        </div>
+        {error ? (
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            {error}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={startCheckout}
           disabled={!canCheckout}
           className="mt-4 inline-flex w-auto items-center justify-center rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Opening checkout..." : "Upgrade to Premium"}
+          {loading ? "Opening checkout..." : plan === "yearly" ? "Upgrade to Yearly" : "Upgrade to Premium"}
         </button>
       </div>
     </>

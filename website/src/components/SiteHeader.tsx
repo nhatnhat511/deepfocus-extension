@@ -16,6 +16,7 @@ const SESSION_KEY = "deepfocusWebsiteSession";
 const navLinks = [
   { href: "/pricing", label: "Pricing" },
   { href: "/account", label: "Account" },
+  { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/support", label: "Support" },
   { href: "/privacy", label: "Privacy" },

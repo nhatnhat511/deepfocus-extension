@@ -18,7 +18,7 @@ type AuthSession = {
 type ProfileRow = {
   id: string;
   email: string | null;
-  plan: "free" | "trial" | "premium";
+  plan: "free" | "trial" | "premium" | "premium_monthly" | "premium_yearly";
   premium_until: string | null;
   trial_used: boolean;
   trial_started_at: string | null;
@@ -94,10 +94,16 @@ export default function AccountPage() {
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [status, setStatus] = useState("Not signed in.");
+  const [statusType, setStatusType] = useState<"info" | "success">("info");
   const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [passwordStage, setPasswordStage] = useState<"idle" | "requested" | "ready">("idle");
+  const [preferredPlan, setPreferredPlan] = useState<"monthly" | "yearly">("monthly");
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -112,6 +118,10 @@ export default function AccountPage() {
     const now = Date.now();
     const untilTs = profile.premium_until ? Date.parse(profile.premium_until) : 0;
     const activePremium = !!(untilTs && Number.isFinite(untilTs) && untilTs > now);
+    const isPremium =
+      profile.plan === "premium" || profile.plan === "premium_monthly" || profile.plan === "premium_yearly";
+    const premiumLabel =
+      profile.plan === "premium_yearly" ? "Premium (Yearly)" : "Premium (Monthly)";
 
     if (profile.plan === "trial" && activePremium) {
       const msLeft = untilTs - now;
@@ -122,9 +132,9 @@ export default function AccountPage() {
       return { label: "Trial", detail: `Trial Time Remaining: ${detail}` };
     }
 
-    if (profile.plan === "premium" && activePremium) {
+    if (isPremium && activePremium) {
       return {
-        label: "Premium",
+        label: premiumLabel,
         detail: `Premium Until: ${new Date(untilTs).toLocaleString()}`,
       };
     }
@@ -136,6 +146,9 @@ export default function AccountPage() {
     return { label: "Free", detail: "No active premium access. You can start a 7-day free trial." };
   }, [profile]);
 
+  const isPremiumPlan =
+    profile?.plan === "premium" || profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly";
+
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     if (!hash || !hash.includes("access_token")) return;
@@ -143,6 +156,7 @@ export default function AccountPage() {
     const params = new URLSearchParams(hash.replace(/^#/, ""));
     const accessToken = params.get("access_token") || "";
     if (!accessToken) return;
+    const flowType = params.get("type") || "";
 
     const oauthSession: AuthSession = {
       access_token: accessToken,
@@ -154,7 +168,13 @@ export default function AccountPage() {
     setSession(oauthSession);
     saveSession(oauthSession);
     setStatus("Signed in successfully.");
+    setStatusType("success");
     setError("");
+    if (flowType === "recovery") {
+      setPasswordStage("ready");
+      setStatus("Password verification complete. Please set a new password below.");
+      setStatusType("info");
+    }
     void refreshCurrentUser(oauthSession);
     if (typeof window !== "undefined") {
       window.history.replaceState({}, document.title, "/account");
@@ -166,7 +186,18 @@ export default function AccountPage() {
     if (!s) return;
     setSession(s);
     setStatus("Session restored.");
+    setStatusType("info");
     void refreshCurrentUser(s);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const planParam = new URLSearchParams(window.location.search).get("plan");
+    if (planParam === "yearly") {
+      setPreferredPlan("yearly");
+    } else if (planParam === "monthly") {
+      setPreferredPlan("monthly");
+    }
   }, []);
 
   async function fetchEntitlement(activeSession: AuthSession) {
@@ -219,6 +250,7 @@ export default function AccountPage() {
       );
       await fetchEntitlement(session);
       setStatus("Free trial activated. Premium unlocked for 7 days.");
+      setStatusType("success");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to activate trial.";
       if (msg.includes("TRIAL_ALREADY_USED")) {
@@ -266,6 +298,7 @@ export default function AccountPage() {
         setProfile(null);
         saveSession(null);
         setStatus("Session expired. Please sign in again.");
+        setStatusType("info");
         setError("");
         return;
       }
@@ -285,6 +318,7 @@ export default function AccountPage() {
       saveSession(payload);
       await refreshCurrentUser(payload);
       setStatus("Signed in successfully.");
+      setStatusType("success");
       setPassword("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed.");
@@ -312,8 +346,10 @@ export default function AccountPage() {
         saveSession(payload);
         await refreshCurrentUser(payload);
         setStatus("Account created and signed in.");
+        setStatusType("success");
       } else {
         setStatus("Account created. Check your email to confirm if required.");
+        setStatusType("info");
       }
       setPassword("");
     } catch (err) {
@@ -346,7 +382,9 @@ export default function AccountPage() {
       setProfile(null);
       saveSession(null);
       setAvatarPreview("");
+      setPasswordStage("idle");
       setStatus("Signed out.");
+      setStatusType("info");
       setLoading(false);
     }
   }
@@ -380,6 +418,7 @@ export default function AccountPage() {
         setAvatarPreview(dataUrl);
         await refreshCurrentUser(session);
         setStatus("Avatar updated.");
+        setStatusType("success");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Avatar update failed.");
       } finally {
@@ -391,22 +430,71 @@ export default function AccountPage() {
 
   async function onUpdatePassword(e: FormEvent) {
     e.preventDefault();
+    setPasswordError("");
     if (!session?.access_token) return;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Please complete all password fields.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("The new passwords do not match.");
+      return;
+    }
+    if (!user?.email) {
+      setPasswordError("Missing account email. Please sign in again.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
+      const verifiedSession = (await supabaseRequest("/auth/v1/token?grant_type=password", {
+        method: "POST",
+        body: JSON.stringify({ email: user?.email || "", password: currentPassword }),
+      })) as AuthSession;
+      const updateToken = verifiedSession?.access_token || session.access_token;
       await supabaseRequest(
         "/auth/v1/user",
         {
           method: "PUT",
           body: JSON.stringify({ password: newPassword }),
         },
-        session.access_token
+        updateToken
       );
       setNewPassword("");
+      setConfirmPassword("");
+      setCurrentPassword("");
       setStatus("Password updated.");
+      setStatusType("success");
+      setPasswordStage("idle");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Password update failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function requestPasswordChange() {
+    if (!user?.email) {
+      setError("Please sign in before requesting a password change.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/account` : undefined;
+      await supabaseRequest("/auth/v1/recover", {
+        method: "POST",
+        body: JSON.stringify({
+          email: user.email,
+          ...(redirectTo ? { redirect_to: redirectTo } : {}),
+        }),
+      });
+      setPasswordStage("requested");
+      setStatus("Password verification email sent. Check your inbox to continue.");
+      setStatusType("info");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send verification email.");
     } finally {
       setLoading(false);
     }
@@ -478,7 +566,11 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+            {error ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {error}
+              </p>
+            ) : null}
 
             <button
               type="submit"
@@ -558,7 +650,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {profile?.plan !== "premium" ? <PaddleCheckoutCard /> : null}
+            {!isPremiumPlan ? <PaddleCheckoutCard defaultPlan={preferredPlan} /> : null}
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -583,21 +675,71 @@ export default function AccountPage() {
 
               <div className="rounded-lg border border-slate-200 bg-white p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Security</h3>
+                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                  Step 1: Request a verification email. Step 2: Click the link and return here to complete the change.
+                </div>
+                <button
+                  type="button"
+                  onClick={requestPasswordChange}
+                  disabled={loading || !signedIn}
+                  className="mt-3 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                >
+                  Send verification email
+                </button>
+
                 <form className="mt-4 space-y-3" onSubmit={onUpdatePassword}>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    New password
-                  </label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="New password"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    required
-                  />
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Current password
+                    </label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Current password"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      New password
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Confirm new password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      required
+                    />
+                  </div>
+                  {passwordStage !== "ready" ? (
+                    <p className="text-xs text-slate-500">
+                      Complete the verification email step before submitting a new password.
+                    </p>
+                  ) : null}
+                  {passwordError ? (
+                    <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                      {passwordError}
+                    </p>
+                  ) : null}
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || passwordStage !== "ready"}
                     className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
                   >
                     Update Password
@@ -619,8 +761,22 @@ export default function AccountPage() {
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
-        <p className="text-slate-700">{status}</p>
-        {error ? <p className="mt-2 text-rose-600">{error}</p> : null}
+        {status ? (
+          <p
+            className={`rounded-lg border px-3 py-2 ${
+              statusType === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-sky-200 bg-sky-50 text-sky-800"
+            }`}
+          >
+            {status}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
+            {error}
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">

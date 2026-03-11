@@ -48,6 +48,15 @@ const compareRows = [
   ["Support", "Standard", "Priority"],
 ];
 
+const monthlyPrice = 2.99;
+const yearlyDiscountRate = 0.3;
+const yearlyBase = monthlyPrice * 12;
+const yearlyFinal = yearlyBase * (1 - yearlyDiscountRate);
+const yearlySavings = yearlyBase - yearlyFinal;
+
+const yearlyPriceLabel = yearlyFinal.toFixed(2);
+const yearlySavingsLabel = yearlySavings.toFixed(2);
+
 function renderAvailability(value: string) {
   const text = value.trim();
   if (text.toLowerCase() === "included") {
@@ -90,7 +99,7 @@ export default function PricingPage() {
         </p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <article className="rounded-2xl border border-slate-200 bg-white p-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">For individuals</p>
           <h2 className="mt-2 text-xl font-semibold text-slate-900">Free</h2>
@@ -111,10 +120,10 @@ export default function PricingPage() {
 
         <article className="rounded-2xl border border-emerald-200 bg-white p-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">For deep-focus professionals</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-900">Premium</h2>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Premium Monthly</h2>
           <p className="mt-1 text-sm text-slate-600">Unlock advanced controls for fewer interruptions and better consistency.</p>
           <p className="mt-4 text-3xl font-bold text-slate-900">
-            $1.99<span className="text-base">/month</span>
+            ${monthlyPrice.toFixed(2)}<span className="text-base">/month</span>
           </p>
           <p className="mt-2 text-xs text-slate-500">Auto-renews. Cancel anytime.</p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
@@ -123,10 +132,33 @@ export default function PricingPage() {
             ))}
           </ul>
           <Link
-            href="/account"
+            href="/account?plan=monthly"
             className="mt-6 inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
           >
             Upgrade to Premium
+          </Link>
+        </article>
+
+        <article className="rounded-2xl border border-slate-200 bg-white p-6">
+          <p className="inline-flex w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+            30% OFF
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Premium Yearly</h2>
+          <p className="mt-1 text-sm text-slate-600">Best value for consistent focus throughout the year.</p>
+          <p className="mt-4 text-3xl font-bold text-slate-900">
+            ${yearlyPriceLabel}<span className="text-base">/year</span>
+          </p>
+          <p className="mt-2 text-xs text-slate-600">Save 30% (${yearlySavingsLabel})</p>
+          <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
+            {premiumFeatures.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <Link
+            href="/account?plan=yearly"
+            className="mt-6 inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+          >
+            Upgrade to Yearly
           </Link>
         </article>
       </section>

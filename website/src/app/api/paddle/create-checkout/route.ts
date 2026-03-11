@@ -10,11 +10,13 @@ type PaddleTransactionResponse = {
 
 type CreateCheckoutBody = {
   email?: string;
+  plan?: "monthly" | "yearly";
 };
 
 const PADDLE_API_BASE = process.env.PADDLE_API_BASE_URL || "https://api.paddle.com";
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY || "";
-const PADDLE_PRICE_ID = process.env.PADDLE_PRICE_ID || "";
+const PADDLE_PRICE_ID_MONTHLY = process.env.PADDLE_PRICE_ID || "";
+const PADDLE_PRICE_ID_YEARLY = process.env.PADDLE_PRICE_ID_YEARLY || "";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deepfocustime.com";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
@@ -119,7 +121,7 @@ async function getUserFromAccessToken(accessToken: string) {
 export async function POST(req: Request) {
   try {
     if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500);
-    if (!PADDLE_PRICE_ID) return jsonError("Missing PADDLE_PRICE_ID", 500);
+    if (!PADDLE_PRICE_ID_MONTHLY) return jsonError("Missing PADDLE_PRICE_ID", 500);
     if (!isAllowedRequestOrigin(req)) {
       return jsonError("Forbidden origin.", 403);
     }
@@ -149,6 +151,11 @@ export async function POST(req: Request) {
 
     const body = (await req.json().catch(() => ({}))) as CreateCheckoutBody;
     const requestedEmail = normalizeEmail(String(body.email || ""));
+    const requestedPlan = body.plan === "yearly" ? "yearly" : "monthly";
+    const priceId = requestedPlan === "yearly" ? PADDLE_PRICE_ID_YEARLY : PADDLE_PRICE_ID_MONTHLY;
+    if (requestedPlan === "yearly" && !priceId) {
+      return jsonError("Missing PADDLE_PRICE_ID_YEARLY", 500);
+    }
     if (requestedEmail && requestedEmail !== email) {
       return jsonError("Checkout email must match your signed-in account.", 403);
     }
@@ -158,7 +165,7 @@ export async function POST(req: Request) {
     }
 
     const payload = {
-      items: [{ price_id: PADDLE_PRICE_ID, quantity: 1 }],
+      items: [{ price_id: priceId, quantity: 1 }],
       collection_mode: "automatic",
       checkout: {
         url: SITE_URL,
@@ -166,6 +173,7 @@ export async function POST(req: Request) {
       custom_data: {
         deepfocus_user_id: userId,
         deepfocus_email: email,
+        deepfocus_plan: requestedPlan === "yearly" ? "premium_yearly" : "premium_monthly",
         source: "deepfocus_web_checkout",
       },
     };

@@ -86,7 +86,7 @@ begin
       premium_until = null,
       updated_at = now()
   where id = uid
-    and plan in ('trial', 'premium')
+    and plan in ('trial', 'premium', 'premium_monthly', 'premium_yearly')
     and premium_until is not null
     and premium_until <= now();
 
@@ -99,7 +99,7 @@ begin
     coalesce(p.trial_used, false) as trial_used,
     p.trial_started_at,
     (
-      coalesce(p.plan, 'free') in ('trial', 'premium')
+      coalesce(p.plan, 'free') in ('trial', 'premium', 'premium_monthly', 'premium_yearly')
       and p.premium_until is not null
       and p.premium_until > now()
     ) as is_premium_active,
@@ -145,7 +145,7 @@ begin
   where id = uid
   for update;
 
-  if p.plan in ('trial', 'premium')
+  if p.plan in ('trial', 'premium', 'premium_monthly', 'premium_yearly')
      and p.premium_until is not null
      and p.premium_until > now() then
     return query

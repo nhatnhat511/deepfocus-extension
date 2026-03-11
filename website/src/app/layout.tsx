@@ -81,6 +81,9 @@ export default function RootLayout({
               <Link href="/faq" className="hover:text-slate-900">
                 FAQ
               </Link>
+              <Link href="/blog" className="hover:text-slate-900">
+                Blog
+              </Link>
               <Link href="/privacy" className="hover:text-slate-900">
                 Privacy
               </Link>
