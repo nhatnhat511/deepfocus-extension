@@ -20,6 +20,7 @@ type ProfileRow = {
   is_premium_active: boolean;
   is_trial_active: boolean;
   paddle_status?: string | null;
+  paddle_subscription_id?: string | null;
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
@@ -81,6 +82,14 @@ export default function AccountPage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [preferredPlan, setPreferredPlan] = useState<"monthly" | "yearly">("monthly");
   const [portalLoading, setPortalLoading] = useState(false);
+  const [billingMeta, setBillingMeta] = useState<{
+    status?: string;
+    nextBilledAt?: string | null;
+    currentPeriodEndsAt?: string | null;
+    scheduledAction?: string;
+    scheduledEffectiveAt?: string | null;
+  } | null>(null);
+  const [billingMetaLoading, setBillingMetaLoading] = useState(false);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -147,6 +156,10 @@ export default function AccountPage() {
     const status = String(profile?.paddle_status || "").toLowerCase();
     return status === "canceled" || status === "cancelled";
   }, [profile?.paddle_status]);
+  const hasScheduledCancel = useMemo(() => {
+    const action = String(billingMeta?.scheduledAction || "").toLowerCase();
+    return action === "cancel" || action === "cancelled";
+  }, [billingMeta?.scheduledAction]);
 
   const isPremiumPlan =
     profile?.plan === "premium" || profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly";
@@ -213,12 +226,13 @@ export default function AccountPage() {
     const baseProfile = row as ProfileRow;
     try {
       const meta = (await supabaseRequest(
-        `/rest/v1/profiles?select=paddle_status&id=eq.${encodeURIComponent(activeSession.user.id)}&limit=1`,
+        `/rest/v1/profiles?select=paddle_status,paddle_subscription_id&id=eq.${encodeURIComponent(activeSession.user.id)}&limit=1`,
         { method: "GET" },
         activeSession.access_token
-      )) as Array<{ paddle_status?: string | null }>;
+      )) as Array<{ paddle_status?: string | null; paddle_subscription_id?: string | null }>;
       const paddleStatus = meta?.[0]?.paddle_status ?? null;
-      setProfile({ ...baseProfile, paddle_status: paddleStatus });
+      const paddleSubscriptionId = meta?.[0]?.paddle_subscription_id ?? null;
+      setProfile({ ...baseProfile, paddle_status: paddleStatus, paddle_subscription_id: paddleSubscriptionId });
     } catch {
       setProfile(baseProfile);
     }
@@ -386,6 +400,54 @@ export default function AccountPage() {
     }
   }
 
+  async function refreshBillingMeta() {
+    if (!session?.access_token || !profile?.paddle_subscription_id) return;
+    setBillingMetaLoading(true);
+    try {
+      const res = await fetch("/api/paddle/subscription-status", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      const payload = (await res.json().catch(() => ({}))) as {
+        status?: string;
+        nextBilledAt?: string | null;
+        currentPeriodEndsAt?: string | null;
+        scheduledChange?: { action?: string; effectiveAt?: string | null } | null;
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(payload?.error || "Unable to refresh billing status.");
+      }
+      setBillingMeta({
+        status: payload.status || "",
+        nextBilledAt: payload.nextBilledAt ?? null,
+        currentPeriodEndsAt: payload.currentPeriodEndsAt ?? null,
+        scheduledAction: payload.scheduledChange?.action || "",
+        scheduledEffectiveAt: payload.scheduledChange?.effectiveAt ?? null,
+      });
+    } catch {
+      // keep current UI if refresh fails
+    } finally {
+      setBillingMetaLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!signedIn || !profile?.paddle_subscription_id) return;
+    const handleFocus = () => {
+      void refreshBillingMeta();
+    };
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [signedIn, profile?.paddle_subscription_id, session?.access_token]);
+
   async function onAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
     if (!file || !session?.access_token) return;
@@ -471,8 +533,14 @@ export default function AccountPage() {
                     <p className="mt-1 text-xs text-slate-600">{accountSummary.detail}</p>
                     {profile?.premium_until ? (
                       <p className="mt-1 text-xs text-slate-500">
-                        {isCanceledSubscription ? "Access ends on" : "Next billing date"}:{" "}
-                        {new Date(profile.premium_until).toLocaleDateString()}
+                        {hasScheduledCancel || isCanceledSubscription ? "Access ends on" : "Next billing date"}:{" "}
+                        {new Date(
+                          billingMeta?.scheduledEffectiveAt ||
+                            billingMeta?.currentPeriodEndsAt ||
+                            billingMeta?.nextBilledAt ||
+                            profile.premium_until
+                        ).toLocaleDateString()}
+                        {billingMetaLoading ? " (updating...)" : ""}
                       </p>
                     ) : null}
                   </div>
