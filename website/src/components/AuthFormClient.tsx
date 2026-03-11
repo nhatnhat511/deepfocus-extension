@@ -156,10 +156,8 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
 
   useEffect(() => {
     if (!signedIn) return;
-    if (mode === "login" || mode === "signup" || mode === "forgot" || mode === "update") {
-      router.replace("/account");
-    }
-  }, [signedIn, mode, router]);
+    // Keep auth pages accessible for logged-in users; UI will show a guidance message.
+  }, [signedIn]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -375,6 +373,25 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     }
   }
 
+  async function onSignOut() {
+    if (!session?.access_token) {
+      setSession(null);
+      saveSession(null);
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await supabaseRequest("/auth/v1/logout", { method: "POST" }, session.access_token);
+    } catch {
+      // ignore logout network errors
+    } finally {
+      setSession(null);
+      saveSession(null);
+      setLoading(false);
+    }
+  }
+
   async function resendConfirmationEmail() {
     const targetEmail = pendingEmail || email.trim();
     if (!targetEmail) {
@@ -455,7 +472,29 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           </p>
         ) : null}
 
-        {mode === "signup" ? (
+        {signedIn && (mode === "login" || mode === "signup") ? (
+          <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <p>You are already logged in.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href="/account"
+                className="inline-flex rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
+              >
+                Go to account
+              </a>
+              <button
+                type="button"
+                onClick={onSignOut}
+                disabled={loading}
+                className="inline-flex rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
+              >
+                {loading ? "Signing out..." : "Log out"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {mode === "signup" && !signedIn ? (
           <form className="mt-6 space-y-4" onSubmit={onSignUp}>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
@@ -503,7 +542,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           </form>
         ) : null}
 
-        {mode === "login" ? (
+        {mode === "login" && !signedIn ? (
           <form className="mt-6 space-y-4" onSubmit={onSignIn}>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</label>
