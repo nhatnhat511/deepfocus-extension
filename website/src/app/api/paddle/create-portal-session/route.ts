@@ -99,7 +99,7 @@ async function getProfile(accessToken: string, userId: string) {
   return payload[0] || null;
 }
 
-function pickFirstUrl(value: unknown) {
+function pickFirstUrl(value: unknown): string {
   if (!value) return "";
   if (typeof value === "string") return value;
   if (Array.isArray(value)) {
