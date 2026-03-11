@@ -474,6 +474,8 @@ export default function AccountPage() {
       setPasswordStage("idle");
       setStatus("Signed out.");
       setStatusType("info");
+      setShowResend(false);
+      setPendingEmail("");
       setLoading(false);
     }
   }
@@ -609,7 +611,7 @@ export default function AccountPage() {
         body: JSON.stringify({
           type: "signup",
           email: targetEmail,
-          ...(redirectTo ? { email_redirect_to: redirectTo, options: { emailRedirectTo: redirectTo } } : {}),
+          ...(redirectTo ? { email_redirect_to: redirectTo } : {}),
         }),
       });
       setStatus("Confirmation email resent. Please check your inbox.");
@@ -695,13 +697,30 @@ export default function AccountPage() {
                 {error}
               </p>
             ) : null}
+            {status ? (
+              <p
+                className={`rounded-lg border px-3 py-2 text-sm ${
+                  statusType === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-sky-200 bg-sky-50 text-sky-800"
+                }`}
+              >
+                {status}
+              </p>
+            ) : null}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Working..." : authMode === "signup" ? "Create account" : "Login"}
+              {loading
+                ? authMode === "signup"
+                  ? "Creating account..."
+                  : "Signing in..."
+                : authMode === "signup"
+                  ? "Create account"
+                  : "Login"}
             </button>
           </form>
 
@@ -771,6 +790,22 @@ export default function AccountPage() {
               <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
               <p className="mt-1 text-sm text-slate-600">Review your plan, account details, and security settings.</p>
             </div>
+            {status ? (
+              <p
+                className={`rounded-lg border px-3 py-2 text-sm ${
+                  statusType === "success"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-sky-200 bg-sky-50 text-sky-800"
+                }`}
+              >
+                {status}
+              </p>
+            ) : null}
+            {error ? (
+              <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {error}
+              </p>
+            ) : null}
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -912,25 +947,6 @@ export default function AccountPage() {
           </div>
         </section>
       )}
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
-        {status ? (
-          <p
-            className={`rounded-lg border px-3 py-2 ${
-              statusType === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-sky-200 bg-sky-50 text-sky-800"
-            }`}
-          >
-            {status}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
-            {error}
-          </p>
-        ) : null}
-      </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">Get the Chrome Extension</h2>
