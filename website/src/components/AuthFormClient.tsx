@@ -97,6 +97,15 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
 
   useEffect(() => {
     const supabase = supabaseRef.current;
+    if (typeof window !== "undefined" && (mode === "login" || mode === "signup")) {
+      const { hash, search } = window.location;
+      const query = new URLSearchParams(search);
+      if ((hash && hash.includes("access_token")) || query.get("code")) {
+        setSessionLoading(false);
+        setSessionVerified(true);
+        return;
+      }
+    }
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) {
         setSession(null);
