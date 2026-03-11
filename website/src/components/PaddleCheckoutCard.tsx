@@ -34,6 +34,8 @@ type PlanOption = "monthly" | "yearly";
 type PaddleCheckoutCardProps = {
   defaultPlan?: PlanOption;
   allowedPlans?: PlanOption[];
+  currentPlan?: string;
+  subscriptionId?: string | null;
 };
 
 const monthlyPrice = 2.99;
@@ -45,6 +47,8 @@ const yearlyPriceLabel = yearlyFinal.toFixed(2);
 export default function PaddleCheckoutCard({
   defaultPlan = "monthly",
   allowedPlans,
+  currentPlan,
+  subscriptionId,
 }: PaddleCheckoutCardProps) {
   const [email, setEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
@@ -72,6 +76,8 @@ export default function PaddleCheckoutCard({
       normalizedAllowedPlans.includes(plan)
     );
   }, [accessToken, email, loading, paddleToken, ready, normalizedAllowedPlans, plan]);
+  const isMonthlyUpgradeToYearly =
+    (currentPlan === "premium" || currentPlan === "premium_monthly") && plan === "yearly";
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -125,13 +131,32 @@ export default function PaddleCheckoutCard({
       setError("Unable to resolve your account email. Please sign in again.");
       return;
     }
-    if (!window.Paddle) {
+    if (isMonthlyUpgradeToYearly && !subscriptionId) {
+      setError("Missing subscription details. Please refresh and try again.");
+      return;
+    }
+    if (!window.Paddle && !isMonthlyUpgradeToYearly) {
       setError("Checkout is not ready yet. Please refresh and try again.");
       return;
     }
 
     setLoading(true);
     try {
+      if (isMonthlyUpgradeToYearly) {
+        const res = await fetch("/api/paddle/upgrade-subscription", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        if (!res.ok) {
+          throw new Error(payload?.error || "Upgrade request failed.");
+        }
+        setError("");
+        return;
+      }
+
       initPaddleIfNeeded();
 
       const res = await fetch("/api/paddle/create-checkout", {
@@ -232,7 +257,13 @@ export default function PaddleCheckoutCard({
           disabled={!canCheckout}
           className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Opening checkout..." : plan === "yearly" ? "Upgrade to Yearly" : "Upgrade to Premium"}
+          {loading
+            ? "Processing..."
+            : plan === "yearly"
+              ? isMonthlyUpgradeToYearly
+                ? "Switch to Yearly (Prorated)"
+                : "Upgrade to Yearly"
+              : "Upgrade to Premium"}
         </button>
       </div>
     </>

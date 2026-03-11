@@ -608,6 +608,8 @@ export default function AccountPage() {
               {!isYearlyPlan ? (
                 <PaddleCheckoutCard
                   defaultPlan={preferredPlan}
+                  currentPlan={currentPlan}
+                  subscriptionId={profile?.paddle_subscription_id || null}
                   allowedPlans={
                     canUpgradeMonthly && canUpgradeYearly
                       ? ["monthly", "yearly"]
