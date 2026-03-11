@@ -132,9 +132,16 @@ export default function AuthConfirmClient() {
         setStatus("Verification link incomplete");
         setDetail("Please reopen the verification link from your email.");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Verification failed.");
-        setStatus("Verification failed");
-        setDetail("Please try again or contact support.");
+        const message = err instanceof Error ? err.message : "Verification failed.";
+        const lowered = message.toLowerCase();
+        if (lowered.includes("expired") || lowered.includes("invalid") || lowered.includes("token")) {
+          setStatus("Verification link expired");
+          setDetail("Your confirmation link has expired. Please request a new confirmation email.");
+        } else {
+          setStatus("Verification failed");
+          setDetail("Please try again or contact support.");
+        }
+        setError(message);
       } finally {
         if (typeof window !== "undefined") {
           window.history.replaceState({}, document.title, "/auth/confirm");

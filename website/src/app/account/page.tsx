@@ -102,6 +102,9 @@ export default function AccountPage() {
   const [statusType, setStatusType] = useState<"info" | "success">("info");
   const [error, setError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [passwordStage, setPasswordStage] = useState<"idle" | "requested" | "ready">("idle");
@@ -134,6 +137,16 @@ export default function AccountPage() {
     if (authProvider === "email") return "Email";
     return authProvider.charAt(0).toUpperCase() + authProvider.slice(1);
   }, [authProvider]);
+
+  function isEmailNotConfirmed(message: string) {
+    const text = String(message || "").toLowerCase();
+    return text.includes("email not confirmed") || text.includes("not confirmed");
+  }
+
+  function isAlreadyRegistered(message: string) {
+    const text = String(message || "").toLowerCase();
+    return text.includes("already registered") || text.includes("user already") || text.includes("already exists");
+  }
 
   const accountSummary = useMemo(() => {
     if (!profile) return { label: "Free", detail: "No active premium access." };
@@ -343,9 +356,19 @@ export default function AccountPage() {
       await refreshCurrentUser(payload);
       setStatus("Signed in successfully.");
       setStatusType("success");
+      setShowResend(false);
+      setPendingEmail("");
       setPassword("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign in failed.");
+      const message = err instanceof Error ? err.message : "Sign in failed.";
+      if (isEmailNotConfirmed(message)) {
+        setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
+        setStatusType("info");
+        setShowResend(true);
+        setPendingEmail(email.trim());
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -371,13 +394,55 @@ export default function AccountPage() {
         await refreshCurrentUser(payload);
         setStatus("Account created and signed in.");
         setStatusType("success");
+        setShowResend(false);
+        setPendingEmail("");
       } else {
-        setStatus("Account created. Check your email to confirm if required.");
+        setStatus("Account created. Check your email to confirm within 24 hours.");
         setStatusType("info");
+        setPendingEmail(email.trim());
+        setShowResend(true);
       }
       setPassword("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign up failed.");
+      const message = err instanceof Error ? err.message : "Sign up failed.";
+      if (isAlreadyRegistered(message)) {
+        try {
+          const payload = (await supabaseRequest("/auth/v1/token?grant_type=password", {
+            method: "POST",
+            body: JSON.stringify({ email: email.trim(), password }),
+          })) as AuthSession;
+          if (payload?.access_token) {
+            setSession(payload);
+            saveSession(payload);
+            await refreshCurrentUser(payload);
+            setStatus("Signed in successfully.");
+            setStatusType("success");
+            setShowResend(false);
+            setPendingEmail("");
+            setPassword("");
+            return;
+          }
+        } catch (signInErr) {
+          const signInMsg = signInErr instanceof Error ? signInErr.message : "";
+          if (isEmailNotConfirmed(signInMsg)) {
+            setStatus("Email already registered. Please confirm your email within 24 hours.");
+            setStatusType("info");
+            setShowResend(true);
+            setPendingEmail(email.trim());
+            return;
+          }
+        }
+        setError("Email already registered. Please sign in instead.");
+        return;
+      }
+      if (isEmailNotConfirmed(message)) {
+        setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
+        setStatusType("info");
+        setShowResend(true);
+        setPendingEmail(email.trim());
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -528,6 +593,37 @@ export default function AccountPage() {
     }
   }
 
+  async function resendConfirmationEmail() {
+    const targetEmail = pendingEmail || email.trim();
+    if (!targetEmail) {
+      setError("Please enter your email first.");
+      return;
+    }
+    setError("");
+    setResendLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : undefined;
+      await supabaseRequest("/auth/v1/resend", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "signup",
+          email: targetEmail,
+          ...(redirectTo ? { email_redirect_to: redirectTo, options: { emailRedirectTo: redirectTo } } : {}),
+        }),
+      });
+      setStatus("Confirmation email resent. Please check your inbox.");
+      setStatusType("info");
+      setShowResend(true);
+      setPendingEmail(targetEmail);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unable to resend confirmation email.";
+      setError(msg);
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
     setError("");
@@ -614,6 +710,24 @@ export default function AccountPage() {
             <span>or</span>
             <span className="h-px w-full bg-slate-200" />
           </div>
+
+          {showResend ? (
+            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <p>
+                {pendingEmail
+                  ? `We can resend the confirmation email to ${pendingEmail}.`
+                  : "Need a new confirmation email?"}
+              </p>
+              <button
+                type="button"
+                onClick={resendConfirmationEmail}
+                disabled={resendLoading}
+                className="mt-3 inline-flex rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 disabled:opacity-60"
+              >
+                {resendLoading ? "Sending..." : "Resend confirmation email"}
+              </button>
+            </div>
+          ) : null}
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
