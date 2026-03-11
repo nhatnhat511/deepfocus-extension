@@ -595,6 +595,33 @@ export default function AccountPage() {
     }
   }
 
+  async function requestPasswordRecoveryFromSignIn() {
+    if (!email.trim()) {
+      setError("Please enter your email first.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/account` : undefined;
+      await supabaseRequest("/auth/v1/recover", {
+        method: "POST",
+        body: JSON.stringify({
+          email: email.trim(),
+          ...(redirectTo ? { redirect_to: redirectTo } : {}),
+        }),
+      });
+      setStatus("Password reset email sent. Check your inbox to continue.");
+      setStatusType("info");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unable to send password reset email.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function resendConfirmationEmail() {
     const targetEmail = pendingEmail || email.trim();
     if (!targetEmail) {
@@ -683,12 +710,13 @@ export default function AccountPage() {
               />
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>{authMode === "signup" ? "Minimum 8 characters recommended." : " "}</span>
-                <a
-                  href="/support"
+                <button
+                  type="button"
+                  onClick={requestPasswordRecoveryFromSignIn}
                   className="text-emerald-600 hover:underline"
                 >
                   Forgot password?
-                </a>
+                </button>
               </div>
             </div>
 
