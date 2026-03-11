@@ -1,77 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type AuthSession = {
-  access_token: string;
-  refresh_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  user?: {
-    id?: string;
-    email?: string;
-    identities?: Array<Record<string, unknown>>;
-  };
-};
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type AuthMode = "login" | "signup" | "forgot" | "update";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
-const SESSION_KEY = "deepfocusWebsiteSession";
-
-async function supabaseRequest(path: string, options: RequestInit = {}, accessToken = "") {
-  const headers: Record<string, string> = {
-    apikey: SUPABASE_PUBLISHABLE_KEY,
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string> | undefined),
-  };
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
-
-  const res = await fetch(`${SUPABASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  let payload: unknown = null;
-  try {
-    payload = await res.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!res.ok) {
-    const p = payload as Record<string, unknown> | null;
-    const msg =
-      (p && (String(p.msg || p.message || p.error_description || p.error || ""))) || `Request failed (${res.status})`;
-    throw new Error(msg);
-  }
-
-  return payload;
-}
-
-function saveSession(session: AuthSession | null) {
-  if (typeof window === "undefined") return;
-  if (!session) {
-    window.localStorage.removeItem(SESSION_KEY);
-    return;
-  }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
-function loadSession(): AuthSession | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as AuthSession) : null;
-  } catch {
-    return null;
-  }
-}
 
 function isEmailNotConfirmed(message: string) {
   const text = String(message || "").toLowerCase();
@@ -113,7 +47,8 @@ function isValidEmail(value: string) {
 
 export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   const router = useRouter();
-  const [session, setSession] = useState<AuthSession | null>(null);
+  const supabaseRef = useRef(createSupabaseBrowserClient());
+  const [session, setSession] = useState<Awaited<ReturnType<typeof supabaseRef.current.auth.getSession>>["data"]["session"] | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -145,13 +80,17 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   }, [mode]);
 
   useEffect(() => {
-    const s = loadSession();
-    if (!s) {
+    const supabase = supabaseRef.current;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
       setSessionLoading(false);
-      return;
-    }
-    setSession(s);
-    setSessionLoading(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => {
+      listener?.subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -183,19 +122,23 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setSessionLoading(false);
       return;
     }
-    const recoverySession: AuthSession = {
-      access_token: accessToken,
-      refresh_token: params.get("refresh_token") || "",
-      token_type: params.get("token_type") || "bearer",
-      expires_in: Number(params.get("expires_in") || 0),
-    };
-    saveSession(recoverySession);
-    setSession(recoverySession);
-    setRecoveryReady(true);
-    setStatus("Verification complete. Set your new password.");
-    setStatusType("info");
-    window.history.replaceState({}, document.title, "/update-password");
-    setSessionLoading(false);
+    const refreshToken = params.get("refresh_token") || "";
+    const supabase = supabaseRef.current;
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ data, error }) => {
+        if (error || !data.session) {
+          setError(error?.message || "Invalid or expired reset link.");
+          setRecoveryReady(false);
+        } else {
+          setSession(data.session);
+          setRecoveryReady(true);
+          setStatus("Verification complete. Set your new password.");
+          setStatusType("info");
+        }
+        window.history.replaceState({}, document.title, "/update-password");
+        setSessionLoading(false);
+      });
   }, [mode]);
 
   async function onSignUp(e: FormEvent) {
@@ -209,26 +152,24 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (password !== confirmPassword) return setError("Passwords do not match.");
     setLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : undefined;
-      const payload = (await supabaseRequest("/auth/v1/signup", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-          ...(redirectTo ? { email_redirect_to: redirectTo } : {}),
-        }),
-      })) as AuthSession;
+      const supabase = supabaseRef.current;
+      const emailRedirectTo = `${window.location.origin}/auth/confirm`;
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo },
+      });
+      if (signUpError) throw new Error(signUpError.message);
 
-      if (payload?.access_token) {
-        setSession(payload);
-        saveSession(payload);
+      if (data.session) {
+        setSession(data.session);
         setStatus("Account created and signed in.");
         setStatusType("success");
         setShowResend(false);
         setPendingEmail("");
         router.replace("/account");
       } else {
-        const identities = Array.isArray(payload?.user?.identities) ? payload.user.identities : [];
+        const identities = Array.isArray(data?.user?.identities) ? data.user.identities : [];
         if (identities.length === 0) {
           setError("Email already registered. Please sign in instead.");
           setShowResend(true);
@@ -274,15 +215,14 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (!password) return setError("Please enter your password.");
     setLoading(true);
     try {
-      const payload = (await supabaseRequest("/auth/v1/token?grant_type=password", {
-        method: "POST",
-        body: JSON.stringify({ email: email.trim(), password }),
-      })) as AuthSession;
-      if (!payload?.access_token) {
-        throw new Error("Session creation failed.");
-      }
-      setSession(payload);
-      saveSession(payload);
+      const supabase = supabaseRef.current;
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError) throw new Error(signInError.message);
+      if (!data.session) throw new Error("Session creation failed.");
+      setSession(data.session);
       setStatus("Signed in successfully.");
       setStatusType("success");
       setShowResend(false);
@@ -316,14 +256,10 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (!isValidEmail(email.trim())) return setError("Please enter a valid email address.");
     setLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
-      await supabaseRequest("/auth/v1/recover", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email.trim(),
-          ...(redirectTo ? { redirect_to: redirectTo } : {}),
-        }),
-      });
+      const supabase = supabaseRef.current;
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (resetError) throw new Error(resetError.message);
       setStatus("Password reset email sent. Check your inbox to continue.");
       setStatusType("info");
     } catch (err) {
@@ -350,14 +286,9 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (isWeakPassword(newPassword)) return setError("Password must be at least 8 characters.");
     setLoading(true);
     try {
-      await supabaseRequest(
-        "/auth/v1/user",
-        {
-          method: "PUT",
-          body: JSON.stringify({ password: newPassword }),
-        },
-        session.access_token
-      );
+      const supabase = supabaseRef.current;
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw new Error(updateError.message);
       setStatus("Password updated. You can sign in now.");
       setStatusType("success");
       setNewPassword("");
@@ -376,18 +307,17 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   async function onSignOut() {
     if (!session?.access_token) {
       setSession(null);
-      saveSession(null);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      await supabaseRequest("/auth/v1/logout", { method: "POST" }, session.access_token);
+      const supabase = supabaseRef.current;
+      await supabase.auth.signOut();
     } catch {
       // ignore logout network errors
     } finally {
       setSession(null);
-      saveSession(null);
       setLoading(false);
     }
   }
@@ -401,15 +331,14 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     setError("");
     setResendLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : undefined;
-      await supabaseRequest("/auth/v1/resend", {
-        method: "POST",
-        body: JSON.stringify({
-          type: "signup",
-          email: targetEmail,
-          ...(redirectTo ? { email_redirect_to: redirectTo } : {}),
-        }),
+      const supabase = supabaseRef.current;
+      const emailRedirectTo = `${window.location.origin}/auth/confirm`;
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: targetEmail,
+        options: { emailRedirectTo },
       });
+      if (resendError) throw new Error(resendError.message);
       setStatus("Confirmation email resent. Please check your inbox.");
       setStatusType("info");
       setShowResend(true);
@@ -426,9 +355,11 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
 
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
-    const redirectTo = `${window.location.origin}/account`;
-    const authUrl = `${SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(redirectTo)}`;
-    window.location.href = authUrl;
+    const supabase = supabaseRef.current;
+    supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   }
 
   return (

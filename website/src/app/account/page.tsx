@@ -1,23 +1,11 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import PaddleCheckoutCard from "@/components/PaddleCheckoutCard";
 
-type AuthSession = {
-  access_token: string;
-  refresh_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  user?: {
-    id: string;
-    email?: string;
-    created_at?: string;
-    user_metadata?: Record<string, unknown>;
-    app_metadata?: Record<string, unknown>;
-    identities?: Array<Record<string, unknown>>;
-  };
-};
+type AuthSession = Awaited<ReturnType<ReturnType<typeof createSupabaseBrowserClient>["auth"]["getSession"]>>["data"]["session"];
 
 type ProfileRow = {
   id: string;
@@ -33,7 +21,6 @@ type ProfileRow = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
-const SESSION_KEY = "deepfocusWebsiteSession";
 
 async function supabaseRequest(path: string, options: RequestInit = {}, accessToken = "") {
   const headers: Record<string, string> = {
@@ -67,24 +54,6 @@ async function supabaseRequest(path: string, options: RequestInit = {}, accessTo
   return payload;
 }
 
-function loadSession(): AuthSession | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as AuthSession) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSession(session: AuthSession | null) {
-  if (typeof window === "undefined") return;
-  if (!session) {
-    window.localStorage.removeItem(SESSION_KEY);
-    return;
-  }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
 
 function isExpiredTokenError(message: string) {
   const text = String(message || "").toLowerCase();
@@ -106,6 +75,7 @@ function isWeakPassword(value: string) {
 }
 
 export default function AccountPage() {
+  const supabaseRef = useRef(createSupabaseBrowserClient());
   const [session, setSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const router = useRouter();
@@ -204,63 +174,51 @@ export default function AccountPage() {
     const accessToken = params.get("access_token") || "";
     if (!accessToken) return;
     const flowType = params.get("type") || "";
-
-    const oauthSession: AuthSession = {
-      access_token: accessToken,
-      refresh_token: params.get("refresh_token") || "",
-      token_type: params.get("token_type") || "bearer",
-      expires_in: Number(params.get("expires_in") || 0),
-    };
-
-    setSession(oauthSession);
-    saveSession(oauthSession);
-    setStatus("Signed in successfully.");
-    setStatusType("success");
-    setError("");
-    if (flowType === "recovery") {
-      setPasswordStage("ready");
-      setIsRecoveryFlow(true);
-      setStatus("Password verification complete. Please set a new password below.");
-      setStatusType("info");
-    }
-    void refreshCurrentUser(oauthSession);
-    if (typeof window !== "undefined") {
-      window.history.replaceState({}, document.title, "/account");
-    }
-    setSessionLoading(false);
+    const refreshToken = params.get("refresh_token") || "";
+    const supabase = supabaseRef.current;
+    supabase.auth
+      .setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ data, error }) => {
+        if (error) {
+          setError(error.message);
+          return;
+        }
+        setSession(data.session ?? null);
+        setStatus("Signed in successfully.");
+        setStatusType("success");
+        setError("");
+        if (flowType === "recovery") {
+          setPasswordStage("ready");
+          setIsRecoveryFlow(true);
+          setStatus("Password verification complete. Please set a new password below.");
+          setStatusType("info");
+        }
+        void refreshCurrentUser(data.session ?? null);
+        if (typeof window !== "undefined") {
+          window.history.replaceState({}, document.title, "/account");
+        }
+        setSessionLoading(false);
+      });
   }, []);
 
   useEffect(() => {
-    const s = loadSession();
-    if (!s) {
-      setSessionLoading(false);
-      return;
-    }
-    setSession(s);
-    setStatus("Session restored.");
-    setStatusType("info");
-    void refreshCurrentUser(s).finally(() => setSessionLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handler = (event: StorageEvent) => {
-      if (event.key !== SESSION_KEY) return;
-      const next = loadSession();
-      if (!next?.access_token) {
-        setSession(null);
-        setProfile(null);
-        setStatus("Signed out in another tab.");
+    const supabase = supabaseRef.current;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+      if (data.session) {
+        setStatus("Session restored.");
         setStatusType("info");
-        return;
+        void refreshCurrentUser(data.session).finally(() => setSessionLoading(false));
+      } else {
+        setSessionLoading(false);
       }
-      setSession(next);
-      setStatus("Session updated.");
-      setStatusType("info");
-      void refreshCurrentUser(next);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => {
+      listener?.subscription?.unsubscribe();
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
   }, []);
 
   useEffect(() => {

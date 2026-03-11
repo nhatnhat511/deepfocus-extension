@@ -1,63 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
-const SESSION_KEY = "deepfocusWebsiteSession";
-
-async function supabaseRequest(path: string, options: RequestInit = {}, accessToken = "") {
-  const headers: Record<string, string> = {
-    apikey: SUPABASE_PUBLISHABLE_KEY,
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string> | undefined),
-  };
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
-
-  const res = await fetch(`${SUPABASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  let payload: unknown = null;
-  try {
-    payload = await res.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!res.ok) {
-    const p = payload as Record<string, unknown> | null;
-    const msg =
-      (p && (String(p.msg || p.message || p.error_description || p.error || ""))) || `Request failed (${res.status})`;
-    throw new Error(msg);
-  }
-
-  return payload;
-}
-
-function saveSession(session: { access_token: string; refresh_token?: string } | null) {
-  if (typeof window === "undefined") return;
-  if (!session) {
-    window.localStorage.removeItem(SESSION_KEY);
-    return;
-  }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
-function getProjectRef() {
-  try {
-    const url = new URL(SUPABASE_URL);
-    return url.hostname.split(".")[0] || "";
-  } catch {
-    return "";
-  }
-}
+import { useEffect, useRef } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function AuthCallbackPage() {
+  const supabaseRef = useRef(createSupabaseBrowserClient());
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const run = async () => {
@@ -66,11 +14,22 @@ export default function AuthCallbackPage() {
         const params = new URLSearchParams(hash.replace(/^#/, ""));
         const accessToken = params.get("access_token");
         const flowType = params.get("type");
-        if (accessToken && flowType === "recovery") {
-          window.location.replace(`/update-password${hash}`);
+        const refreshToken = params.get("refresh_token") || "";
+        if (accessToken) {
+          const { error } = await supabaseRef.current.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            window.location.replace("/login");
+            return;
+          }
+        }
+        if (flowType === "recovery") {
+          window.location.replace("/update-password");
           return;
         }
-        window.location.replace(`/account${hash}`);
+        window.location.replace("/account");
         return;
       }
 
@@ -82,32 +41,16 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      const projectRef = getProjectRef();
-      const codeVerifier =
-        window.localStorage.getItem(`sb-${projectRef}-auth-token-code-verifier`) ||
-        window.localStorage.getItem("supabase.auth.code_verifier");
-
-      if (!codeVerifier) {
+      const { error } = await supabaseRef.current.auth.exchangeCodeForSession(code);
+      if (error) {
         window.location.replace("/login");
         return;
       }
-
-      const payload = (await supabaseRequest("/auth/v1/token?grant_type=pkce", {
-        method: "POST",
-        body: JSON.stringify({ code, code_verifier: codeVerifier }),
-      })) as { access_token?: string; refresh_token?: string };
-
-      if (payload?.access_token) {
-        saveSession({ access_token: payload.access_token, refresh_token: payload.refresh_token });
-        if (flowType === "recovery") {
-          window.location.replace("/update-password");
-          return;
-        }
-        window.location.replace("/account");
+      if (flowType === "recovery") {
+        window.location.replace("/update-password");
         return;
       }
-
-      window.location.replace("/login");
+      window.location.replace("/account");
     };
 
     void run();
