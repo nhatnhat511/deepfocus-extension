@@ -24,7 +24,6 @@ type ProfileRow = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
-const SESSION_KEY = "deepfocusWebsiteSession";
 
 async function supabaseRequest(path: string, options: RequestInit = {}, accessToken = "") {
   const headers: Record<string, string> = {
@@ -58,19 +57,14 @@ async function supabaseRequest(path: string, options: RequestInit = {}, accessTo
   return payload;
 }
 
-function saveSession(session: AuthSession | null) {
-  if (typeof window === "undefined") return;
-  if (!session) {
-    window.localStorage.removeItem(SESSION_KEY);
-    return;
-  }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-}
-
-
 function isExpiredTokenError(message: string) {
   const text = String(message || "").toLowerCase();
   return text.includes("token is expired") || text.includes("jwt expired");
+}
+
+function isSessionMissingError(message: string) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("session_id") && text.includes("does not exist");
 }
 
 export default function AccountPage() {
@@ -218,7 +212,6 @@ export default function AccountPage() {
       refresh_token: payload.refresh_token || refreshToken,
     };
     setSession(nextSession);
-    saveSession(nextSession);
     return nextSession;
   }
 
@@ -284,10 +277,18 @@ export default function AccountPage() {
         user: updatedUser,
       };
       setSession(updated);
-      saveSession(updated);
       await fetchEntitlement(updated);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Session refresh failed.";
+      if (isSessionMissingError(message)) {
+        setSession(null);
+        setProfile(null);
+        setStatus("Session expired. Please sign in again.");
+        setStatusType("info");
+        setError("");
+        router.replace("/login");
+        return;
+      }
       if (allowRetry && isExpiredTokenError(message)) {
         try {
           const refreshed = await refreshAccessToken(activeSession);
@@ -301,7 +302,6 @@ export default function AccountPage() {
         }
         setSession(null);
         setProfile(null);
-        saveSession(null);
         setStatus("Session expired. Please sign in again.");
         setStatusType("info");
         setError("");
@@ -316,21 +316,19 @@ export default function AccountPage() {
     setError("");
     setLoading(true);
     try {
-      if (session?.access_token) {
-        await supabaseRequest("/auth/v1/logout", { method: "POST" }, session.access_token);
-      }
+      await supabaseRef.current.auth.signOut();
     } catch {
       // ignore network/logout errors and continue cleanup
     } finally {
       setSession(null);
       setProfile(null);
-      saveSession(null);
       setAvatarPreview("");
       setStatus("Signed out.");
       setStatusType("info");
-        setLoading(false);
-      }
+      setLoading(false);
+      router.replace("/login");
     }
+  }
 
   async function onAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
