@@ -79,6 +79,7 @@ export default function AccountPage() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [preferredPlan, setPreferredPlan] = useState<"monthly" | "yearly">("monthly");
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -339,6 +340,36 @@ export default function AccountPage() {
     }
   }
 
+  async function openManageSubscription() {
+    if (!session?.access_token) {
+      setError("Please sign in again to manage your subscription.");
+      return;
+    }
+    setError("");
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/paddle/create-portal-session", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      const payload = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok) {
+        throw new Error(payload?.error || "Unable to open subscription portal.");
+      }
+      if (payload?.url) {
+        window.location.href = payload.url;
+        return;
+      }
+      throw new Error("Missing portal URL.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to open subscription portal.");
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
   async function onAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
     if (!file || !session?.access_token) return;
@@ -441,12 +472,14 @@ export default function AccountPage() {
                 </div>
                 {isPremiumPlan && profile?.is_premium_active ? (
                   <div className="mt-3">
-                    <a
-                      href="/support"
-                      className="inline-flex rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
+                    <button
+                      type="button"
+                      onClick={openManageSubscription}
+                      disabled={portalLoading}
+                      className="inline-flex rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
                     >
-                      Manage subscription
-                    </a>
+                      {portalLoading ? "Opening portal..." : "Manage subscription"}
+                    </button>
                   </div>
                 ) : null}
               </div>
