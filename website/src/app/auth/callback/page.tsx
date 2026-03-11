@@ -76,6 +76,7 @@ export default function AuthCallbackPage() {
 
       const query = new URLSearchParams(search);
       const code = query.get("code");
+      const flowType = query.get("type") || "";
       if (!code) {
         window.location.replace("/login");
         return;
@@ -98,6 +99,10 @@ export default function AuthCallbackPage() {
 
       if (payload?.access_token) {
         saveSession({ access_token: payload.access_token, refresh_token: payload.refresh_token });
+        if (flowType === "recovery") {
+          window.location.replace("/update-password");
+          return;
+        }
         window.location.replace("/account");
         return;
       }
