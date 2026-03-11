@@ -81,8 +81,19 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
 
   useEffect(() => {
     const supabase = supabaseRef.current;
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? null);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        setSession(null);
+        setSessionLoading(false);
+        return;
+      }
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error || !userData?.user) {
+        await supabase.auth.signOut();
+        setSession(null);
+      } else {
+        setSession(data.session);
+      }
       setSessionLoading(false);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
