@@ -102,43 +102,62 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (typeof window === "undefined") return;
     if (mode !== "update") return;
     const hash = window.location.hash;
-    if (!hash) {
-      setRecoveryReady(false);
-      setSessionLoading(false);
-      return;
-    }
-    const params = new URLSearchParams(hash.replace(/^#/, ""));
-    const hashError = params.get("error_description") || params.get("error");
-    if (hashError) {
-      setError(String(hashError));
-      setRecoveryReady(false);
-      window.history.replaceState({}, document.title, "/update-password");
-      setSessionLoading(false);
-      return;
-    }
-    const accessToken = params.get("access_token") || "";
-    if (!accessToken) {
-      setRecoveryReady(false);
-      setSessionLoading(false);
-      return;
-    }
-    const refreshToken = params.get("refresh_token") || "";
     const supabase = supabaseRef.current;
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ data, error }) => {
-        if (error || !data.session) {
-          setError(error?.message || "Invalid or expired reset link.");
-          setRecoveryReady(false);
-        } else {
-          setSession(data.session);
-          setRecoveryReady(true);
-          setStatus("Verification complete. Set your new password.");
-          setStatusType("info");
-        }
+    if (hash) {
+      const params = new URLSearchParams(hash.replace(/^#/, ""));
+      const hashError = params.get("error_description") || params.get("error");
+      if (hashError) {
+        setError(String(hashError));
+        setRecoveryReady(false);
         window.history.replaceState({}, document.title, "/update-password");
         setSessionLoading(false);
-      });
+        return;
+      }
+      const accessToken = params.get("access_token") || "";
+      if (!accessToken) {
+        setRecoveryReady(false);
+        setSessionLoading(false);
+        return;
+      }
+      const refreshToken = params.get("refresh_token") || "";
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ data, error }) => {
+          if (error || !data.session) {
+            setError(error?.message || "Invalid or expired reset link.");
+            setRecoveryReady(false);
+          } else {
+            setSession(data.session);
+            setRecoveryReady(true);
+            setStatus("Verification complete. Set your new password.");
+            setStatusType("info");
+          }
+          window.history.replaceState({}, document.title, "/update-password");
+          setSessionLoading(false);
+        });
+      return;
+    }
+
+    const query = new URLSearchParams(window.location.search);
+    const code = query.get("code");
+    if (!code) {
+      setRecoveryReady(false);
+      setSessionLoading(false);
+      return;
+    }
+    supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+      if (error || !data.session) {
+        setError(error?.message || "Invalid or expired reset link.");
+        setRecoveryReady(false);
+      } else {
+        setSession(data.session);
+        setRecoveryReady(true);
+        setStatus("Verification complete. Set your new password.");
+        setStatusType("info");
+      }
+      window.history.replaceState({}, document.title, "/update-password");
+      setSessionLoading(false);
+    });
   }, [mode]);
 
   async function onSignUp(e: FormEvent) {
@@ -257,7 +276,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     setLoading(true);
     try {
       const supabase = supabaseRef.current;
-      const redirectTo = `${window.location.origin}/auth/callback`;
+      const redirectTo = `${window.location.origin}/update-password`;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (resetError) throw new Error(resetError.message);
       setStatus("Password reset email sent. Check your inbox to continue.");

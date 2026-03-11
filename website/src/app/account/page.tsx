@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { User, UserIdentity } from "@supabase/auth-js";
@@ -73,38 +73,18 @@ function isExpiredTokenError(message: string) {
   return text.includes("token is expired") || text.includes("jwt expired");
 }
 
-function isNetworkError(message: string) {
-  const text = String(message || "").toLowerCase();
-  return text.includes("failed to fetch") || text.includes("network") || text.includes("timeout");
-}
-
-function isRateLimited(message: string) {
-  const text = String(message || "").toLowerCase();
-  return text.includes("rate limit") || text.includes("too many") || text.includes("429");
-}
-
-function isWeakPassword(value: string) {
-  return value.length > 0 && value.length < 8;
-}
-
 export default function AccountPage() {
   const supabaseRef = useRef(createSupabaseBrowserClient());
   const [session, setSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const router = useRouter();
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
   const [status, setStatus] = useState("Not signed in.");
   const [statusType, setStatusType] = useState<"info" | "success">("info");
   const [error, setError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState("");
-  const [passwordStage, setPasswordStage] = useState<"idle" | "requested" | "ready">("idle");
   const [preferredPlan, setPreferredPlan] = useState<"monthly" | "yearly">("monthly");
-  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -127,7 +107,6 @@ export default function AccountPage() {
     return identityProvider || "email";
   }, [user]);
 
-  const isPasswordEligible = authProvider === "email";
   const providerLabel = useMemo(() => {
     if (!authProvider) return "Email";
     if (authProvider === "email") return "Email";
@@ -169,50 +148,6 @@ export default function AccountPage() {
 
   const isPremiumPlan =
     profile?.plan === "premium" || profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly";
-
-  useEffect(() => {
-    const hash = typeof window !== "undefined" ? window.location.hash : "";
-    if (!hash) return;
-
-    const params = new URLSearchParams(hash.replace(/^#/, ""));
-    const hashError = params.get("error_description") || params.get("error");
-    if (hashError) {
-      setError(String(hashError));
-      if (typeof window !== "undefined") {
-        window.history.replaceState({}, document.title, "/account");
-      }
-      setSessionLoading(false);
-      return;
-    }
-    const accessToken = params.get("access_token") || "";
-    if (!accessToken) return;
-    const flowType = params.get("type") || "";
-    const refreshToken = params.get("refresh_token") || "";
-    const supabase = supabaseRef.current;
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ data, error }) => {
-        if (error) {
-          setError(error.message);
-          return;
-        }
-        setSession(data.session ?? null);
-        setStatus("Signed in successfully.");
-        setStatusType("success");
-        setError("");
-        if (flowType === "recovery") {
-          setPasswordStage("ready");
-          setIsRecoveryFlow(true);
-          setStatus("Password verification complete. Please set a new password below.");
-          setStatusType("info");
-        }
-        void refreshCurrentUser(data.session ?? null);
-        if (typeof window !== "undefined") {
-          window.history.replaceState({}, document.title, "/account");
-        }
-        setSessionLoading(false);
-      });
-  }, []);
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -391,8 +326,6 @@ export default function AccountPage() {
       setProfile(null);
       saveSession(null);
       setAvatarPreview("");
-      setPasswordStage("idle");
-      setIsRecoveryFlow(false);
       setStatus("Signed out.");
       setStatusType("info");
         setLoading(false);
@@ -436,113 +369,6 @@ export default function AccountPage() {
       }
     };
     reader.readAsDataURL(file);
-  }
-
-  async function onUpdatePassword(e: FormEvent) {
-    e.preventDefault();
-    setPasswordError("");
-    if (!session?.access_token) return;
-    if (!newPassword || !confirmPassword || (!isRecoveryFlow && !currentPassword)) {
-      setPasswordError("Please complete all password fields.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError("The new passwords do not match.");
-      return;
-    }
-    if (isWeakPassword(newPassword)) {
-      setPasswordError("Password must be at least 8 characters.");
-      return;
-    }
-    if (!isRecoveryFlow && newPassword === currentPassword) {
-      setPasswordError("New password must be different from the current password.");
-      return;
-    }
-    if (!user?.email && !isRecoveryFlow) {
-      setPasswordError("Missing account email. Please sign in again.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      let updateToken = session.access_token;
-      if (!isRecoveryFlow) {
-        const verifiedSession = (await supabaseRequest("/auth/v1/token?grant_type=password", {
-          method: "POST",
-          body: JSON.stringify({ email: user?.email || "", password: currentPassword }),
-        })) as AuthSession;
-        updateToken = verifiedSession?.access_token || session.access_token;
-      }
-      await supabaseRequest(
-        "/auth/v1/user",
-        {
-          method: "PUT",
-          body: JSON.stringify({ password: newPassword }),
-        },
-        updateToken
-      );
-      setNewPassword("");
-      setConfirmPassword("");
-      setCurrentPassword("");
-      setStatus("Password updated.");
-      setStatusType("success");
-      setPasswordStage("idle");
-      setIsRecoveryFlow(false);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Password update failed.";
-      if (isRateLimited(message)) {
-        setError("Too many attempts. Please wait and try again.");
-        return;
-      }
-      if (isNetworkError(message)) {
-        setError("Network error. Please try again.");
-        return;
-      }
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function requestPasswordChange() {
-    if (!isPasswordEligible) {
-      setError(`Password changes are managed by your ${providerLabel} sign-in.`);
-      return;
-    }
-    if (!user?.email) {
-      setError("Please sign in before requesting a password change.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const redirectTo =
-        typeof window !== "undefined" ? `${window.location.origin}/account` : undefined;
-      await supabaseRequest("/auth/v1/recover", {
-        method: "POST",
-        body: JSON.stringify({
-          email: user.email,
-          ...(redirectTo ? { redirect_to: redirectTo } : {}),
-        }),
-      });
-      setPasswordStage("requested");
-      setIsRecoveryFlow(false);
-      setStatus("Password verification email sent. Check your inbox to continue.");
-      setStatusType("info");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to send verification email.";
-      if (isRateLimited(message)) {
-        setError("Too many requests. Please wait before trying again.");
-        return;
-      }
-      if (isNetworkError(message)) {
-        setError("Network error. Please try again.");
-        return;
-      }
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
   }
 
   return (
@@ -649,87 +475,25 @@ export default function AccountPage() {
               <div className="rounded-lg border border-slate-200 bg-white p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Security</h3>
                 <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                  Password: ••••••••
+                  Password: ********
                 </div>
-                {!isPasswordEligible ? (
-                  <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                    Password changes are managed by your {providerLabel} sign-in.
-                  </p>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={requestPasswordChange}
-                      disabled={loading || !signedIn}
-                      className="mt-3 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                    >
-                      Change password
-                    </button>
-                    {passwordStage === "requested" ? (
-                      <p className="mt-2 text-xs text-slate-500">
-                        Verification email sent. Open the link to continue.
-                      </p>
-                    ) : null}
-                  </>
-                )}
-
-                {passwordStage === "ready" && isPasswordEligible ? (
-                  <form className="mt-4 space-y-3" onSubmit={onUpdatePassword}>
-                    {!isRecoveryFlow ? (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Current password
-                        </label>
-                        <input
-                          type="password"
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          placeholder="Current password"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                          required
-                        />
-                      </div>
-                    ) : null}
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        New password
-                      </label>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="New password"
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Confirm new password
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm new password"
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        required
-                      />
-                    </div>
-                    {passwordError ? (
-                      <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                        {passwordError}
-                      </p>
-                    ) : null}
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                    >
-                      Update Password
-                    </button>
-                  </form>
-                ) : null}
+                <p className="mt-3 text-xs text-slate-600">
+                  Sign-in method: {providerLabel}. Update your password on the dedicated page below.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href="/change-password"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                  >
+                    Change password
+                  </a>
+                  <a
+                    href="/forgot-password"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                  >
+                    Forgot password
+                  </a>
+                </div>
               </div>
             </div>
 
