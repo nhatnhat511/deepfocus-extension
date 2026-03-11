@@ -388,7 +388,7 @@ export default function AccountPage() {
               <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
               <p className="mt-1 text-sm text-slate-600">Review your plan, account details, and security settings.</p>
             </div>
-            {status ? (
+            {status && statusType === "success" ? (
               <p
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   statusType === "success"
@@ -476,7 +476,7 @@ export default function AccountPage() {
                   Password: ********
                 </div>
                 <p className="mt-3 text-xs text-slate-600">
-                  Sign-in method: {providerLabel}. Update your password on the dedicated page below.
+                  Sign-in method: {providerLabel}. Manage your password securely on the dedicated page.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <a

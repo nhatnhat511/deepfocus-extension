@@ -1,7 +1,8 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 declare global {
   interface Window {
@@ -30,16 +31,6 @@ type CreateCheckoutResponse = {
 
 type PlanOption = "monthly" | "yearly";
 
-type WebsiteSession = {
-  access_token?: string;
-  user?: {
-    id?: string;
-    email?: string;
-  };
-};
-
-const SESSION_KEY = "deepfocusWebsiteSession";
-
 export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaultPlan?: PlanOption }) {
   const [email, setEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
@@ -47,6 +38,7 @@ export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaul
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
   const [plan, setPlan] = useState<PlanOption>(defaultPlan);
+  const supabaseRef = useRef(createSupabaseBrowserClient());
 
   const paddleToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "";
   const paddleEnv = (process.env.NEXT_PUBLIC_PADDLE_ENV || "sandbox") as "sandbox" | "production";
@@ -56,32 +48,28 @@ export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaul
   }, [accessToken, email, loading, paddleToken, ready]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const readSession = () => {
-      try {
-        const raw = window.localStorage.getItem(SESSION_KEY);
-        if (!raw) {
-          setAccessToken("");
-          setEmail("");
-          return;
-        }
-        const session = JSON.parse(raw) as WebsiteSession;
-        const token = String(session?.access_token || "");
-        const userEmail = String(session?.user?.email || "");
-        setAccessToken(token);
-        setEmail(userEmail);
-      } catch {
-        setAccessToken("");
-        setEmail("");
+    const supabase = supabaseRef.current;
+    const applySession = (session: { access_token?: string; user?: { email?: string } } | null) => {
+      setAccessToken(String(session?.access_token || ""));
+      if (session?.user?.email) {
+        setEmail(String(session.user.email));
       }
     };
-    readSession();
-    const handler = (event: StorageEvent) => {
-      if (event.key !== SESSION_KEY) return;
-      readSession();
+    supabase.auth.getSession().then(async ({ data }) => {
+      applySession(data.session);
+      if (data.session?.access_token) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.email) {
+          setEmail(String(userData.user.email));
+        }
+      }
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      applySession(nextSession);
+    });
+    return () => {
+      listener?.subscription?.unsubscribe();
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
   }, []);
 
   useEffect(() => {
