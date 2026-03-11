@@ -107,6 +107,8 @@ export default function AccountPage() {
     return authProvider.charAt(0).toUpperCase() + authProvider.slice(1);
   }, [authProvider]);
 
+  const canManagePassword = authProvider === "email";
+
   const accountSummary = useMemo(() => {
     if (!profile) return { label: "Free", detail: "No active premium access." };
     const now = Date.now();
@@ -498,22 +500,26 @@ export default function AccountPage() {
                   Password: ********
                 </div>
                 <p className="mt-3 text-xs text-slate-600">
-                  Sign-in method: {providerLabel}. Manage your password securely on the dedicated page.
+                  {canManagePassword
+                    ? `Sign-in method: ${providerLabel}. Manage your password securely on the dedicated page.`
+                    : `Sign-in method: ${providerLabel}. Password changes are managed by your ${providerLabel} account.`}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a
-                    href="/change-password"
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
-                  >
-                    Change password
-                  </a>
-                  <a
-                    href="/forgot-password"
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
-                  >
-                    Forgot password
-                  </a>
-                </div>
+                {canManagePassword ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href="/change-password"
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                    >
+                      Change password
+                    </a>
+                    <a
+                      href="/forgot-password"
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+                    >
+                      Forgot password
+                    </a>
+                  </div>
+                ) : null}
               </div>
             </div>
 

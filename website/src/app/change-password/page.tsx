@@ -91,6 +91,8 @@ export default function ChangePasswordPage() {
     return authProvider.charAt(0).toUpperCase() + authProvider.slice(1);
   }, [authProvider]);
 
+  const canManagePassword = authProvider === "email";
+
   useEffect(() => {
     const supabase = supabaseRef.current;
     supabase.auth.getSession().then(({ data }) => {
@@ -195,7 +197,7 @@ export default function ChangePasswordPage() {
           </p>
         ) : null}
 
-        {!sessionLoading && authProvider !== "email" ? (
+        {!sessionLoading && !canManagePassword ? (
           <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             Password changes are managed by your {providerLabel} sign-in.
           </p>
@@ -228,59 +230,72 @@ export default function ChangePasswordPage() {
           </div>
         ) : null}
 
-        <form className="mt-6 space-y-4" onSubmit={onChangePassword}>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Current password"
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-              disabled={loading || authProvider !== "email"}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">New password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="New password"
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-              disabled={loading || authProvider !== "email"}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Confirm new password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-              disabled={loading || authProvider !== "email"}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading || authProvider !== "email"}
-            className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Updating..." : "Update password"}
-          </button>
-        </form>
+        {canManagePassword ? (
+          <>
+            <form className="mt-6 space-y-4" onSubmit={onChangePassword}>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Current password"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">New password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Confirm new password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                  disabled={loading}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Updating..." : "Update password"}
+              </button>
+            </form>
 
-        <div className="mt-5 text-sm text-slate-600">
-          <a href="/forgot-password" className="font-semibold text-emerald-600 hover:underline">
-            Forgot password?
-          </a>
-        </div>
+            <div className="mt-5 text-sm text-slate-600">
+              <a href="/forgot-password" className="font-semibold text-emerald-600 hover:underline">
+                Forgot password?
+              </a>
+            </div>
+          </>
+        ) : (
+          <div className="mt-4">
+            <a
+              href="/account"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+            >
+              Back to account
+            </a>
+          </div>
+        )}
       </section>
     </div>
   );
