@@ -678,73 +678,78 @@ export default function AccountPage() {
                 <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                   Step 1: Request a verification email. Step 2: Click the link and return here to complete the change.
                 </div>
+                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                  Password: ••••••••
+                </div>
                 <button
                   type="button"
                   onClick={requestPasswordChange}
                   disabled={loading || !signedIn}
                   className="mt-3 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
                 >
-                  Send verification email
+                  Change password
                 </button>
+                {passwordStage === "requested" ? (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Verification email sent. Open the link to continue.
+                  </p>
+                ) : null}
 
-                <form className="mt-4 space-y-3" onSubmit={onUpdatePassword}>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Current password
-                    </label>
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Current password"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      New password
-                    </label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Confirm new password
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                      required
-                    />
-                  </div>
-                  {passwordStage !== "ready" ? (
-                    <p className="text-xs text-slate-500">
-                      Complete the verification email step before submitting a new password.
-                    </p>
-                  ) : null}
-                  {passwordError ? (
-                    <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                      {passwordError}
-                    </p>
-                  ) : null}
-                  <button
-                    type="submit"
-                    disabled={loading || passwordStage !== "ready"}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                  >
-                    Update Password
-                  </button>
-                </form>
+                {passwordStage === "ready" ? (
+                  <form className="mt-4 space-y-3" onSubmit={onUpdatePassword}>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Current password
+                      </label>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Current password"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        New password
+                      </label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="New password"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Confirm new password
+                      </label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        required
+                      />
+                    </div>
+                    {passwordError ? (
+                      <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                        {passwordError}
+                      </p>
+                    ) : null}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                    >
+                      Update Password
+                    </button>
+                  </form>
+                ) : null}
               </div>
             </div>
 

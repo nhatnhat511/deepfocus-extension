@@ -81,14 +81,14 @@ begin
 
   perform public.ensure_profile_for_user();
 
-  update public.profiles
+  update public.profiles pr
   set plan = 'free',
       premium_until = null,
       updated_at = now()
-  where id = uid
-    and plan in ('trial', 'premium', 'premium_monthly', 'premium_yearly')
-    and premium_until is not null
-    and premium_until <= now();
+  where pr.id = uid
+    and pr.plan in ('trial', 'premium', 'premium_monthly', 'premium_yearly')
+    and pr.premium_until is not null
+    and pr.premium_until <= now();
 
   return query
   select
@@ -141,8 +141,8 @@ begin
   perform public.ensure_profile_for_user();
 
   select * into p
-  from public.profiles
-  where id = uid
+  from public.profiles pr
+  where pr.id = uid
   for update;
 
   if p.plan in ('trial', 'premium', 'premium_monthly', 'premium_yearly')
@@ -165,13 +165,13 @@ begin
     raise exception 'TRIAL_ALREADY_USED';
   end if;
 
-  update public.profiles
+  update public.profiles pr
   set plan = 'trial',
       trial_used = true,
-      trial_started_at = coalesce(trial_started_at, now()),
+      trial_started_at = coalesce(pr.trial_started_at, now()),
       premium_until = now() + interval '7 days',
       updated_at = now()
-  where id = uid
+  where pr.id = uid
   returning * into p;
 
   return query
