@@ -17,7 +17,7 @@ export default function AuthHashRedirect() {
 
     const params = new URLSearchParams(hash.replace(/^#/, ""));
     const flowType = params.get("type") || "";
-    const target = flowType === "recovery" ? `/update-password${hash}` : `/account${hash}`;
+    const target = flowType === "recovery" ? `/update-password${hash}` : `/auth/callback${hash}`;
     window.location.replace(target);
   }, []);
 
