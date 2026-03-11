@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "DeepFocus Time | Chrome Focus Timer Extension",
+  title: {
+    absolute: "DeepFocus Time | Chrome Focus Timer Extension",
+  },
   description:
-    "DeepFocus Time is a Chrome extension that helps you run structured focus sessions, mindful breaks, and advanced productivity controls.",
+    "DeepFocus Time is a Chrome focus timer extension for deep work sessions, smart breaks, and productivity controls.",
 };
 
 const coreFeatures = [

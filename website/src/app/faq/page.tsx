@@ -3,7 +3,8 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Answers to common questions about DeepFocus Time setup, plans, and account sync.",
+  description:
+    "Answers to common questions about the DeepFocus Time Chrome focus timer extension, trials, and premium features.",
 };
 
 const faqs = [

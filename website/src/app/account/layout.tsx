@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Manage your DeepFocus Time account, subscription, and profile settings.",
+  description: "Manage your DeepFocus Time account, profile, and billing.",
   robots: {
     index: false,
     follow: false,

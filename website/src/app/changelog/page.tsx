@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Changelog",
-  description: "Latest DeepFocus Time product updates and improvements.",
+  description: "Latest updates and improvements for DeepFocus Time.",
 };
 
 const changes = [

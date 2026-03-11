@@ -3,7 +3,8 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Support",
-  description: "Get help with DeepFocus Time setup, account access, trial status, and premium entitlements.",
+  description:
+    "Get help with DeepFocus Time setup, account access, and advanced focus automation features.",
 };
 
 const helpTopics = [

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Roadmap",
-  description: "See what the DeepFocus Time team is building next.",
+  description: "Upcoming enhancements for the DeepFocus Time focus timer extension.",
 };
 
 const roadmap = [

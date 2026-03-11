@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Review the DeepFocus Time terms of service and account responsibilities.",
+  description: "Terms of service for the DeepFocus Time Chrome extension and website.",
 };
 
 export default function TermsPage() {
