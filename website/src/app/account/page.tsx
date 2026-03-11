@@ -89,11 +89,40 @@ function isExpiredTokenError(message: string) {
   return text.includes("token is expired") || text.includes("jwt expired");
 }
 
+function isNetworkError(message: string) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("failed to fetch") || text.includes("network") || text.includes("timeout");
+}
+
+function isRateLimited(message: string) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("rate limit") || text.includes("too many") || text.includes("429");
+}
+
+function isInvalidCredentials(message: string) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("invalid login") || text.includes("invalid credentials");
+}
+
+function isUserNotFound(message: string) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("user not found") || text.includes("not found");
+}
+
+function isWeakPassword(value: string) {
+  return value.length > 0 && value.length < 8;
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export default function AccountPage() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -106,6 +135,7 @@ export default function AccountPage() {
   const [showResend, setShowResend] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [passwordStage, setPasswordStage] = useState<"idle" | "requested" | "ready">("idle");
   const [preferredPlan, setPreferredPlan] = useState<"monthly" | "yearly">("monthly");
@@ -187,9 +217,18 @@ export default function AccountPage() {
 
   useEffect(() => {
     const hash = typeof window !== "undefined" ? window.location.hash : "";
-    if (!hash || !hash.includes("access_token")) return;
+    if (!hash) return;
 
     const params = new URLSearchParams(hash.replace(/^#/, ""));
+    const hashError = params.get("error_description") || params.get("error");
+    if (hashError) {
+      setError(String(hashError));
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, "/account");
+      }
+      setSessionLoading(false);
+      return;
+    }
     const accessToken = params.get("access_token") || "";
     if (!accessToken) return;
     const flowType = params.get("type") || "";
@@ -216,15 +255,42 @@ export default function AccountPage() {
     if (typeof window !== "undefined") {
       window.history.replaceState({}, document.title, "/account");
     }
+    setSessionLoading(false);
   }, []);
 
   useEffect(() => {
     const s = loadSession();
-    if (!s) return;
+    if (!s) {
+      setSessionLoading(false);
+      return;
+    }
     setSession(s);
     setStatus("Session restored.");
     setStatusType("info");
-    void refreshCurrentUser(s);
+    void refreshCurrentUser(s).finally(() => setSessionLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (event: StorageEvent) => {
+      if (event.key !== SESSION_KEY) return;
+      const next = loadSession();
+      if (!next?.access_token) {
+        setSession(null);
+        setProfile(null);
+        setStatus("Signed out in another tab.");
+        setStatusType("info");
+        setShowResend(false);
+        setPendingEmail("");
+        return;
+      }
+      setSession(next);
+      setStatus("Session updated.");
+      setStatusType("info");
+      void refreshCurrentUser(next);
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, []);
 
   useEffect(() => {
@@ -347,12 +413,28 @@ export default function AccountPage() {
 
   async function onSignIn() {
     setError("");
+    setStatus("");
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+    if (!isValidEmail(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
     setLoading(true);
     try {
       const payload = (await supabaseRequest("/auth/v1/token?grant_type=password", {
         method: "POST",
         body: JSON.stringify({ email: email.trim(), password }),
       })) as AuthSession;
+      if (!payload?.access_token) {
+        throw new Error("Session creation failed.");
+      }
       setSession(payload);
       saveSession(payload);
       await refreshCurrentUser(payload);
@@ -363,6 +445,22 @@ export default function AccountPage() {
       setPassword("");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign in failed.";
+      if (isRateLimited(message)) {
+        setError("Too many attempts. Please wait and try again.");
+        return;
+      }
+      if (isNetworkError(message)) {
+        setError("Network error. Please try again.");
+        return;
+      }
+      if (isInvalidCredentials(message)) {
+        setError("Incorrect email or password.");
+        return;
+      }
+      if (isUserNotFound(message)) {
+        setError("No account found for this email.");
+        return;
+      }
       if (isEmailNotConfirmed(message)) {
         setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
         setStatusType("info");
@@ -378,6 +476,23 @@ export default function AccountPage() {
 
   async function onSignUp() {
     setError("");
+    setStatus("");
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+    if (!isValidEmail(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter a password.");
+      return;
+    }
+    if (isWeakPassword(password)) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     setLoading(true);
     try {
       const redirectTo =
@@ -390,28 +505,44 @@ export default function AccountPage() {
           ...(redirectTo ? { email_redirect_to: redirectTo } : {}),
         }),
       })) as AuthSession;
-      if (payload?.access_token) {
-        setSession(payload);
-        saveSession(payload);
-        await refreshCurrentUser(payload);
-        setStatus("Account created and signed in.");
-        setStatusType("success");
-        setShowResend(false);
-        setPendingEmail("");
-      } else {
-        setStatus("Account created. Check your email to confirm within 24 hours.");
-        setStatusType("info");
-        setPendingEmail(email.trim());
-        setShowResend(true);
-      }
-      setPassword("");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Sign up failed.";
-      if (isAlreadyRegistered(message)) {
-        try {
-          const payload = (await supabaseRequest("/auth/v1/token?grant_type=password", {
-            method: "POST",
-            body: JSON.stringify({ email: email.trim(), password }),
+        if (payload?.access_token) {
+          setSession(payload);
+          saveSession(payload);
+          await refreshCurrentUser(payload);
+          setStatus("Account created and signed in.");
+          setStatusType("success");
+          setShowResend(false);
+          setPendingEmail("");
+        } else {
+          const identities = Array.isArray(payload?.user?.identities) ? payload.user.identities : [];
+          if (identities.length === 0) {
+            setError("Email already registered. Please sign in instead.");
+            setStatus("");
+            setShowResend(true);
+            setPendingEmail(email.trim());
+          } else {
+            setStatus("Account created. Check your email to confirm within 24 hours.");
+            setStatusType("info");
+            setPendingEmail(email.trim());
+            setShowResend(true);
+          }
+        }
+        setPassword("");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Sign up failed.";
+        if (isRateLimited(message)) {
+          setError("Too many attempts. Please wait and try again.");
+          return;
+        }
+        if (isNetworkError(message)) {
+          setError("Network error. Please try again.");
+          return;
+        }
+        if (isAlreadyRegistered(message)) {
+          try {
+            const payload = (await supabaseRequest("/auth/v1/token?grant_type=password", {
+              method: "POST",
+              body: JSON.stringify({ email: email.trim(), password }),
           })) as AuthSession;
           if (payload?.access_token) {
             setSession(payload);
@@ -426,33 +557,37 @@ export default function AccountPage() {
           }
         } catch (signInErr) {
           const signInMsg = signInErr instanceof Error ? signInErr.message : "";
-          if (isEmailNotConfirmed(signInMsg)) {
-            setStatus("Email already registered. Please confirm your email within 24 hours.");
-            setStatusType("info");
-            setShowResend(true);
-            setPendingEmail(email.trim());
-            return;
+            if (isEmailNotConfirmed(signInMsg)) {
+              setStatus("Email already registered. Please confirm your email within 24 hours.");
+              setStatusType("info");
+              setShowResend(true);
+              setPendingEmail(email.trim());
+              return;
+            }
           }
+          setError("Email already registered. Please sign in instead.");
+          return;
         }
-        setError("Email already registered. Please sign in instead.");
-        return;
+        if (isEmailNotConfirmed(message)) {
+          setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
+          setStatusType("info");
+          setShowResend(true);
+          setPendingEmail(email.trim());
+          return;
+        }
+        setError(message);
+      } finally {
+        setLoading(false);
       }
-      if (isEmailNotConfirmed(message)) {
-        setStatus("Please confirm your email within 24 hours. You can resend the confirmation email below.");
-        setStatusType("info");
-        setShowResend(true);
-        setPendingEmail(email.trim());
-        return;
-      }
-      setError(message);
-    } finally {
-      setLoading(false);
     }
-  }
 
   async function onAuthSubmit(e: FormEvent) {
     e.preventDefault();
     if (authMode === "signup") {
+      if (password !== signupConfirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
       await onSignUp();
       return;
     }
@@ -534,6 +669,14 @@ export default function AccountPage() {
       setPasswordError("The new passwords do not match.");
       return;
     }
+    if (isWeakPassword(newPassword)) {
+      setPasswordError("Password must be at least 8 characters.");
+      return;
+    }
+    if (!isRecoveryFlow && newPassword === currentPassword) {
+      setPasswordError("New password must be different from the current password.");
+      return;
+    }
     if (!user?.email && !isRecoveryFlow) {
       setPasswordError("Missing account email. Please sign in again.");
       return;
@@ -565,7 +708,16 @@ export default function AccountPage() {
       setPasswordStage("idle");
       setIsRecoveryFlow(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Password update failed.");
+      const message = err instanceof Error ? err.message : "Password update failed.";
+      if (isRateLimited(message)) {
+        setError("Too many attempts. Please wait and try again.");
+        return;
+      }
+      if (isNetworkError(message)) {
+        setError("Network error. Please try again.");
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -597,7 +749,16 @@ export default function AccountPage() {
       setStatus("Password verification email sent. Check your inbox to continue.");
       setStatusType("info");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to send verification email.");
+      const message = err instanceof Error ? err.message : "Unable to send verification email.";
+      if (isRateLimited(message)) {
+        setError("Too many requests. Please wait before trying again.");
+        return;
+      }
+      if (isNetworkError(message)) {
+        setError("Network error. Please try again.");
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -606,6 +767,10 @@ export default function AccountPage() {
   async function requestPasswordRecoveryFromSignIn() {
     if (!email.trim()) {
       setError("Please enter your email first.");
+      return;
+    }
+    if (!isValidEmail(email.trim())) {
+      setError("Please enter a valid email address.");
       return;
     }
     setError("");
@@ -624,6 +789,18 @@ export default function AccountPage() {
       setStatusType("info");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to send password reset email.";
+      if (isRateLimited(msg)) {
+        setError("Too many requests. Please wait before trying again.");
+        return;
+      }
+      if (isNetworkError(msg)) {
+        setError("Network error. Please try again.");
+        return;
+      }
+      if (isUserNotFound(msg)) {
+        setError("No account found for this email.");
+        return;
+      }
       setError(msg);
     } finally {
       setLoading(false);
@@ -704,6 +881,7 @@ export default function AccountPage() {
                 placeholder="you@example.com"
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
                 required
+                disabled={loading || sessionLoading}
               />
             </div>
             <div className="space-y-2">
@@ -715,19 +893,42 @@ export default function AccountPage() {
                 placeholder="••••••••"
                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
                 required
+                disabled={loading || sessionLoading}
               />
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>{authMode === "signup" ? "Minimum 8 characters recommended." : " "}</span>
                 <button
                   type="button"
                   onClick={requestPasswordRecoveryFromSignIn}
+                  disabled={loading || sessionLoading}
                   className="text-emerald-600 hover:underline"
                 >
                   Forgot password?
                 </button>
               </div>
             </div>
+            {authMode === "signup" ? (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Confirm password
+                </label>
+                <input
+                  type="password"
+                  value={signupConfirmPassword}
+                  onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
+                  required
+                  disabled={loading || sessionLoading}
+                />
+              </div>
+            ) : null}
 
+            {sessionLoading ? (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                Checking session...
+              </p>
+            ) : null}
             {error ? (
               <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {error}
@@ -747,7 +948,7 @@ export default function AccountPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || sessionLoading}
               className="w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading
@@ -788,7 +989,7 @@ export default function AccountPage() {
             <button
               type="button"
               onClick={() => startOAuth("google")}
-              disabled={loading}
+              disabled={loading || sessionLoading}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:border-slate-300 disabled:opacity-60"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
@@ -802,7 +1003,7 @@ export default function AccountPage() {
             <button
               type="button"
               onClick={() => startOAuth("github")}
-              disabled={loading}
+              disabled={loading || sessionLoading}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:border-slate-300 disabled:opacity-60"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">

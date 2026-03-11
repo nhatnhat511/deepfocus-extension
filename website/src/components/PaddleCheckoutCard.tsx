@@ -57,17 +57,31 @@ export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaul
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(SESSION_KEY);
-      if (!raw) return;
-      const session = JSON.parse(raw) as WebsiteSession;
-      const token = String(session?.access_token || "");
-      const userEmail = String(session?.user?.email || "");
-      if (token) setAccessToken(token);
-      if (userEmail) setEmail(userEmail);
-    } catch {
-      return;
-    }
+    const readSession = () => {
+      try {
+        const raw = window.localStorage.getItem(SESSION_KEY);
+        if (!raw) {
+          setAccessToken("");
+          setEmail("");
+          return;
+        }
+        const session = JSON.parse(raw) as WebsiteSession;
+        const token = String(session?.access_token || "");
+        const userEmail = String(session?.user?.email || "");
+        setAccessToken(token);
+        setEmail(userEmail);
+      } catch {
+        setAccessToken("");
+        setEmail("");
+      }
+    };
+    readSession();
+    const handler = (event: StorageEvent) => {
+      if (event.key !== SESSION_KEY) return;
+      readSession();
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, []);
 
   useEffect(() => {

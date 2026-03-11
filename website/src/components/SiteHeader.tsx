@@ -30,18 +30,27 @@ export default function SiteHeader() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(SESSION_KEY);
-      if (!raw) {
+    const readSession = () => {
+      try {
+        const raw = window.localStorage.getItem(SESSION_KEY);
+        if (!raw) {
+          setSignedIn(false);
+          return;
+        }
+        const session = JSON.parse(raw) as WebsiteSession;
+        const hasSession = !!(session?.access_token && session?.user?.id);
+        setSignedIn(hasSession);
+      } catch {
         setSignedIn(false);
-        return;
       }
-      const session = JSON.parse(raw) as WebsiteSession;
-      const hasSession = !!(session?.access_token && session?.user?.id);
-      setSignedIn(hasSession);
-    } catch {
-      setSignedIn(false);
-    }
+    };
+    readSession();
+    const handler = (event: StorageEvent) => {
+      if (event.key !== SESSION_KEY) return;
+      readSession();
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, []);
 
   const accountIcon = signedIn ? (

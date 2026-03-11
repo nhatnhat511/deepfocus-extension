@@ -59,6 +59,13 @@ function saveSession(session: AuthSession | null) {
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
+function getSafeNextPath(rawNext: string | null) {
+  if (!rawNext) return "/account";
+  if (!rawNext.startsWith("/") || rawNext.startsWith("//")) return "/account";
+  if (rawNext.startsWith("/auth/confirm")) return "/account";
+  return rawNext;
+}
+
 export default function AuthConfirmClient() {
   const [status, setStatus] = useState("Confirming your email...");
   const [detail, setDetail] = useState("Please keep this tab open while we complete verification.");
@@ -72,9 +79,15 @@ export default function AuthConfirmClient() {
       try {
         const current = new URL(window.location.href);
         const hashParams = new URLSearchParams(current.hash.replace(/^#/, ""));
-        const next = current.searchParams.get("next") || "/account";
+        const next = getSafeNextPath(current.searchParams.get("next"));
         setNextPath(next);
         const accessToken = hashParams.get("access_token") || "";
+        const hashError = hashParams.get("error_description") || hashParams.get("error");
+        if (hashError) {
+          setStatus("Verification failed");
+          setDetail(String(hashError));
+          return;
+        }
 
         if (accessToken) {
           const session: AuthSession = {
@@ -101,7 +114,10 @@ export default function AuthConfirmClient() {
             body: JSON.stringify({ token_hash: tokenHash, type }),
           })) as AuthSession;
           if (!payload?.access_token) {
-            throw new Error("Verification completed, but no session was returned.");
+            setStatus("Email verified");
+            setDetail("Your account is now confirmed. Please sign in.");
+            setTimeout(() => window.location.replace(next), 1200);
+            return;
           }
           saveSession(payload);
           await supabaseRequest("/auth/v1/user", { method: "GET" }, payload.access_token);
@@ -118,7 +134,10 @@ export default function AuthConfirmClient() {
             body: JSON.stringify({ token, type }),
           })) as AuthSession;
           if (!payload?.access_token) {
-            throw new Error("Verification completed, but no session was returned.");
+            setStatus("Email verified");
+            setDetail("Your account is now confirmed. Please sign in.");
+            setTimeout(() => window.location.replace(next), 1200);
+            return;
           }
           saveSession(payload);
           await supabaseRequest("/auth/v1/user", { method: "GET" }, payload.access_token);
@@ -134,7 +153,10 @@ export default function AuthConfirmClient() {
       } catch (err) {
         const message = err instanceof Error ? err.message : "Verification failed.";
         const lowered = message.toLowerCase();
-        if (lowered.includes("expired") || lowered.includes("invalid") || lowered.includes("token")) {
+        if (lowered.includes("already") && lowered.includes("confirm")) {
+          setStatus("Email already verified");
+          setDetail("Your email is already confirmed. You can sign in now.");
+        } else if (lowered.includes("expired") || lowered.includes("invalid") || lowered.includes("token")) {
           setStatus("Verification link expired");
           setDetail("Your confirmation link has expired. Please request a new confirmation email.");
         } else {
