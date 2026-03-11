@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-type ListUsersResult = {
-  users?: Array<{ email?: string | null }>;
-};
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -30,21 +25,25 @@ export async function POST(req: Request) {
       return jsonError("Invalid email.", 400);
     }
 
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    });
-
     const perPage = 1000;
     let page = 1;
     while (true) {
-      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-      if (error) {
-        return jsonError(error.message || "Unable to check email.", 500);
+      const url = new URL("/auth/v1/admin/users", SUPABASE_URL);
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("per_page", String(perPage));
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { message?: string };
+        return jsonError(payload?.message || "Unable to check email.", 500);
       }
-      const users = (data as ListUsersResult | null)?.users || [];
+      const payload = (await response.json().catch(() => ({}))) as { users?: Array<{ email?: string | null }> };
+      const users = payload?.users || [];
       const found = users.some((u) => normalizeEmail(String(u.email || "")) === email);
       if (found) {
         return NextResponse.json({ exists: true });
