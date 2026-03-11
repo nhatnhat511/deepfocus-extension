@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createClient } from "@supabase/supabase-js";
 
 type AuthMode = "login" | "signup" | "forgot" | "update";
 
@@ -48,6 +49,20 @@ function isValidEmail(value: string) {
 export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const supabaseRef = useRef(createSupabaseBrowserClient());
+  const recoveryClientRef = useRef(
+    createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr",
+      {
+        auth: {
+          flowType: "implicit",
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+      }
+    )
+  );
   const [session, setSession] = useState<Awaited<ReturnType<typeof supabaseRef.current.auth.getSession>>["data"]["session"] | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -330,9 +345,11 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (!isValidEmail(email.trim())) return setError("Please enter a valid email address.");
     setLoading(true);
     try {
-      const supabase = supabaseRef.current;
       const redirectTo = `${window.location.origin}/update-password`;
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      // Use implicit flow for recovery to avoid PKCE code verifier mismatches
+      const { error: resetError } = await recoveryClientRef.current.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      });
       if (resetError) throw new Error(resetError.message);
       setStatus("Password reset email sent. Check your inbox to continue.");
       setStatusType("info");
