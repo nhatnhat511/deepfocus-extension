@@ -109,6 +109,7 @@ export default function AccountPage() {
   const [avatarPreview, setAvatarPreview] = useState("");
   const [passwordStage, setPasswordStage] = useState<"idle" | "requested" | "ready">("idle");
   const [preferredPlan, setPreferredPlan] = useState<"monthly" | "yearly">("monthly");
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -207,6 +208,7 @@ export default function AccountPage() {
     setError("");
     if (flowType === "recovery") {
       setPasswordStage("ready");
+      setIsRecoveryFlow(true);
       setStatus("Password verification complete. Please set a new password below.");
       setStatusType("info");
     }
@@ -472,6 +474,7 @@ export default function AccountPage() {
       saveSession(null);
       setAvatarPreview("");
       setPasswordStage("idle");
+      setIsRecoveryFlow(false);
       setStatus("Signed out.");
       setStatusType("info");
       setShowResend(false);
@@ -523,7 +526,7 @@ export default function AccountPage() {
     e.preventDefault();
     setPasswordError("");
     if (!session?.access_token) return;
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword || (!isRecoveryFlow && !currentPassword)) {
       setPasswordError("Please complete all password fields.");
       return;
     }
@@ -531,18 +534,21 @@ export default function AccountPage() {
       setPasswordError("The new passwords do not match.");
       return;
     }
-    if (!user?.email) {
+    if (!user?.email && !isRecoveryFlow) {
       setPasswordError("Missing account email. Please sign in again.");
       return;
     }
     setError("");
     setLoading(true);
     try {
-      const verifiedSession = (await supabaseRequest("/auth/v1/token?grant_type=password", {
-        method: "POST",
-        body: JSON.stringify({ email: user?.email || "", password: currentPassword }),
-      })) as AuthSession;
-      const updateToken = verifiedSession?.access_token || session.access_token;
+      let updateToken = session.access_token;
+      if (!isRecoveryFlow) {
+        const verifiedSession = (await supabaseRequest("/auth/v1/token?grant_type=password", {
+          method: "POST",
+          body: JSON.stringify({ email: user?.email || "", password: currentPassword }),
+        })) as AuthSession;
+        updateToken = verifiedSession?.access_token || session.access_token;
+      }
       await supabaseRequest(
         "/auth/v1/user",
         {
@@ -557,6 +563,7 @@ export default function AccountPage() {
       setStatus("Password updated.");
       setStatusType("success");
       setPasswordStage("idle");
+      setIsRecoveryFlow(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Password update failed.");
     } finally {
@@ -586,6 +593,7 @@ export default function AccountPage() {
         }),
       });
       setPasswordStage("requested");
+      setIsRecoveryFlow(false);
       setStatus("Password verification email sent. Check your inbox to continue.");
       setStatusType("info");
     } catch (err) {
@@ -908,19 +916,21 @@ export default function AccountPage() {
 
                 {passwordStage === "ready" && isPasswordEligible ? (
                   <form className="mt-4 space-y-3" onSubmit={onUpdatePassword}>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Current password
-                      </label>
-                      <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Current password"
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                        required
-                      />
-                    </div>
+                    {!isRecoveryFlow ? (
+                      <div className="space-y-2">
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Current password
+                        </label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="Current password"
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          required
+                        />
+                      </div>
+                    ) : null}
                     <div className="space-y-2">
                       <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
                         New password
