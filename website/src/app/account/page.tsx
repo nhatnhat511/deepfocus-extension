@@ -322,15 +322,27 @@ export default function AccountPage() {
         string,
         unknown
       >;
-      const rawUser = profile as User;
+      const raw = profile as Record<string, unknown>;
+      const appMeta = (raw.app_metadata as Record<string, unknown>) || {};
+      const userMeta = (raw.user_metadata as Record<string, unknown>) || {};
+      const identities = Array.isArray(raw.identities) ? (raw.identities as UserIdentity[]) : [];
       const updatedUser: User = {
-        ...rawUser,
-        id: String(rawUser.id || profile.id || ""),
-        email: rawUser.email ?? String((profile as Record<string, unknown>).email || ""),
-        created_at: String(rawUser.created_at || (profile as Record<string, unknown>).created_at || ""),
-        user_metadata: (rawUser.user_metadata as Record<string, unknown>) || {},
-        app_metadata: (rawUser.app_metadata as Record<string, unknown>) || {},
-        identities: Array.isArray(rawUser.identities) ? rawUser.identities : [],
+        id: String(raw.id || ""),
+        aud: typeof raw.aud === "string" ? raw.aud : "authenticated",
+        created_at: String(raw.created_at || ""),
+        app_metadata: appMeta,
+        user_metadata: userMeta,
+        identities,
+        email: typeof raw.email === "string" ? raw.email : undefined,
+        phone: typeof raw.phone === "string" ? raw.phone : undefined,
+        confirmed_at: typeof raw.confirmed_at === "string" ? raw.confirmed_at : undefined,
+        email_confirmed_at: typeof raw.email_confirmed_at === "string" ? raw.email_confirmed_at : undefined,
+        phone_confirmed_at: typeof raw.phone_confirmed_at === "string" ? raw.phone_confirmed_at : undefined,
+        last_sign_in_at: typeof raw.last_sign_in_at === "string" ? raw.last_sign_in_at : undefined,
+        role: typeof raw.role === "string" ? raw.role : undefined,
+        updated_at: typeof raw.updated_at === "string" ? raw.updated_at : undefined,
+        is_anonymous: typeof raw.is_anonymous === "boolean" ? raw.is_anonymous : undefined,
+        is_sso_user: typeof raw.is_sso_user === "boolean" ? raw.is_sso_user : undefined,
       };
       const updated: AuthSession = {
         ...activeSession,
