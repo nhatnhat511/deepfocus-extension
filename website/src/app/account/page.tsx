@@ -395,7 +395,7 @@ export default function AccountPage() {
               <h2 className="text-lg font-semibold text-slate-900">Profile</h2>
               <p className="mt-1 text-sm text-slate-600">Review your plan, account details, and security settings.</p>
             </div>
-            {status && statusType === "success" ? (
+            {status && statusType === "success" && !status.toLowerCase().includes("session") ? (
               <p
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   statusType === "success"
