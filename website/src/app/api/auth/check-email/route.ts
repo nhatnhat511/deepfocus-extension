@@ -45,6 +45,7 @@ export async function POST(req: Request) {
       const payload = (await response.json().catch(() => ({}))) as {
         users?: Array<{
           email?: string | null;
+          email_confirmed_at?: string | null;
           identities?: Array<{ provider?: string | null }> | null;
           app_metadata?: { provider?: string | null; providers?: string[] | null } | null;
         }>;
@@ -62,7 +63,8 @@ export async function POST(req: Request) {
           : [];
         const provider =
           appProvider || providers[0] || identityProviders[0] || "email";
-        return NextResponse.json({ exists: true, provider });
+        const confirmed = !!match.email_confirmed_at;
+        return NextResponse.json({ exists: true, provider, confirmed });
       }
       if (users.length < perPage) {
         return NextResponse.json({ exists: false });

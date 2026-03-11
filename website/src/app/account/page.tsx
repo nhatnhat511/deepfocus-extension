@@ -612,12 +612,12 @@ export default function AccountPage() {
                 </label>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-slate-900">Security</h3>
-                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                  Password: ********
-                </div>
-                {canManagePassword ? (
+              {canManagePassword ? (
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <h3 className="text-sm font-semibold text-slate-900">Security</h3>
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                    Password: ********
+                  </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <a
                       href="/change-password"
@@ -632,8 +632,8 @@ export default function AccountPage() {
                       Forgot password
                     </a>
                   </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
 
             <button
