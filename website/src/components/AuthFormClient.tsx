@@ -234,10 +234,10 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         setShowResend(false);
         setPendingEmail("");
         if (typeof window !== "undefined") {
-        window.location.replace("/account");
-      } else {
-        router.replace("/account");
-      }
+          window.location.replace("/account");
+        } else {
+          router.replace("/account");
+        }
       } else {
         const identities = Array.isArray(data?.user?.identities) ? data.user.identities : [];
         if (identities.length === 0) {
