@@ -19,6 +19,7 @@ type ProfileRow = {
   trial_started_at: string | null;
   is_premium_active: boolean;
   is_trial_active: boolean;
+  paddle_status?: string | null;
 };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
@@ -142,6 +143,10 @@ export default function AccountPage() {
 
     return { label: "Free", detail: "No active premium access. You can start a 7-day free trial." };
   }, [profile]);
+  const isCanceledSubscription = useMemo(() => {
+    const status = String(profile?.paddle_status || "").toLowerCase();
+    return status === "canceled" || status === "cancelled";
+  }, [profile?.paddle_status]);
 
   const isPremiumPlan =
     profile?.plan === "premium" || profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly";
@@ -205,7 +210,18 @@ export default function AccountPage() {
       setProfile(null);
       return;
     }
-    setProfile(row as ProfileRow);
+    const baseProfile = row as ProfileRow;
+    try {
+      const meta = (await supabaseRequest(
+        `/rest/v1/profiles?select=paddle_status&id=eq.${encodeURIComponent(activeSession.user.id)}&limit=1`,
+        { method: "GET" },
+        activeSession.access_token
+      )) as Array<{ paddle_status?: string | null }>;
+      const paddleStatus = meta?.[0]?.paddle_status ?? null;
+      setProfile({ ...baseProfile, paddle_status: paddleStatus });
+    } catch {
+      setProfile(baseProfile);
+    }
   }
 
   async function refreshAccessToken(activeSession: AuthSession) {
@@ -359,7 +375,7 @@ export default function AccountPage() {
         throw new Error(payload?.error || "Unable to open subscription portal.");
       }
       if (payload?.url) {
-        window.location.href = payload.url;
+        window.open(payload.url, "_blank", "noopener,noreferrer");
         return;
       }
       throw new Error("Missing portal URL.");
@@ -455,7 +471,8 @@ export default function AccountPage() {
                     <p className="mt-1 text-xs text-slate-600">{accountSummary.detail}</p>
                     {profile?.premium_until ? (
                       <p className="mt-1 text-xs text-slate-500">
-                        Next billing date: {new Date(profile.premium_until).toLocaleDateString()}
+                        {isCanceledSubscription ? "Access ends on" : "Next billing date"}:{" "}
+                        {new Date(profile.premium_until).toLocaleDateString()}
                       </p>
                     ) : null}
                   </div>
