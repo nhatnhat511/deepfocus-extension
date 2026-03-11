@@ -140,6 +140,28 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
 
     const query = new URLSearchParams(window.location.search);
     const code = query.get("code");
+    const tokenHash = query.get("token_hash") || query.get("token");
+    const flowType = query.get("type") || "recovery";
+
+    if (tokenHash && flowType) {
+      supabase.auth
+        .verifyOtp({ type: flowType as "recovery", token_hash: tokenHash })
+        .then(({ data, error }) => {
+          if (error || !data.session) {
+            setError(error?.message || "Invalid or expired reset link.");
+            setRecoveryReady(false);
+          } else {
+            setSession(data.session);
+            setRecoveryReady(true);
+            setStatus("Verification complete. Set your new password.");
+            setStatusType("info");
+          }
+          window.history.replaceState({}, document.title, "/update-password");
+          setSessionLoading(false);
+        });
+      return;
+    }
+
     if (!code) {
       setRecoveryReady(false);
       setSessionLoading(false);
@@ -147,7 +169,12 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     }
     supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
       if (error || !data.session) {
-        setError(error?.message || "Invalid or expired reset link.");
+        const msg = error?.message || "Invalid or expired reset link.";
+        if (msg.toLowerCase().includes("code verifier")) {
+          setError("Reset link must be opened in the same browser you requested it from. Please request a new link.");
+        } else {
+          setError(msg);
+        }
         setRecoveryReady(false);
       } else {
         setSession(data.session);
