@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
+import AuthHashRedirect from "@/components/AuthHashRedirect";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -69,6 +70,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <AuthHashRedirect />
         <SiteHeader />
         <main className="mx-auto min-h-[calc(100vh-9rem)] w-full max-w-6xl px-4 py-10">{children}</main>
         <footer className="border-t border-slate-200 bg-white">
