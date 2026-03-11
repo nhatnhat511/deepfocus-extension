@@ -31,7 +31,21 @@ type CreateCheckoutResponse = {
 
 type PlanOption = "monthly" | "yearly";
 
-export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaultPlan?: PlanOption }) {
+type PaddleCheckoutCardProps = {
+  defaultPlan?: PlanOption;
+  allowedPlans?: PlanOption[];
+};
+
+const monthlyPrice = 2.99;
+const yearlyDiscountRate = 0.3;
+const yearlyBase = monthlyPrice * 12;
+const yearlyFinal = yearlyBase * (1 - yearlyDiscountRate);
+const yearlyPriceLabel = yearlyFinal.toFixed(2);
+
+export default function PaddleCheckoutCard({
+  defaultPlan = "monthly",
+  allowedPlans,
+}: PaddleCheckoutCardProps) {
   const [email, setEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,9 +57,21 @@ export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaul
   const paddleToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "";
   const paddleEnv = (process.env.NEXT_PUBLIC_PADDLE_ENV || "sandbox") as "sandbox" | "production";
 
+  const normalizedAllowedPlans = useMemo<PlanOption[]>(
+    () => (allowedPlans && allowedPlans.length > 0 ? allowedPlans : ["monthly", "yearly"]),
+    [allowedPlans]
+  );
+
   const canCheckout = useMemo(() => {
-    return ready && paddleToken && !!accessToken && /^\S+@\S+\.\S+$/.test(email.trim()) && !loading;
-  }, [accessToken, email, loading, paddleToken, ready]);
+    return (
+      ready &&
+      paddleToken &&
+      !!accessToken &&
+      /^\S+@\S+\.\S+$/.test(email.trim()) &&
+      !loading &&
+      normalizedAllowedPlans.includes(plan)
+    );
+  }, [accessToken, email, loading, paddleToken, ready, normalizedAllowedPlans, plan]);
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -73,8 +99,12 @@ export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaul
   }, []);
 
   useEffect(() => {
-    setPlan(defaultPlan);
-  }, [defaultPlan]);
+    if (normalizedAllowedPlans.includes(defaultPlan)) {
+      setPlan(defaultPlan);
+      return;
+    }
+    setPlan(normalizedAllowedPlans[0] ?? "monthly");
+  }, [defaultPlan, normalizedAllowedPlans]);
 
   function initPaddleIfNeeded() {
     if (!window.Paddle || paddleInitialized || !paddleToken) return;
@@ -166,26 +196,28 @@ export default function PaddleCheckoutCard({ defaultPlan = "monthly" }: { defaul
             <button
               type="button"
               onClick={() => setPlan("monthly")}
+              disabled={!normalizedAllowedPlans.includes("monthly")}
               className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
                 plan === "monthly"
                   ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                   : "border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-pressed={plan === "monthly"}
             >
-              Monthly
+              Monthly — ${monthlyPrice.toFixed(2)}/mo
             </button>
             <button
               type="button"
               onClick={() => setPlan("yearly")}
+              disabled={!normalizedAllowedPlans.includes("yearly")}
               className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
                 plan === "yearly"
                   ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                   : "border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
+              } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-pressed={plan === "yearly"}
             >
-              Yearly (30% off)
+              Yearly (30% off) — ${yearlyPriceLabel}/yr
             </button>
           </div>
         </div>

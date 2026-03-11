@@ -142,6 +142,13 @@ export default function AccountPage() {
 
   const isPremiumPlan =
     profile?.plan === "premium" || profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly";
+  const currentPlan = profile?.plan || "free";
+  const isTrialActive = !!profile?.is_trial_active;
+  const canStartTrial = currentPlan === "free" && !profile?.trial_used;
+  const canUpgradeMonthly = currentPlan === "free" || isTrialActive;
+  const canUpgradeYearly =
+    currentPlan === "free" || isTrialActive || currentPlan === "premium" || currentPlan === "premium_monthly";
+  const isYearlyPlan = currentPlan === "premium_yearly";
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -419,7 +426,7 @@ export default function AccountPage() {
                       </p>
                     ) : null}
                   </div>
-                  {!profile?.is_premium_active && !profile?.trial_used ? (
+                  {canStartTrial ? (
                     <button
                       type="button"
                       onClick={startTrial}
@@ -442,7 +449,22 @@ export default function AccountPage() {
                 ) : null}
               </div>
 
-              {!isPremiumPlan ? <PaddleCheckoutCard defaultPlan={preferredPlan} /> : null}
+              {!isYearlyPlan ? (
+                <PaddleCheckoutCard
+                  defaultPlan={preferredPlan}
+                  allowedPlans={
+                    canUpgradeMonthly && canUpgradeYearly
+                      ? ["monthly", "yearly"]
+                      : canUpgradeYearly
+                        ? ["yearly"]
+                        : ["monthly"]
+                  }
+                />
+              ) : (
+                <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                  You are on the highest plan (Premium Yearly).
+                </div>
+              )}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
