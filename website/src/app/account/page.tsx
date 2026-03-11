@@ -23,6 +23,7 @@ type ProfileRow = {
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
+const SESSION_KEY = "deepfocusWebsiteSession";
 
 async function supabaseRequest(path: string, options: RequestInit = {}, accessToken = "") {
   const headers: Record<string, string> = {
@@ -54,6 +55,15 @@ async function supabaseRequest(path: string, options: RequestInit = {}, accessTo
   }
 
   return payload;
+}
+
+function saveSession(session: AuthSession | null) {
+  if (typeof window === "undefined") return;
+  if (!session) {
+    window.localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 
