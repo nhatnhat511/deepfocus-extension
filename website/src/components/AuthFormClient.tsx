@@ -101,6 +101,8 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (mode !== "update") return;
+    setError("");
+    setStatus("");
     const hash = window.location.hash;
     const supabase = supabaseRef.current;
     if (hash) {
@@ -163,6 +165,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     }
 
     if (!code) {
+      setError("");
       setRecoveryReady(false);
       setSessionLoading(false);
       return;
