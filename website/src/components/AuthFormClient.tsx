@@ -167,6 +167,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     const hash = window.location.hash;
     if (!hash) {
       setRecoveryReady(false);
+      setSessionLoading(false);
       return;
     }
     const params = new URLSearchParams(hash.replace(/^#/, ""));
@@ -175,11 +176,13 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setError(String(hashError));
       setRecoveryReady(false);
       window.history.replaceState({}, document.title, "/update-password");
+      setSessionLoading(false);
       return;
     }
     const accessToken = params.get("access_token") || "";
     if (!accessToken) {
       setRecoveryReady(false);
+      setSessionLoading(false);
       return;
     }
     const recoverySession: AuthSession = {
@@ -194,6 +197,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     setStatus("Verification complete. Set your new password.");
     setStatusType("info");
     window.history.replaceState({}, document.title, "/update-password");
+    setSessionLoading(false);
   }, [mode]);
 
   async function onSignUp(e: FormEvent) {
@@ -314,7 +318,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (!isValidEmail(email.trim())) return setError("Please enter a valid email address.");
     setLoading(true);
     try {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/update-password` : undefined;
+      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
       await supabaseRequest("/auth/v1/recover", {
         method: "POST",
         body: JSON.stringify({
@@ -360,6 +364,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setStatusType("success");
       setNewPassword("");
       setConfirmNewPassword("");
+      setTimeout(() => router.replace("/login"), 1200);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Password update failed.";
       if (isRateLimited(message)) return setError("Too many attempts. Please wait and try again.");
@@ -433,7 +438,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
             Verification link missing or expired. Please request a new reset link.
           </p>
         ) : null}
-        {error ? (
+        {error && !(mode === "update" && recoveryReady) ? (
           <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {error}
           </p>
@@ -600,7 +605,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           </form>
         ) : null}
 
-        {mode === "update" ? (
+        {mode === "update" && recoveryReady ? (
           <form className="mt-6 space-y-4" onSubmit={onUpdatePassword}>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">New password</label>
@@ -627,6 +632,9 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
                 disabled={loading}
                 required
               />
+              {error ? (
+                <p className="text-xs text-rose-600">{error}</p>
+              ) : null}
             </div>
             <button
               type="submit"
@@ -683,6 +691,10 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       ) : null}
       {mode === "update" ? (
         <p className="text-center text-sm text-slate-600">
+          <a href="/forgot-password" className="font-semibold text-emerald-600 hover:underline">
+            Request a new reset link
+          </a>
+          <span className="mx-2 text-slate-400">•</span>
           <a href="/login" className="font-semibold text-emerald-600 hover:underline">
             Return to sign in
           </a>

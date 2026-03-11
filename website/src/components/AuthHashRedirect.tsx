@@ -7,7 +7,7 @@ export default function AuthHashRedirect() {
     if (typeof window === "undefined") return;
     const { hash, pathname } = window.location;
     if (!hash || !hash.includes("access_token")) return;
-    if (pathname === "/account" || pathname.startsWith("/auth/confirm")) return;
+    if (pathname === "/account" || pathname.startsWith("/auth/confirm") || pathname.startsWith("/auth/callback")) return;
 
     const target = `/account${hash}`;
     window.location.replace(target);
