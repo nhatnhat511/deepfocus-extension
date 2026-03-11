@@ -12,6 +12,8 @@ type AuthSession = {
     id: string;
     email?: string;
     user_metadata?: Record<string, unknown>;
+    app_metadata?: Record<string, unknown>;
+    identities?: Array<Record<string, unknown>>;
   };
 };
 
@@ -112,6 +114,26 @@ export default function AccountPage() {
     const meta = user?.user_metadata || {};
     return typeof meta.avatar_url === "string" ? meta.avatar_url : "";
   }, [user]);
+
+  const authProvider = useMemo(() => {
+    const appMeta = user?.app_metadata || {};
+    const provider = typeof appMeta.provider === "string" ? appMeta.provider : "";
+    if (provider) return provider;
+    const providers = Array.isArray(appMeta.providers) ? appMeta.providers : [];
+    const first = typeof providers[0] === "string" ? providers[0] : "";
+    if (first) return first;
+    const identities = Array.isArray(user?.identities) ? user?.identities : [];
+    const identityProvider =
+      identities.length && typeof identities[0]?.provider === "string" ? String(identities[0].provider) : "";
+    return identityProvider || "email";
+  }, [user]);
+
+  const isPasswordEligible = authProvider === "email";
+  const providerLabel = useMemo(() => {
+    if (!authProvider) return "Email";
+    if (authProvider === "email") return "Email";
+    return authProvider.charAt(0).toUpperCase() + authProvider.slice(1);
+  }, [authProvider]);
 
   const accountSummary = useMemo(() => {
     if (!profile) return { label: "Free", detail: "No active premium access." };
@@ -276,6 +298,8 @@ export default function AccountPage() {
           id: String(profile.id || ""),
           email: String(profile.email || ""),
           user_metadata: (profile.user_metadata as Record<string, unknown>) || {},
+          app_metadata: (profile.app_metadata as Record<string, unknown>) || {},
+          identities: (profile.identities as Array<Record<string, unknown>>) || [],
         },
       };
       setSession(updated);
@@ -474,6 +498,10 @@ export default function AccountPage() {
   }
 
   async function requestPasswordChange() {
+    if (!isPasswordEligible) {
+      setError(`Password changes are managed by your ${providerLabel} sign-in.`);
+      return;
+    }
     if (!user?.email) {
       setError("Please sign in before requesting a password change.");
       return;
@@ -665,6 +693,7 @@ export default function AccountPage() {
                   <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
                     <p className="text-sm font-semibold text-slate-900">{user?.email || "-"}</p>
+                    <p className="text-xs text-slate-500">Sign-in method: {providerLabel}</p>
                   </div>
                 </div>
                 <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800">
@@ -675,27 +704,32 @@ export default function AccountPage() {
 
               <div className="rounded-lg border border-slate-200 bg-white p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Security</h3>
-                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-                  Step 1: Request a verification email. Step 2: Click the link and return here to complete the change.
-                </div>
                 <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                   Password: ••••••••
                 </div>
-                <button
-                  type="button"
-                  onClick={requestPasswordChange}
-                  disabled={loading || !signedIn}
-                  className="mt-3 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                >
-                  Change password
-                </button>
-                {passwordStage === "requested" ? (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Verification email sent. Open the link to continue.
+                {!isPasswordEligible ? (
+                  <p className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    Password changes are managed by your {providerLabel} sign-in.
                   </p>
-                ) : null}
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={requestPasswordChange}
+                      disabled={loading || !signedIn}
+                      className="mt-3 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                    >
+                      Change password
+                    </button>
+                    {passwordStage === "requested" ? (
+                      <p className="mt-2 text-xs text-slate-500">
+                        Verification email sent. Open the link to continue.
+                      </p>
+                    ) : null}
+                  </>
+                )}
 
-                {passwordStage === "ready" ? (
+                {passwordStage === "ready" && isPasswordEligible ? (
                   <form className="mt-4 space-y-3" onSubmit={onUpdatePassword}>
                     <div className="space-y-2">
                       <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
