@@ -143,17 +143,20 @@ export default function PaddleCheckoutCard({
     setLoading(true);
     try {
       if (isMonthlyUpgradeToYearly) {
-        const res = await fetch("/api/paddle/upgrade-subscription", {
+        const res = await fetch("/api/paddle/create-portal-session", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        const payload = (await res.json().catch(() => ({}))) as { error?: string };
+        const payload = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
         if (!res.ok) {
-          throw new Error(payload?.error || "Upgrade request failed.");
+          throw new Error(payload?.error || "Unable to open billing portal.");
         }
-        setError("");
+        if (!payload?.url) {
+          throw new Error("Missing billing portal link.");
+        }
+        window.open(payload.url, "_blank", "noopener,noreferrer");
         return;
       }
 
@@ -261,7 +264,7 @@ export default function PaddleCheckoutCard({
             ? "Processing..."
             : plan === "yearly"
               ? isMonthlyUpgradeToYearly
-                ? "Switch to Yearly (Prorated)"
+                ? "Upgrade to Yearly in Portal"
                 : "Upgrade to Yearly"
               : "Upgrade to Premium"}
         </button>
