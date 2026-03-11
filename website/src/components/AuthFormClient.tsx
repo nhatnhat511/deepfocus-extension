@@ -381,9 +381,17 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         const payload = (await checkResponse.json().catch(() => ({}))) as { error?: string };
         throw new Error(payload?.error || "Unable to verify email.");
       }
-      const checkPayload = (await checkResponse.json().catch(() => ({}))) as { exists?: boolean };
+      const checkPayload = (await checkResponse.json().catch(() => ({}))) as {
+        exists?: boolean;
+        provider?: string;
+      };
       if (!checkPayload?.exists) {
         setError("No account found for this email.");
+        return;
+      }
+      const provider = String(checkPayload?.provider || "email").toLowerCase();
+      if (provider && provider !== "email") {
+        setError(`This email uses ${provider} sign-in. Please use ${provider} to access your account.`);
         return;
       }
 

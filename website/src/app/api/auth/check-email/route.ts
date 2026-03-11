@@ -42,11 +42,27 @@ export async function POST(req: Request) {
         const payload = (await response.json().catch(() => ({}))) as { message?: string };
         return jsonError(payload?.message || "Unable to check email.", 500);
       }
-      const payload = (await response.json().catch(() => ({}))) as { users?: Array<{ email?: string | null }> };
+      const payload = (await response.json().catch(() => ({}))) as {
+        users?: Array<{
+          email?: string | null;
+          identities?: Array<{ provider?: string | null }> | null;
+          app_metadata?: { provider?: string | null; providers?: string[] | null } | null;
+        }>;
+      };
       const users = payload?.users || [];
-      const found = users.some((u) => normalizeEmail(String(u.email || "")) === email);
-      if (found) {
-        return NextResponse.json({ exists: true });
+      const match = users.find((u) => normalizeEmail(String(u.email || "")) === email);
+      if (match) {
+        const appMeta = match.app_metadata || {};
+        const providers = Array.isArray(appMeta.providers) ? appMeta.providers : [];
+        const appProvider = typeof appMeta.provider === "string" ? appMeta.provider : "";
+        const identityProviders = Array.isArray(match.identities)
+          ? match.identities
+              .map((identity) => (typeof identity?.provider === "string" ? identity.provider : ""))
+              .filter(Boolean)
+          : [];
+        const provider =
+          appProvider || providers[0] || identityProviders[0] || "email";
+        return NextResponse.json({ exists: true, provider });
       }
       if (users.length < perPage) {
         return NextResponse.json({ exists: false });
