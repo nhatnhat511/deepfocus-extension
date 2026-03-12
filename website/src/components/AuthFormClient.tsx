@@ -102,7 +102,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M15 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4m-9 7v-1.5C6 15.01 10.03 13 15 13c.7 0 1.37.04 2 .12V11h2v2h2v2h-2v2h-2v-2h-.74c-3.1 0-6.26 1.23-6.26 2.5V19Z"
+              d="M15 14a4 4 0 1 0-4-4a4 4 0 0 0 4 4m-8 7v-1.2c0-2.7 3.2-4.6 8-4.6c.7 0 1.37.04 2 .13V13h2v2h2v2h-2v2h-2v-2h-.6c-3.3 0-5.4 1.2-5.4 2.6V21Z"
             />
           </svg>
         );
@@ -111,7 +111,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M7 10a5 5 0 1 1 8.9 3H20v8h-6v-3H8v3H2v-8h3.1A4.98 4.98 0 0 1 7 10m0 0a3 3 0 1 0 6 0a3 3 0 0 0-6 0"
+              d="M12 2a6 6 0 0 1 6 6v2h1a2 2 0 0 1 2 2v8h-6v-3H9v3H3v-8a2 2 0 0 1 2-2h1V8a6 6 0 0 1 6-6m0 2a4 4 0 0 0-4 4v2h8V8a4 4 0 0 0-4-4"
             />
           </svg>
         );

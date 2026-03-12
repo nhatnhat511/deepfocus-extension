@@ -338,7 +338,7 @@ export default function PaddleCheckoutCard({
               } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-pressed={plan === "monthly"}
             >
-              Monthly — ${monthlyPrice.toFixed(2)}/mo
+              Monthly plan — ${monthlyPrice.toFixed(2)} per month
             </button>
             <button
               type="button"
@@ -351,7 +351,7 @@ export default function PaddleCheckoutCard({
               } disabled:cursor-not-allowed disabled:opacity-50`}
               aria-pressed={plan === "yearly"}
             >
-              Yearly (30% off) — ${yearlyPriceLabel}/yr
+              Yearly plan (30% off) — ${yearlyPriceLabel} per year
             </button>
           </div>
         </div>
@@ -371,14 +371,33 @@ export default function PaddleCheckoutCard({
           disabled={!canCheckout}
           className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-200 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading
-            ? "Processing..."
-            : plan === "yearly"
-              ? isMonthlyUpgradeToYearly
-                ? "Upgrade to Yearly"
-                : "Upgrade to Yearly"
-              : "Upgrade to Premium"}
+          {loading ? "Processing..." : "Upgrade to Premium"}
         </button>
+        {plan === "yearly" ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-800">
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
+                <path
+                  fill="currentColor"
+                  d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5"
+                />
+              </svg>
+              Secure checkout
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 text-slate-600">
+                <path
+                  fill="currentColor"
+                  d="M3 6.75A2.75 2.75 0 0 1 5.75 4h12.5A2.75 2.75 0 0 1 21 6.75v10.5A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25Zm2.75-.25a.75.75 0 0 0-.75.75v.5h14v-.5a.75.75 0 0 0-.75-.75Zm13.25 4H5v6.75c0 .41.34.75.75.75h12.5a.75.75 0 0 0 .75-.75Z"
+                />
+              </svg>
+              Encrypted payments
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
+              Cancel anytime
+            </span>
+          </div>
+        ) : null}
       </div>
     </>
   );

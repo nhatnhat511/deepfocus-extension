@@ -99,7 +99,6 @@ export default function AccountPage() {
     const meta = user?.user_metadata || {};
     return typeof meta.avatar_url === "string" ? meta.avatar_url : "";
   }, [user]);
-
   const authProvider = useMemo(() => {
     const appMeta = user?.app_metadata || {};
     const provider = typeof appMeta.provider === "string" ? appMeta.provider : "";
@@ -112,6 +111,11 @@ export default function AccountPage() {
       identities.length && typeof identities[0]?.provider === "string" ? String(identities[0].provider) : "";
     return identityProvider || "email";
   }, [user]);
+  const fallbackAvatar = useMemo(() => {
+    if (authProvider !== "email") return "";
+    const seed = user?.id || user?.email || "deepfocus";
+    return `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}`;
+  }, [authProvider, user]);
 
   const providerLabel = useMemo(() => {
     if (!authProvider) return "Email";
@@ -615,6 +619,13 @@ export default function AccountPage() {
                     {profile?.premium_until ? (
                       <p className="mt-1 text-xs text-slate-500">
                         {(() => {
+                          if (profile.plan === "trial") {
+                            return (
+                              <>
+                                Trial ends on: {new Date(profile.premium_until).toLocaleDateString()}
+                              </>
+                            );
+                          }
                           const scheduledTs = billingMeta?.scheduledEffectiveAt
                             ? Date.parse(billingMeta.scheduledEffectiveAt)
                             : NaN;
@@ -711,9 +722,13 @@ export default function AccountPage() {
                   </h3>
                 <div className="mt-4 flex items-center gap-4">
                   <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                    {(avatarPreview || avatarUrl) ? (
+                    {(avatarPreview || avatarUrl || fallbackAvatar) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={avatarPreview || avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                      <img
+                        src={avatarPreview || avatarUrl || fallbackAvatar}
+                        alt="Avatar"
+                        className="h-full w-full object-cover"
+                      />
                     ) : null}
                   </div>
                   <div className="space-y-1">
