@@ -187,7 +187,7 @@ export default function SiteHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-md px-3 py-2.5 font-semibold hover:bg-slate-100 hover:text-slate-900"
+                  className="rounded-md bg-white px-3 py-2.5 font-semibold shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900"
                   onClick={() => setMobileOpen(false)}
                 >
                   {item.label}
