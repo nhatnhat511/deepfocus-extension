@@ -37,6 +37,7 @@ type SupabaseUser = {
 
 type ProfileRow = {
   paddle_subscription_id?: string | null;
+  paddle_customer_id?: string | null;
 };
 
 const PADDLE_API_BASE = process.env.PADDLE_API_BASE_URL || "https://api.paddle.com";
@@ -116,7 +117,9 @@ async function getUserFromAccessToken(accessToken: string) {
 
 async function getProfile(accessToken: string, userId: string) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?select=paddle_subscription_id&id=eq.${encodeURIComponent(userId)}&limit=1`,
+    `${SUPABASE_URL}/rest/v1/profiles?select=paddle_subscription_id,paddle_customer_id&id=eq.${encodeURIComponent(
+      userId
+    )}&limit=1`,
     {
       method: "GET",
       headers: {
@@ -188,6 +191,29 @@ async function applyProfileEntitlementByUserId(params: {
   return payload;
 }
 
+function parseSubscriptionEndDate(subscription: PaddleSubscription) {
+  const raw = parseSubscriptionWindow(subscription);
+  if (!raw) return 0;
+  const ts = Date.parse(raw);
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function isActiveStatus(status: string) {
+  const normalized = status.toLowerCase();
+  return normalized === "active" || normalized === "trialing" || normalized === "past_due";
+}
+
+function pickBestSubscription(subscriptions: PaddleSubscription[]) {
+  if (!subscriptions.length) return null;
+  const active = subscriptions.filter((sub) => isActiveStatus(String(sub.status || "")));
+  const candidates = active.length ? active : subscriptions;
+  return candidates.reduce((best, current) => {
+    const bestEnd = parseSubscriptionEndDate(best);
+    const currentEnd = parseSubscriptionEndDate(current);
+    return currentEnd > bestEnd ? current : best;
+  }, candidates[0]);
+}
+
 export async function POST(req: Request) {
   try {
     if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500);
@@ -209,13 +235,27 @@ export async function POST(req: Request) {
 
     const profile = await getProfile(accessToken, userId);
     const subscriptionId = String(profile?.paddle_subscription_id || "");
-    if (!subscriptionId) {
+    const customerId = String(profile?.paddle_customer_id || "");
+
+    let subscription: PaddleSubscription | null = null;
+    if (subscriptionId) {
+      subscription = await paddleGet<PaddleSubscription>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
+    }
+
+    if (customerId) {
+      const list = await paddleGet<PaddleSubscription[]>(
+        `/subscriptions?customer_id=${encodeURIComponent(customerId)}&per_page=20`
+      );
+      const best = pickBestSubscription(list || []);
+      if (best && (!subscription || best.id !== subscription.id)) {
+        subscription = best;
+      }
+    }
+
+    if (!subscription) {
       return jsonError("Missing Paddle subscription.", 400);
     }
 
-    const subscription = await paddleGet<PaddleSubscription>(
-      `/subscriptions/${encodeURIComponent(subscriptionId)}`
-    );
     const entitlement = derivePlanAndUntilFromSubscription(subscription);
 
     await applyProfileEntitlementByUserId({
@@ -223,8 +263,8 @@ export async function POST(req: Request) {
       email,
       plan: entitlement.plan,
       premiumUntil: entitlement.premiumUntil,
-      paddleSubscriptionId: subscriptionId,
-      paddleCustomerId: subscription.customer_id || null,
+      paddleSubscriptionId: String(subscription.id || subscriptionId),
+      paddleCustomerId: subscription.customer_id || customerId || null,
       paddleStatus: entitlement.status,
     });
 
@@ -232,7 +272,7 @@ export async function POST(req: Request) {
       plan: entitlement.plan,
       premiumUntil: entitlement.premiumUntil,
       status: entitlement.status,
-      subscriptionId,
+      subscriptionId: String(subscription.id || subscriptionId),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unable to sync subscription.";
