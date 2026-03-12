@@ -64,26 +64,30 @@ export default function AuthCallbackPage() {
           const flowType = params.get("type");
           const accessToken = params.get("access_token");
           const refreshToken = params.get("refresh_token") || "";
-          if (!accessToken) {
-            redirectTo("/login?error=missing_token");
+          const hashError = params.get("error") || params.get("error_description");
+          if (accessToken) {
+            const { error } = await supabaseRef.current.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (error) {
+              redirectTo("/login?error=oauth_session");
+              return;
+            }
+            // Give cookies a brief moment to persist before redirecting.
+            await new Promise((resolve) => setTimeout(resolve, 150));
+            if (flowType === "recovery") {
+              redirectTo("/update-password");
+              return;
+            }
+            redirectTo("/account");
             return;
           }
-          const { error } = await supabaseRef.current.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (error) {
+          if (hashError) {
             redirectTo("/login?error=oauth_session");
             return;
           }
-          // Give cookies a brief moment to persist before redirecting.
-          await new Promise((resolve) => setTimeout(resolve, 150));
-          if (flowType === "recovery") {
-            redirectTo("/update-password");
-            return;
-          }
-          redirectTo("/account");
-          return;
+          // Ignore empty hash and continue with code flow.
         }
 
         const query = new URLSearchParams(search);
