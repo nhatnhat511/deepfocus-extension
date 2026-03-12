@@ -114,8 +114,13 @@ export default function AccountPage() {
   }, [user]);
   const fallbackAvatar = useMemo(() => {
     if (authProvider !== "email") return "";
-    const seed = user?.id || user?.email || "deepfocus";
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&radius=50&backgroundColor=ecfdf5&textColor=0f766e`;
+    const rawEmail = String(user?.email || "").trim();
+    const localPart = rawEmail.split("@")[0] || "";
+    const cleaned = localPart.replace(/[^a-zA-Z0-9]/g, "");
+    const initials = (cleaned || "df").slice(0, 2);
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+      initials
+    )}&radius=50&backgroundColor=ecfdf5&textColor=0f766e`;
   }, [authProvider, user]);
 
   const providerLabel = useMemo(() => {
