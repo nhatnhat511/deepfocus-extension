@@ -34,22 +34,29 @@ function jsonError(message: string, status = 400) {
 
 function mapPaddleError(message: string) {
   const text = message.toLowerCase();
-  if (text.includes("payment declined") || text.includes("card") && text.includes("declined")) {
-    return "Your payment was declined. Please update your payment method and try again.";
+  if (text.includes("authentication challenge") || text.includes("3ds") || text.includes("3d secure")) {
+    return {
+      message:
+        "Additional verification is required to complete this upgrade. Please finish the authentication step.",
+      code: "requires_action",
+    };
+  }
+  if (text.includes("payment declined") || (text.includes("card") && text.includes("declined"))) {
+    return {
+      message: "Your payment was declined. Please update your payment method and try again.",
+      code: "payment_declined",
+    };
   }
   if (text.includes("payment method") && (text.includes("missing") || text.includes("required"))) {
-    return "Please add a payment method before upgrading.";
+    return { message: "Please add a payment method before upgrading.", code: "missing_payment_method" };
   }
   if (text.includes("insufficient") && text.includes("funds")) {
-    return "Your card has insufficient funds. Please use a different card.";
-  }
-  if (text.includes("authentication required") || text.includes("3d secure") || text.includes("3ds")) {
-    return "Additional authentication is required. Please try again and complete verification.";
+    return { message: "Your card has insufficient funds. Please use a different card.", code: "insufficient_funds" };
   }
   if (text.includes("rate limit") || text.includes("too many")) {
-    return "Too many attempts. Please wait a moment and try again.";
+    return { message: "Too many attempts. Please wait a moment and try again.", code: "rate_limited" };
   }
-  return "We couldn't complete the upgrade. Please try again or contact support.";
+  return { message: "We couldn't complete the upgrade. Please try again or contact support.", code: "unknown" };
 }
 
 function getRequestOrigin(req: Request) {
@@ -181,6 +188,6 @@ export async function POST(req: Request) {
   } catch (e) {
     const raw = e instanceof Error ? e.message : "Unexpected server error.";
     const mapped = mapPaddleError(raw);
-    return jsonError(mapped, 400);
+    return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: 400 });
   }
 }

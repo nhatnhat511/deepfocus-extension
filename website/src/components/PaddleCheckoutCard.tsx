@@ -54,6 +54,7 @@ export default function PaddleCheckoutCard({
   const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errorCode, setErrorCode] = useState("");
   const [ready, setReady] = useState(false);
   const [plan, setPlan] = useState<PlanOption>(defaultPlan);
   const supabaseRef = useRef(createSupabaseBrowserClient());
@@ -123,6 +124,7 @@ export default function PaddleCheckoutCard({
 
   async function startCheckout() {
     setError("");
+    setErrorCode("");
     if (!accessToken) {
       setError("Please sign in on the Account page before upgrading.");
       return;
@@ -143,20 +145,17 @@ export default function PaddleCheckoutCard({
     setLoading(true);
     try {
       if (isMonthlyUpgradeToYearly) {
-        const res = await fetch("/api/paddle/create-portal-session", {
+        const res = await fetch("/api/paddle/upgrade-subscription", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        const payload = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+        const payload = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
         if (!res.ok) {
-          throw new Error(payload?.error || "Unable to open billing portal.");
+          setErrorCode(String(payload?.code || ""));
+          throw new Error(payload?.error || "Upgrade request failed.");
         }
-        if (!payload?.url) {
-          throw new Error("Missing billing portal link.");
-        }
-        window.open(payload.url, "_blank", "noopener,noreferrer");
         return;
       }
 
@@ -196,6 +195,28 @@ export default function PaddleCheckoutCard({
       setError(message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function openBillingPortal() {
+    if (!accessToken) return;
+    try {
+      const res = await fetch("/api/paddle/create-portal-session", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      const payload = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok) {
+        setError(payload?.error || "Unable to open billing portal.");
+        return;
+      }
+      if (payload?.url) {
+        window.open(payload.url, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setError("Unable to open billing portal.");
     }
   }
 
@@ -254,6 +275,16 @@ export default function PaddleCheckoutCard({
             {error}
           </p>
         ) : null}
+        {errorCode === "requires_action" ? (
+          <button
+            type="button"
+            onClick={openBillingPortal}
+            disabled={loading}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+          >
+            Complete verification in portal
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={startCheckout}
@@ -264,7 +295,7 @@ export default function PaddleCheckoutCard({
             ? "Processing..."
             : plan === "yearly"
               ? isMonthlyUpgradeToYearly
-                ? "Upgrade to Yearly in Portal"
+                ? "Switch to Yearly (Prorated)"
                 : "Upgrade to Yearly"
               : "Upgrade to Premium"}
         </button>
