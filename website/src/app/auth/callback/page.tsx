@@ -72,34 +72,20 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        let exchangedSession: { access_token?: string; refresh_token?: string } | null = null;
-        const authClient = supabaseRef.current.auth as typeof supabaseRef.current.auth & {
-          exchangeCodeForSession?: (code: string) => Promise<{ data: { session: typeof exchangedSession }; error: Error | null }>;
-        };
-
-        if (authClient.exchangeCodeForSession) {
-          const { data: exchangeData, error } = await authClient.exchangeCodeForSession(code);
-          if (error) {
-            redirectTo("/login?error=exchange_failed");
+        const { data, error } = await oauthClientRef.current.auth.exchangeCodeForSession(code);
+        if (error) {
+          redirectTo("/login?error=exchange_failed");
+          return;
+        }
+        const exchangedSession = data?.session ?? null;
+        if (exchangedSession?.access_token && exchangedSession?.refresh_token) {
+          const { error: cookieError } = await supabaseRef.current.auth.setSession({
+            access_token: exchangedSession.access_token,
+            refresh_token: exchangedSession.refresh_token,
+          });
+          if (cookieError) {
+            redirectTo("/login?error=callback_failed");
             return;
-          }
-          exchangedSession = exchangeData?.session ?? null;
-        } else {
-          const { data, error } = await oauthClientRef.current.auth.exchangeCodeForSession(code);
-          if (error) {
-            redirectTo("/login?error=exchange_failed");
-            return;
-          }
-          exchangedSession = data?.session ?? null;
-          if (exchangedSession?.access_token && exchangedSession?.refresh_token) {
-            const { error: cookieError } = await supabaseRef.current.auth.setSession({
-              access_token: exchangedSession.access_token,
-              refresh_token: exchangedSession.refresh_token,
-            });
-            if (cookieError) {
-              redirectTo("/login?error=callback_failed");
-              return;
-            }
           }
         }
         if (!exchangedSession) {
