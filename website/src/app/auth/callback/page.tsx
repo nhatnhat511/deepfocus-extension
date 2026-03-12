@@ -22,6 +22,12 @@ export default function AuthCallbackPage() {
     )
   );
   const [message, setMessage] = useState("Completing sign-in...");
+  const [errorMessage, setErrorMessage] = useState("");
+  const goLogin = () => {
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -71,7 +77,7 @@ export default function AuthCallbackPage() {
               refresh_token: refreshToken,
             });
             if (error) {
-              redirectTo("/login?error=oauth_session");
+              setErrorMessage(`Session error: ${error.message || "unknown error"}`);
               return;
             }
             // Give cookies a brief moment to persist before redirecting.
@@ -84,7 +90,7 @@ export default function AuthCallbackPage() {
             return;
           }
           if (hashError) {
-            redirectTo("/login?error=oauth_session");
+            setErrorMessage(`OAuth error: ${hashError}`);
             return;
           }
           // Ignore empty hash and continue with code flow.
@@ -94,13 +100,13 @@ export default function AuthCallbackPage() {
         const code = query.get("code");
         const flowType = query.get("type") || "";
         if (!code) {
-          redirectTo("/login?error=missing_code");
+          setErrorMessage("Missing authorization code.");
           return;
         }
 
         const { data, error } = await oauthClientRef.current.auth.exchangeCodeForSession(code);
         if (error) {
-          redirectTo("/login?error=exchange_failed");
+          setErrorMessage(`Exchange failed: ${error.message || "unknown error"}`);
           return;
         }
         const exchangedSession = data?.session ?? null;
@@ -110,12 +116,12 @@ export default function AuthCallbackPage() {
             refresh_token: exchangedSession.refresh_token,
           });
           if (cookieError) {
-            redirectTo("/login?error=callback_failed");
+            setErrorMessage(`Cookie session error: ${cookieError.message || "unknown error"}`);
             return;
           }
         }
         if (!exchangedSession) {
-          redirectTo("/login?error=callback_failed");
+          setErrorMessage("No session returned from OAuth exchange.");
           return;
         }
         if (flowType === "recovery") {
@@ -123,14 +129,14 @@ export default function AuthCallbackPage() {
           return;
         }
         redirectTo("/account");
-      } catch {
-        redirectTo("/login?error=callback_failed");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown callback error.";
+        setErrorMessage(msg);
       }
     };
 
     fallbackTimer = setTimeout(() => {
-      setMessage("Still working... redirecting you to your account.");
-      redirectTo("/account");
+      setMessage("Still working... please keep this tab open.");
     }, 5000);
 
     void run();
@@ -144,6 +150,20 @@ export default function AuthCallbackPage() {
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6">
       <h1 className="text-xl font-semibold text-slate-900">{message}</h1>
       <p className="mt-2 text-sm text-slate-600">Please keep this tab open while we finish.</p>
+      {errorMessage ? (
+        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {errorMessage}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={goLogin}
+              className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-500"
+            >
+              Return to login
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
