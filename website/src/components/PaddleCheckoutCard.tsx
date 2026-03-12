@@ -369,7 +369,7 @@ export default function PaddleCheckoutCard({
             ? "Processing..."
             : plan === "yearly"
               ? isMonthlyUpgradeToYearly
-                ? "Switch to Yearly (Prorated)"
+                ? "Upgrade to Yearly"
                 : "Upgrade to Yearly"
               : "Upgrade to Premium"}
         </button>

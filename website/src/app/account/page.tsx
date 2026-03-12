@@ -121,6 +121,18 @@ export default function AccountPage() {
 
   const canManagePassword = authProvider === "email";
 
+  const inferredPlan = useMemo(() => {
+    if (!profile) return "free";
+    if (profile.plan === "trial") return "trial";
+    const untilTs = profile.premium_until ? Date.parse(profile.premium_until) : NaN;
+    const remainingDays = Number.isFinite(untilTs) ? (untilTs - Date.now()) / (1000 * 60 * 60 * 24) : NaN;
+    if (Number.isFinite(remainingDays)) {
+      if (remainingDays >= 200) return "premium_yearly";
+      if (remainingDays >= 10) return profile.plan === "free" ? "free" : "premium_monthly";
+    }
+    return profile.plan || "free";
+  }, [profile]);
+
   const accountSummary = useMemo(() => {
     if (!profile) return { label: "Free", detail: "No active premium access." };
     const now = Date.now();
@@ -129,7 +141,7 @@ export default function AccountPage() {
     const isPremium =
       profile.plan === "premium" || profile.plan === "premium_monthly" || profile.plan === "premium_yearly";
     const premiumLabel =
-      profile.plan === "premium_yearly" ? "Premium (Yearly)" : "Premium (Monthly)";
+      inferredPlan === "premium_yearly" ? "Premium (Yearly)" : "Premium (Monthly)";
 
     if (profile.plan === "trial" && activePremium) {
       const msLeft = untilTs - now;
@@ -152,7 +164,7 @@ export default function AccountPage() {
     }
 
     return { label: "Free", detail: "No active premium access. You can start a 7-day free trial." };
-  }, [profile]);
+  }, [profile, inferredPlan]);
   const isCanceledSubscription = useMemo(() => {
     const status = String(profile?.paddle_status || "").toLowerCase();
     return status === "canceled" || status === "cancelled";
@@ -163,8 +175,8 @@ export default function AccountPage() {
   }, [billingMeta?.scheduledAction]);
 
   const isPremiumPlan =
-    profile?.plan === "premium" || profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly";
-  const currentPlan = profile?.plan || "free";
+    inferredPlan === "premium" || inferredPlan === "premium_monthly" || inferredPlan === "premium_yearly";
+  const currentPlan = inferredPlan || "free";
   const isTrialActive = !!profile?.is_trial_active;
   const canStartTrial = currentPlan === "free" && !profile?.trial_used;
   const canUpgradeMonthly = currentPlan === "free" || isTrialActive;
@@ -602,13 +614,30 @@ export default function AccountPage() {
                     <p className="mt-1 text-xs text-slate-600">{accountSummary.detail}</p>
                     {profile?.premium_until ? (
                       <p className="mt-1 text-xs text-slate-500">
-                        {hasScheduledCancel || isCanceledSubscription ? "Access ends on" : "Next billing date"}:{" "}
-                        {new Date(
-                          billingMeta?.scheduledEffectiveAt ||
-                            billingMeta?.currentPeriodEndsAt ||
-                            billingMeta?.nextBilledAt ||
-                            profile.premium_until
-                        ).toLocaleDateString()}
+                        {(() => {
+                          const scheduledTs = billingMeta?.scheduledEffectiveAt
+                            ? Date.parse(billingMeta.scheduledEffectiveAt)
+                            : NaN;
+                          const premiumUntilTs = Date.parse(profile.premium_until);
+                          const isScheduleAligned =
+                            Number.isFinite(scheduledTs) &&
+                            Number.isFinite(premiumUntilTs) &&
+                            Math.abs(scheduledTs - premiumUntilTs) <= 3 * 24 * 60 * 60 * 1000;
+                          const showAccessEnds = (hasScheduledCancel || isCanceledSubscription) && (!isYearlyPlan || isScheduleAligned);
+                          const displayDate = showAccessEnds
+                            ? (billingMeta?.scheduledEffectiveAt ||
+                              billingMeta?.currentPeriodEndsAt ||
+                              profile.premium_until)
+                            : (isYearlyPlan
+                              ? profile.premium_until
+                              : (billingMeta?.nextBilledAt || profile.premium_until));
+                          return (
+                            <>
+                              {showAccessEnds ? "Access ends on" : "Next billing date"}:{" "}
+                              {new Date(displayDate).toLocaleDateString()}
+                            </>
+                          );
+                        })()}
                         {billingMetaLoading ? " (updating...)" : ""}
                       </p>
                     ) : null}
