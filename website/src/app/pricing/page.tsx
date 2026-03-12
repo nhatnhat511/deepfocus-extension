@@ -156,7 +156,7 @@ export default function PricingPage() {
           </ul>
           <Link
             href="/account?plan=yearly#billing-plan"
-            className="mt-6 inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+            className="mt-6 inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
           >
             Upgrade to Premium
           </Link>

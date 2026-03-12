@@ -64,6 +64,7 @@ export default function PaddleCheckoutCard({
 
   const paddleToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "";
   const paddleEnv = (process.env.NEXT_PUBLIC_PADDLE_ENV || "sandbox") as "sandbox" | "production";
+  const missingPaddleToken = !paddleToken;
 
   const normalizedAllowedPlans = useMemo<PlanOption[]>(
     () => (allowedPlans && allowedPlans.length > 0 ? allowedPlans : ["monthly", "yearly"]),
@@ -355,6 +356,11 @@ export default function PaddleCheckoutCard({
             </button>
           </div>
         </div>
+        {missingPaddleToken ? (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Billing is temporarily unavailable. Please contact support.
+          </p>
+        ) : null}
         {success ? (
           <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             {success}
