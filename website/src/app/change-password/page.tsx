@@ -191,7 +191,7 @@ export default function ChangePasswordPage() {
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
               <path
                 fill="currentColor"
-                d="M12 2a6 6 0 0 1 6 6v2h2v2h-2v2a6 6 0 1 1-12 0V12H4v-2h2V8a6 6 0 0 1 6-6m0 2a4 4 0 0 0-4 4v2h8V8a4 4 0 0 0-4-4m0 10a2 2 0 1 0 2 2a2 2 0 0 0-2-2"
+                d="M12 2a7 7 0 0 1 7 7v2h2v2h-2v2a7 7 0 1 1-14 0v-2H3v-2h2V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v2h10V9a5 5 0 0 0-5-5m0 9a2 2 0 1 0 2 2a2 2 0 0 0-2-2"
               />
             </svg>
           </span>

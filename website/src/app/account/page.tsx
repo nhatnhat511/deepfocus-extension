@@ -114,7 +114,7 @@ export default function AccountPage() {
   const fallbackAvatar = useMemo(() => {
     if (authProvider !== "email") return "";
     const seed = user?.id || user?.email || "deepfocus";
-    return `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(seed)}`;
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}&radius=50&backgroundColor=ecfdf5&textColor=0f766e`;
   }, [authProvider, user]);
 
   const providerLabel = useMemo(() => {

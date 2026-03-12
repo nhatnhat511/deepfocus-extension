@@ -373,31 +373,35 @@ export default function PaddleCheckoutCard({
         >
           {loading ? "Processing..." : "Upgrade to Premium"}
         </button>
-        {plan === "yearly" ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-800">
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3">
-                <path
-                  fill="currentColor"
-                  d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5"
-                />
-              </svg>
-              Secure checkout
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-3 w-3 text-slate-600">
-                <path
-                  fill="currentColor"
-                  d="M3 6.75A2.75 2.75 0 0 1 5.75 4h12.5A2.75 2.75 0 0 1 21 6.75v10.5A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25Zm2.75-.25a.75.75 0 0 0-.75.75v.5h14v-.5a.75.75 0 0 0-.75-.75Zm13.25 4H5v6.75c0 .41.34.75.75.75h12.5a.75.75 0 0 0 .75-.75Z"
-                />
-              </svg>
-              Encrypted payments
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
-              Cancel anytime
-            </span>
-          </div>
-        ) : null}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-700">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-800">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+              <path
+                fill="currentColor"
+                d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5"
+              />
+            </svg>
+            Secure checkout
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-slate-600">
+              <path
+                fill="currentColor"
+                d="M3 6.75A2.75 2.75 0 0 1 5.75 4h12.5A2.75 2.75 0 0 1 21 6.75v10.5A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25Zm2.75-.25a.75.75 0 0 0-.75.75v.5h14v-.5a.75.75 0 0 0-.75-.75Zm13.25 4H5v6.75c0 .41.34.75.75.75h12.5a.75.75 0 0 0 .75-.75Z"
+              />
+            </svg>
+            Encrypted payments
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-slate-600">
+              <path
+                fill="currentColor"
+                d="M12 3a9 9 0 1 1-9 9a9 9 0 0 1 9-9m1 5h-2v5.25l4.25 2.55 1-1.64-3.25-1.96Z"
+              />
+            </svg>
+            Cancel anytime
+          </span>
+        </div>
       </div>
     </>
   );
