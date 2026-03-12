@@ -324,7 +324,7 @@ export default function PaddleCheckoutCard({
         <p className="mt-2 text-xs text-slate-500">
           Premium maps to your signed-in DeepFocus account.
         </p>
-        <div className="mt-4">
+        <div className="mt-4" id="billing-plan">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Billing plan</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <button
@@ -373,8 +373,8 @@ export default function PaddleCheckoutCard({
         >
           {loading ? "Processing..." : "Upgrade to Premium"}
         </button>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm text-slate-700">
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-800">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-base text-slate-700">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 font-semibold text-emerald-800">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
               <path
                 fill="currentColor"
@@ -383,7 +383,7 @@ export default function PaddleCheckoutCard({
             </svg>
             Secure checkout
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold">
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-slate-600">
               <path
                 fill="currentColor"
@@ -392,7 +392,7 @@ export default function PaddleCheckoutCard({
             </svg>
             Encrypted payments
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 font-semibold">
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-semibold">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-slate-600">
               <path
                 fill="currentColor"

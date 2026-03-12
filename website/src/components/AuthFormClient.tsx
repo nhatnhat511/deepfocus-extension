@@ -79,8 +79,16 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   const [showResend, setShowResend] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
+  const [redirectAfterAuth, setRedirectAfterAuth] = useState("");
+  const [forgotBackHref, setForgotBackHref] = useState("/login");
+  const [forgotBackLabel, setForgotBackLabel] = useState("Back to sign in");
 
   const signedIn = !!(session?.access_token && session?.user?.id);
+
+  const nextQuery = useMemo(() => {
+    if (!redirectAfterAuth) return "";
+    return `?next=${encodeURIComponent(redirectAfterAuth)}`;
+  }, [redirectAfterAuth]);
 
   const headline = useMemo(() => {
     switch (mode) {
@@ -102,7 +110,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M15 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4m-9 8v-1.4C6 15.7 9.8 14 15 14c.7 0 1.38.04 2 .12V12h2v2h2v2h-2v2h-2v-2h-.8c-3.2 0-5.2 1.2-5.2 2.6V20Z"
+              d="M12 12.5a4 4 0 1 0-4-4a4 4 0 0 0 4 4m0 1.5c-4.42 0-8 2.24-8 5v1h10v-2H6.12a.86.86 0 0 1-.02-.17c0-1.4 2.59-2.83 5.9-2.83.7 0 1.37.06 2 .17V14Zm7-2h-2V9h-2v3h-2v2h2v3h2v-3h2Z"
             />
           </svg>
         );
@@ -111,7 +119,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M12 2a6 6 0 0 1 6 6v3h2v2h-2v3a6 6 0 1 1-12 0v-3H4v-2h2V8a6 6 0 0 1 6-6m0 2a4 4 0 0 0-4 4v3h8V8a4 4 0 0 0-4-4m0 10a2 2 0 1 0 2 2a2 2 0 0 0-2-2"
+              d="M12 2a6 6 0 0 1 6 6v2h2v2h-2v4a6 6 0 1 1-12 0v-4H4V10h2V8a6 6 0 0 1 6-6m0 2a4 4 0 0 0-4 4v2h8V8a4 4 0 0 0-4-4m0 9.5a2.5 2.5 0 1 0 2.5 2.5A2.5 2.5 0 0 0 12 13.5"
             />
           </svg>
         );
@@ -120,7 +128,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M12 2a7 7 0 0 1 7 7v3h1a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h1V9a7 7 0 0 1 7-7m0 2a5 5 0 0 0-5 5v3h10V9a5 5 0 0 0-5-5"
+              d="M12 2a6 6 0 0 1 6 6v2h2a2 2 0 0 1 2 2v8h-8v-2h6v-6H4v6h6v2H2v-8a2 2 0 0 1 2-2h2V8a6 6 0 0 1 6-6m0 2a4 4 0 0 0-4 4v2h8V8a4 4 0 0 0-4-4"
             />
           </svg>
         );
@@ -129,10 +137,29 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M12 3a5 5 0 0 1 5 5v2h1a2 2 0 0 1 2 2v9H4v-9a2 2 0 0 1 2-2h1V8a5 5 0 0 1 5-5m-3 7h6V8a3 3 0 0 0-6 0Z"
+              d="M12 3a5 5 0 0 1 5 5v2h1a2 2 0 0 1 2 2v9H4v-9a2 2 0 0 1 2-2h1V8a5 5 0 0 1 5-5m-3 7h6V8a3 3 0 0 0-6 0v2Z"
             />
           </svg>
         );
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const nextRaw = params.get("next");
+    if (nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.includes("://")) {
+      setRedirectAfterAuth(nextRaw);
+    }
+    if (mode === "forgot") {
+      const from = params.get("from");
+      if (from === "account") {
+        setForgotBackHref("/account");
+        setForgotBackLabel("Back to account");
+      } else {
+        setForgotBackHref("/login");
+        setForgotBackLabel("Back to sign in");
+      }
     }
   }, [mode]);
 
@@ -183,13 +210,14 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (sessionLoading || !sessionVerified) return;
     if (!signedIn) return;
     if (mode === "login" || mode === "signup") {
+      const target = redirectAfterAuth || "/account";
       if (typeof window !== "undefined") {
-        window.location.replace("/account");
+        window.location.replace(target);
       } else {
-        router.replace("/account");
+        router.replace(target);
       }
     }
-  }, [signedIn, mode, router]);
+  }, [signedIn, mode, redirectAfterAuth, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -567,9 +595,12 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
     const supabase = supabaseRef.current;
+    const callbackUrl = redirectAfterAuth
+      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfterAuth)}`
+      : `${window.location.origin}/auth/callback`;
     supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl },
     });
   }
 
@@ -832,7 +863,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       {mode === "login" ? (
         <p className="text-center text-sm text-slate-600">
           New to DeepFocus?{" "}
-          <a href="/signup" className="font-semibold text-emerald-600 hover:underline">
+          <a href={`/signup${nextQuery}`} className="font-semibold text-emerald-600 hover:underline">
             Create an account
           </a>
         </p>
@@ -840,7 +871,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       {mode === "signup" ? (
         <p className="text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <a href="/login" className="font-semibold text-emerald-600 hover:underline">
+          <a href={`/login${nextQuery}`} className="font-semibold text-emerald-600 hover:underline">
             Sign in
           </a>
         </p>
@@ -848,8 +879,8 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       {mode === "forgot" ? (
         <p className="text-center text-sm text-slate-600">
           Remembered your password?{" "}
-          <a href="/login" className="font-semibold text-emerald-600 hover:underline">
-            Back to sign in
+          <a href={forgotBackHref} className="font-semibold text-emerald-600 hover:underline">
+            {forgotBackLabel}
           </a>
         </p>
       ) : null}

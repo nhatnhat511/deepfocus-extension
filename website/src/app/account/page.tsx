@@ -760,7 +760,7 @@ export default function AccountPage() {
                       Change password
                     </a>
                     <a
-                      href="/forgot-password"
+                      href="/forgot-password?from=account"
                       className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
                     >
                       Forgot password
