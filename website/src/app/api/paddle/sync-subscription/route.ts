@@ -182,6 +182,19 @@ async function paddleGet<T>(path: string): Promise<T> {
   return payload.data as T;
 }
 
+type PaddleCustomer = {
+  id?: string;
+  email?: string;
+};
+
+async function resolveCustomerIdByEmail(email: string) {
+  if (!email) return "";
+  const list = await paddleGet<PaddleCustomer[]>(`/customers?email=${encodeURIComponent(email)}&per_page=5`);
+  if (!Array.isArray(list) || list.length === 0) return "";
+  const exact = list.find((item) => String(item.email || "").toLowerCase() === email.toLowerCase());
+  return String((exact || list[0]).id || "");
+}
+
 async function applyProfileEntitlementByUserId(params: {
   userId: string;
   email: string;
@@ -270,6 +283,9 @@ export async function POST(req: Request) {
     let resolvedCustomerId = customerId;
     if (!resolvedCustomerId && subscription?.customer_id) {
       resolvedCustomerId = String(subscription.customer_id || "");
+    }
+    if (!resolvedCustomerId && email) {
+      resolvedCustomerId = await resolveCustomerIdByEmail(email);
     }
 
     if (resolvedCustomerId) {

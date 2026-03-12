@@ -466,7 +466,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!signedIn || !session?.access_token) return;
-    if (!profile?.paddle_subscription_id) return;
+    if (!profile) return;
     if (syncAttemptedRef.current) return;
     syncAttemptedRef.current = true;
     const syncNow = async () => {
@@ -485,7 +485,7 @@ export default function AccountPage() {
       }
     };
     void syncNow();
-  }, [signedIn, session?.access_token, profile?.paddle_subscription_id]);
+  }, [signedIn, session?.access_token, profile]);
 
   async function onAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
