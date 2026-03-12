@@ -128,6 +128,15 @@ export default function PaddleCheckoutCard({
     paddleInitialized = true;
   }
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (ready) return;
+    if (window.Paddle) {
+      setReady(true);
+      initPaddleIfNeeded();
+    }
+  }, [ready]);
+
   async function startCheckout() {
     setError("");
     setErrorCode("");
