@@ -24,12 +24,30 @@ export default function AuthCallbackPage() {
         if (hash) {
           const params = new URLSearchParams(hash.replace(/^#/, ""));
           const flowType = params.get("type");
-          const { error } = await supabaseRef.current.auth.getSessionFromUrl({
-            storeSession: true,
-          });
-          if (error) {
-            redirectTo("/login?error=oauth_session");
-            return;
+          const authClient = supabaseRef.current.auth as unknown as {
+            getSessionFromUrl?: (opts: { storeSession: boolean }) => Promise<{ error?: { message?: string } | null }>;
+          };
+          if (typeof authClient.getSessionFromUrl === "function") {
+            const { error } = await authClient.getSessionFromUrl({ storeSession: true });
+            if (error) {
+              redirectTo("/login?error=oauth_session");
+              return;
+            }
+          } else {
+            const accessToken = params.get("access_token");
+            const refreshToken = params.get("refresh_token") || "";
+            if (!accessToken) {
+              redirectTo("/login?error=missing_token");
+              return;
+            }
+            const { error } = await supabaseRef.current.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (error) {
+              redirectTo("/login?error=oauth_session");
+              return;
+            }
           }
           // Give cookies a brief moment to persist before redirecting.
           await new Promise((resolve) => setTimeout(resolve, 150));
