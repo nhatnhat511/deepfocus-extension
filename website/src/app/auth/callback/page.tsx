@@ -18,6 +18,7 @@ export default function AuthCallbackPage() {
           // Persist PKCE verifier so exchangeCodeForSession can succeed after redirect.
           persistSession: true,
           detectSessionInUrl: false,
+          storageKey: "df_oauth_auth",
         },
       }
     )

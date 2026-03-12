@@ -73,6 +73,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           autoRefreshToken: false,
           persistSession: true,
           detectSessionInUrl: false,
+          storageKey: "df_oauth_auth",
         },
       }
     )
