@@ -275,14 +275,14 @@ export default function PaddleCheckoutCard({
             {error}
           </p>
         ) : null}
-        {errorCode === "requires_action" ? (
+        {isMonthlyUpgradeToYearly && error ? (
           <button
             type="button"
             onClick={openBillingPortal}
             disabled={loading}
             className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
-            Complete verification in portal
+            Try completing in portal
           </button>
         ) : null}
         <button
