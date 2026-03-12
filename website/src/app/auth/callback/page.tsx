@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export default function AuthCallbackPage() {
   const supabaseRef = useRef(createSupabaseBrowserClient());
+  const hasRunRef = useRef(false);
   const oauthClientRef = useRef(
     createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co",
@@ -31,6 +32,8 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
     const redirectTo = (path: string) => {
@@ -102,6 +105,16 @@ export default function AuthCallbackPage() {
         if (!code) {
           setErrorMessage("Missing authorization code.");
           return;
+        }
+        const codeKey = `df_oauth_code_${code}`;
+        try {
+          if (window.sessionStorage.getItem(codeKey)) {
+            setErrorMessage("This sign-in attempt has already been processed. Please try again.");
+            return;
+          }
+          window.sessionStorage.setItem(codeKey, "1");
+        } catch {
+          // ignore storage errors
         }
 
         const { data, error } = await oauthClientRef.current.auth.exchangeCodeForSession(code);
