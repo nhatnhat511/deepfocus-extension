@@ -91,6 +91,7 @@ export default function AccountPage() {
   } | null>(null);
   const [billingMetaLoading, setBillingMetaLoading] = useState(false);
   const syncAttemptedRef = useRef(false);
+  const loginRetryRef = useRef(false);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -210,9 +211,21 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (sessionLoading) return;
-    if (!signedIn) {
+    if (signedIn) return;
+    if (loginRetryRef.current) {
       router.replace("/login");
+      return;
     }
+    loginRetryRef.current = true;
+    const supabase = supabaseRef.current;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSession(data.session);
+        void refreshCurrentUser(data.session);
+      } else {
+        router.replace("/login");
+      }
+    });
   }, [sessionLoading, signedIn, router]);
 
   useEffect(() => {

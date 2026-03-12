@@ -426,7 +426,18 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       });
       if (signInError) throw new Error(signInError.message);
       if (!data.session) throw new Error("Session creation failed.");
-      setSession(data.session);
+      const { data: persisted } = await supabase.auth.getSession();
+      if (!persisted.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+      const { data: verified } = await supabase.auth.getSession();
+      if (!verified.session) {
+        throw new Error("Unable to establish a session. Please try again.");
+      }
+      setSession(verified.session);
       setStatus("Signed in successfully.");
       setStatusType("success");
       setShowResend(false);
