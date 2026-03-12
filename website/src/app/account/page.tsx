@@ -610,6 +610,14 @@ export default function AccountPage() {
                   defaultPlan={preferredPlan}
                   currentPlan={currentPlan}
                   subscriptionId={profile?.paddle_subscription_id || null}
+                  onUpgradeSuccess={({ amountText }) => {
+                    const message = amountText
+                      ? `Upgrade successful. Amount paid: ${amountText}.`
+                      : "Upgrade successful. Your account is now Premium Yearly.";
+                    setStatus(message);
+                    setStatusType("success");
+                    void refreshCurrentUser(session);
+                  }}
                   allowedPlans={
                     canUpgradeMonthly && canUpgradeYearly
                       ? ["monthly", "yearly"]

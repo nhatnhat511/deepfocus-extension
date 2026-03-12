@@ -36,6 +36,7 @@ type PaddleCheckoutCardProps = {
   allowedPlans?: PlanOption[];
   currentPlan?: string;
   subscriptionId?: string | null;
+  onUpgradeSuccess?: (summary: { amountText?: string }) => void;
 };
 
 const monthlyPrice = 2.99;
@@ -49,12 +50,14 @@ export default function PaddleCheckoutCard({
   allowedPlans,
   currentPlan,
   subscriptionId,
+  onUpgradeSuccess,
 }: PaddleCheckoutCardProps) {
   const [email, setEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [errorCode, setErrorCode] = useState("");
+  const [success, setSuccess] = useState("");
   const [ready, setReady] = useState(false);
   const [plan, setPlan] = useState<PlanOption>(defaultPlan);
   const supabaseRef = useRef(createSupabaseBrowserClient());
@@ -125,6 +128,7 @@ export default function PaddleCheckoutCard({
   async function startCheckout() {
     setError("");
     setErrorCode("");
+    setSuccess("");
     if (!accessToken) {
       setError("Please sign in on the Account page before upgrading.");
       return;
@@ -157,6 +161,52 @@ export default function PaddleCheckoutCard({
           const msg = payload?.error || "Upgrade request failed.";
           const detail = payload?.detail ? ` (${payload.detail})` : "";
           throw new Error(`${msg}${detail}`);
+        }
+        await fetch("/api/paddle/sync-subscription", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }).catch(() => null);
+
+        let amountText = "";
+        try {
+          const latestRes = await fetch("/api/paddle/latest-transaction", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          const latestPayload = (await latestRes.json().catch(() => ({}))) as {
+            amount?: string;
+            currency?: string;
+          };
+          if (latestRes.ok && latestPayload?.amount) {
+            const currency = String(latestPayload.currency || "").toUpperCase();
+            const numeric = Number(latestPayload.amount);
+            if (Number.isFinite(numeric) && currency) {
+              try {
+                amountText = new Intl.NumberFormat(undefined, {
+                  style: "currency",
+                  currency,
+                  minimumFractionDigits: 2,
+                }).format(numeric);
+              } catch {
+                amountText = `${latestPayload.amount} ${currency}`;
+              }
+            } else {
+              amountText = latestPayload.amount + (currency ? ` ${currency}` : "");
+            }
+          }
+        } catch {
+          // ignore transaction lookup failures
+        }
+        const successMsg = amountText
+          ? `Upgrade successful. Amount paid: ${amountText}.`
+          : "Upgrade successful. Your account is now Premium Yearly.";
+        setSuccess(successMsg);
+        if (onUpgradeSuccess) {
+          onUpgradeSuccess({ amountText });
         }
         return;
       }
@@ -272,6 +322,11 @@ export default function PaddleCheckoutCard({
             </button>
           </div>
         </div>
+        {success ? (
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            {success}
+          </p>
+        ) : null}
         {error ? (
           <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
             {error}

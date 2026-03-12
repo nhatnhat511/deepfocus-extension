@@ -13,6 +13,10 @@ type PaddleSubscription = {
   status?: string;
   customer_id?: string;
   custom_data?: Record<string, unknown>;
+  items?: Array<{
+    price_id?: string | null;
+    price?: { id?: string | null } | null;
+  }> | null;
   next_billed_at?: string | null;
   current_billing_period?: {
     starts_at?: string | null;
@@ -30,6 +34,8 @@ const PADDLE_API_KEY = process.env.PADDLE_API_KEY || "";
 const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET || "";
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const PADDLE_PRICE_ID_MONTHLY = process.env.PADDLE_PRICE_ID || "";
+const PADDLE_PRICE_ID_YEARLY = process.env.PADDLE_PRICE_ID_YEARLY || "";
 
 function jsonOk(data: Record<string, unknown> = {}) {
   return NextResponse.json(data, { status: 200 });
@@ -229,7 +235,18 @@ function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: 
 
   const activeByStatus = status === "active" || status === "trialing" || status === "past_due";
   const shouldGrantPremium = activeByStatus || hasFutureWindow;
-  const normalizedPlan = normalizePlanHint(planHint) || "premium";
+  let resolvedPlan = normalizePlanHint(planHint);
+  if (!resolvedPlan && data.items && data.items.length > 0) {
+    const priceIds = data.items
+      .map((item) => item.price_id || item.price?.id || "")
+      .filter(Boolean);
+    if (PADDLE_PRICE_ID_YEARLY && priceIds.includes(PADDLE_PRICE_ID_YEARLY)) {
+      resolvedPlan = "premium_yearly";
+    } else if (PADDLE_PRICE_ID_MONTHLY && priceIds.includes(PADDLE_PRICE_ID_MONTHLY)) {
+      resolvedPlan = "premium_monthly";
+    }
+  }
+  const normalizedPlan = resolvedPlan || "premium";
 
   return {
     plan: shouldGrantPremium ? normalizedPlan : "free",
@@ -344,9 +361,6 @@ async function handleWebhookEvent(eventType: string, data: Record<string, unknow
   }
 
   const resolved = await resolveIdentityForEvent(eventType, data);
-  if (!resolved.userId) {
-    throw new Error(`Missing deepfocus_user_id for ${eventType}`);
-  }
 
   if (!resolved.subscription && eventType === "transaction.paid" && resolved.subscriptionId) {
     resolved.subscription = await paddleApi<PaddleSubscription>(
@@ -359,19 +373,40 @@ async function handleWebhookEvent(eventType: string, data: Record<string, unknow
   }
 
   const entitlement = derivePlanAndUntilFromSubscription(resolved.subscription, resolved.planHint);
-  const resultById = await applyProfileEntitlementByUserId({
-    userId: resolved.userId,
-    email: resolved.email,
-    plan: entitlement.plan,
-    premiumUntil: entitlement.premiumUntil,
-    paddleSubscriptionId: resolved.subscriptionId,
-    paddleCustomerId: resolved.customerId,
-    paddleStatus: entitlement.status,
-  });
-  const okById = Array.isArray(resultById) && resultById[0] && resultById[0].success === true;
-  if (!okById) {
-    throw new Error(`Profile mapping failed for user id: ${resolved.userId}`);
+  if (resolved.userId) {
+    const resultById = await applyProfileEntitlementByUserId({
+      userId: resolved.userId,
+      email: resolved.email,
+      plan: entitlement.plan,
+      premiumUntil: entitlement.premiumUntil,
+      paddleSubscriptionId: resolved.subscriptionId,
+      paddleCustomerId: resolved.customerId,
+      paddleStatus: entitlement.status,
+    });
+    const okById = Array.isArray(resultById) && resultById[0] && resultById[0].success === true;
+    if (!okById) {
+      throw new Error(`Profile mapping failed for user id: ${resolved.userId}`);
+    }
+    return;
   }
+
+  if (resolved.email) {
+    const resultByEmail = await applyProfileEntitlementByEmail({
+      email: resolved.email,
+      plan: entitlement.plan,
+      premiumUntil: entitlement.premiumUntil,
+      paddleSubscriptionId: resolved.subscriptionId,
+      paddleCustomerId: resolved.customerId,
+      paddleStatus: entitlement.status,
+    });
+    const okByEmail = Array.isArray(resultByEmail) && resultByEmail[0] && resultByEmail[0].success === true;
+    if (!okByEmail) {
+      throw new Error(`Profile mapping failed for email: ${resolved.email}`);
+    }
+    return;
+  }
+
+  throw new Error(`Missing deepfocus_user_id for ${eventType}`);
 }
 
 export async function POST(req: Request) {
