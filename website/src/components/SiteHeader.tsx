@@ -31,15 +31,32 @@ export default function SiteHeader() {
     supabase.auth.getSession().then(({ data }) => {
       const hasSession = !!(data.session?.access_token && data.session?.user?.id);
       setSignedIn(hasSession);
+      if (data.session?.access_token) {
+        supabase.auth.getUser().then(({ error }) => {
+          if (error) {
+            const maybeStop = supabase.auth as typeof supabase.auth & { stopAutoRefresh?: () => void };
+            if (maybeStop.stopAutoRefresh) maybeStop.stopAutoRefresh();
+            supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+            setSignedIn(false);
+          }
+        });
+      }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (_event === "TOKEN_REFRESH_FAILED") {
+        const maybeStop = supabase.auth as typeof supabase.auth & { stopAutoRefresh?: () => void };
+        if (maybeStop.stopAutoRefresh) maybeStop.stopAutoRefresh();
+        supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+        setSignedIn(false);
+        return;
+      }
       const hasSession = !!(nextSession?.access_token && nextSession?.user?.id);
       setSignedIn(hasSession);
     });
     return () => {
       listener?.subscription?.unsubscribe();
     };
-  }, []);
+  }, [pathname]);
 
   const accountIcon = signedIn ? (
     <svg
