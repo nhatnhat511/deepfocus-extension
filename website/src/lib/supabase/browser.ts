@@ -10,6 +10,10 @@ export function createSupabaseBrowserClient() {
       ? ".deepfocustime.com"
       : undefined;
   return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      flowType: "pkce",
+      detectSessionInUrl: false,
+    },
     cookieOptions: {
       domain: cookieDomain,
       path: "/",
