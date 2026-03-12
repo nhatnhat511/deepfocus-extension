@@ -593,9 +593,9 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         </p>
 
         {sessionLoading ? (
-          <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          <span className="sr-only" aria-live="polite">
             Checking session...
-          </p>
+          </span>
         ) : null}
         {mode === "update" && !sessionLoading && !recoveryReady ? (
           <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
