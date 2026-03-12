@@ -242,9 +242,14 @@ export async function POST(req: Request) {
       subscription = await paddleGet<PaddleSubscription>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
     }
 
-    if (customerId) {
+    let resolvedCustomerId = customerId;
+    if (!resolvedCustomerId && subscription?.customer_id) {
+      resolvedCustomerId = String(subscription.customer_id || "");
+    }
+
+    if (resolvedCustomerId) {
       const list = await paddleGet<PaddleSubscription[]>(
-        `/subscriptions?customer_id=${encodeURIComponent(customerId)}&per_page=20`
+        `/subscriptions?customer_id=${encodeURIComponent(resolvedCustomerId)}&per_page=20`
       );
       const best = pickBestSubscription(list || []);
       if (best && (!subscription || best.id !== subscription.id)) {
@@ -264,7 +269,7 @@ export async function POST(req: Request) {
       plan: entitlement.plan,
       premiumUntil: entitlement.premiumUntil,
       paddleSubscriptionId: String(subscription.id || subscriptionId),
-      paddleCustomerId: subscription.customer_id || customerId || null,
+      paddleCustomerId: subscription.customer_id || resolvedCustomerId || null,
       paddleStatus: entitlement.status,
     });
 

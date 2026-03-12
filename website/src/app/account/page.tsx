@@ -440,6 +440,21 @@ export default function AccountPage() {
     if (!signedIn || !profile?.paddle_subscription_id) return;
     const handleFocus = () => {
       void refreshBillingMeta();
+      if (
+        profile?.plan === "premium" ||
+        profile?.plan === "premium_monthly"
+      ) {
+        void fetch("/api/paddle/sync-subscription", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session?.access_token || ""}`,
+          },
+        }).then((res) => {
+          if (res.ok) {
+            void refreshCurrentUser(session);
+          }
+        });
+      }
     };
     window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleFocus);
@@ -447,7 +462,7 @@ export default function AccountPage() {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleFocus);
     };
-  }, [signedIn, profile?.paddle_subscription_id, session?.access_token]);
+  }, [signedIn, profile?.paddle_subscription_id, profile?.plan, session?.access_token, session]);
 
   useEffect(() => {
     if (!signedIn || !session?.access_token) return;
