@@ -4,6 +4,7 @@ export const runtime = "edge";
 
 type PaddleSubscription = {
   id?: string;
+  customer_id?: string | null;
   status?: string | null;
   items?: Array<{
     price_id?: string | null;
