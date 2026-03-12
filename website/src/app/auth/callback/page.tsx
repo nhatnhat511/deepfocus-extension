@@ -2,9 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createClient } from "@supabase/supabase-js";
 
 export default function AuthCallbackPage() {
   const supabaseRef = useRef(createSupabaseBrowserClient());
+  const oauthClientRef = useRef(
+    createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr",
+      {
+        auth: {
+          flowType: "pkce",
+          autoRefreshToken: false,
+          // Persist PKCE verifier so exchangeCodeForSession can succeed after redirect.
+          persistSession: true,
+          detectSessionInUrl: false,
+        },
+      }
+    )
+  );
   const [message, setMessage] = useState("Completing sign-in...");
 
   useEffect(() => {
@@ -24,30 +40,19 @@ export default function AuthCallbackPage() {
         if (hash) {
           const params = new URLSearchParams(hash.replace(/^#/, ""));
           const flowType = params.get("type");
-          const authClient = supabaseRef.current.auth as unknown as {
-            getSessionFromUrl?: (opts: { storeSession: boolean }) => Promise<{ error?: { message?: string } | null }>;
-          };
-          if (typeof authClient.getSessionFromUrl === "function") {
-            const { error } = await authClient.getSessionFromUrl({ storeSession: true });
-            if (error) {
-              redirectTo("/login?error=oauth_session");
-              return;
-            }
-          } else {
-            const accessToken = params.get("access_token");
-            const refreshToken = params.get("refresh_token") || "";
-            if (!accessToken) {
-              redirectTo("/login?error=missing_token");
-              return;
-            }
-            const { error } = await supabaseRef.current.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            if (error) {
-              redirectTo("/login?error=oauth_session");
-              return;
-            }
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token") || "";
+          if (!accessToken) {
+            redirectTo("/login?error=missing_token");
+            return;
+          }
+          const { error } = await supabaseRef.current.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            redirectTo("/login?error=oauth_session");
+            return;
           }
           // Give cookies a brief moment to persist before redirecting.
           await new Promise((resolve) => setTimeout(resolve, 150));
@@ -67,9 +72,38 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        const { error } = await supabaseRef.current.auth.exchangeCodeForSession(code);
-        if (error) {
-          redirectTo("/login?error=exchange_failed");
+        let exchangedSession: { access_token?: string; refresh_token?: string } | null = null;
+        const authClient = supabaseRef.current.auth as typeof supabaseRef.current.auth & {
+          exchangeCodeForSession?: (code: string) => Promise<{ data: { session: typeof exchangedSession }; error: Error | null }>;
+        };
+
+        if (authClient.exchangeCodeForSession) {
+          const { data: exchangeData, error } = await authClient.exchangeCodeForSession(code);
+          if (error) {
+            redirectTo("/login?error=exchange_failed");
+            return;
+          }
+          exchangedSession = exchangeData?.session ?? null;
+        } else {
+          const { data, error } = await oauthClientRef.current.auth.exchangeCodeForSession(code);
+          if (error) {
+            redirectTo("/login?error=exchange_failed");
+            return;
+          }
+          exchangedSession = data?.session ?? null;
+          if (exchangedSession?.access_token && exchangedSession?.refresh_token) {
+            const { error: cookieError } = await supabaseRef.current.auth.setSession({
+              access_token: exchangedSession.access_token,
+              refresh_token: exchangedSession.refresh_token,
+            });
+            if (cookieError) {
+              redirectTo("/login?error=callback_failed");
+              return;
+            }
+          }
+        }
+        if (!exchangedSession) {
+          redirectTo("/login?error=callback_failed");
           return;
         }
         if (flowType === "recovery") {

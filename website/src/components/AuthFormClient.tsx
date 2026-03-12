@@ -71,7 +71,8 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         auth: {
           flowType: "pkce",
           autoRefreshToken: false,
-          persistSession: false,
+          // Persist PKCE code_verifier across the redirect.
+          persistSession: true,
           detectSessionInUrl: false,
         },
       }
