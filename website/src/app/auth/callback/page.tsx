@@ -36,6 +36,11 @@ export default function AuthCallbackPage() {
 
     const run = async () => {
       try {
+        const maybeStop = supabaseRef.current.auth as typeof supabaseRef.current.auth & { stopAutoRefresh?: () => void };
+        if (maybeStop.stopAutoRefresh) {
+          maybeStop.stopAutoRefresh();
+        }
+
         // Clear stale session tokens without touching PKCE code_verifier.
         const projectRef = (process.env.NEXT_PUBLIC_SUPABASE_URL || "")
           .replace("https://", "")

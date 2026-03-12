@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const navLinks = [
@@ -20,8 +21,12 @@ export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const supabaseRef = useRef(createSupabaseBrowserClient());
+  const pathname = usePathname();
 
   useEffect(() => {
+    if (pathname?.startsWith("/auth/callback")) {
+      return;
+    }
     const supabase = supabaseRef.current;
     supabase.auth.getSession().then(({ data }) => {
       const hasSession = !!(data.session?.access_token && data.session?.user?.id);
