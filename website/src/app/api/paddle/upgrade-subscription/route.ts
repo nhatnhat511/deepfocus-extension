@@ -175,7 +175,7 @@ export async function POST(req: Request) {
     }
 
     const updated = await paddlePatch<PaddleSubscription>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
-      proration_billing_mode: "prorated_next_billing_period",
+      proration_billing_mode: "prorated_immediately",
       items: [
         {
           price_id: PADDLE_PRICE_ID_YEARLY,
