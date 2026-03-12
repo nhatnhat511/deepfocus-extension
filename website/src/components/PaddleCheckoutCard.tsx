@@ -82,6 +82,8 @@ export default function PaddleCheckoutCard({
   }, [accessToken, email, loading, paddleToken, ready, normalizedAllowedPlans, plan]);
   const isMonthlyUpgradeToYearly =
     (currentPlan === "premium" || currentPlan === "premium_monthly") && plan === "yearly";
+  const isActiveMonthly = currentPlan === "premium" || currentPlan === "premium_monthly";
+  const isActiveYearly = currentPlan === "premium_yearly";
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -143,6 +145,10 @@ export default function PaddleCheckoutCard({
     }
     if (plan === "yearly" && currentPlan === "premium_yearly") {
       setError("You are already on Premium Yearly.");
+      return;
+    }
+    if (plan === "monthly" && isActiveMonthly) {
+      setError("You already have an active Monthly plan. It will renew automatically.");
       return;
     }
     if (!window.Paddle && !isMonthlyUpgradeToYearly) {

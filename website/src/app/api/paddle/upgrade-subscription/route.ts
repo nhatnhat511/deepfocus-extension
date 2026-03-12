@@ -21,11 +21,13 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 type SupabaseUser = {
   id?: string;
+  email?: string;
 };
 
 type ProfileRow = {
   plan?: string | null;
   paddle_subscription_id?: string | null;
+  premium_until?: string | null;
 };
 
 function jsonError(message: string, status = 400) {
@@ -108,7 +110,7 @@ async function getUserFromAccessToken(accessToken: string) {
 
 async function getProfile(accessToken: string, userId: string) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?select=plan,paddle_subscription_id&id=eq.${encodeURIComponent(
+    `${SUPABASE_URL}/rest/v1/profiles?select=plan,premium_until,paddle_subscription_id&id=eq.${encodeURIComponent(
       userId
     )}&limit=1`,
     {
@@ -169,11 +171,17 @@ export async function POST(req: Request) {
     if (!userId) {
       return jsonError("Unable to resolve account identity.", 401);
     }
+    const email = String(user.email || "").trim().toLowerCase();
 
     const profile = await getProfile(accessToken, userId);
     const plan = String(profile?.plan || "");
+    const premiumUntil = profile?.premium_until ? Date.parse(profile.premium_until) : 0;
+    const hasActivePremium = Number.isFinite(premiumUntil) && premiumUntil > Date.now();
     if (!plan || (plan !== "premium" && plan !== "premium_monthly")) {
       return jsonError("Only monthly subscriptions can be upgraded to yearly.", 400);
+    }
+    if (!hasActivePremium) {
+      return jsonError("Your monthly plan is no longer active. Please start a new yearly plan.", 400);
     }
     const subscriptionId = String(profile?.paddle_subscription_id || "");
     if (!subscriptionId) {
@@ -182,6 +190,11 @@ export async function POST(req: Request) {
 
     const updated = await paddlePatch<PaddleSubscription>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
       proration_billing_mode: "prorated_immediately",
+      custom_data: {
+        deepfocus_user_id: userId,
+        deepfocus_email: email || undefined,
+        deepfocus_plan: "premium_yearly",
+      },
       items: [
         {
           price_id: PADDLE_PRICE_ID_YEARLY,

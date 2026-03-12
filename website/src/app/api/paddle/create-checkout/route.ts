@@ -33,6 +33,11 @@ type SupabaseUser = {
   email_confirmed_at?: string | null;
 };
 
+type ProfileRow = {
+  plan?: string | null;
+  premium_until?: string | null;
+};
+
 type RateLimitEntry = {
   count: number;
   resetAt: number;
@@ -118,6 +123,29 @@ async function getUserFromAccessToken(accessToken: string) {
   return payload;
 }
 
+async function getProfile(accessToken: string, userId: string) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?select=plan,premium_until&id=eq.${encodeURIComponent(userId)}&limit=1`,
+    {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    }
+  );
+  const payload = (await res.json().catch(() => [])) as ProfileRow[];
+  if (!res.ok) {
+    const msg =
+      (payload as unknown as { message?: string; error_description?: string })?.message ||
+      (payload as unknown as { error_description?: string })?.error_description ||
+      `Profile lookup failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return payload[0] || null;
+}
+
 export async function POST(req: Request) {
   try {
     if (!PADDLE_API_KEY) return jsonError("Missing PADDLE_API_KEY", 500);
@@ -149,6 +177,11 @@ export async function POST(req: Request) {
       return jsonError("Please verify your email before upgrading.", 403);
     }
 
+    const profile = await getProfile(accessToken, userId);
+    const currentPlan = String(profile?.plan || "free");
+    const premiumUntil = profile?.premium_until ? Date.parse(profile.premium_until) : 0;
+    const hasActivePremium = Number.isFinite(premiumUntil) && premiumUntil > Date.now();
+
     const body = (await req.json().catch(() => ({}))) as CreateCheckoutBody;
     const requestedEmail = normalizeEmail(String(body.email || ""));
     const requestedPlan = body.plan === "yearly" ? "yearly" : "monthly";
@@ -158,6 +191,15 @@ export async function POST(req: Request) {
     }
     if (requestedEmail && requestedEmail !== email) {
       return jsonError("Checkout email must match your signed-in account.", 403);
+    }
+
+    if (hasActivePremium) {
+      if (requestedPlan === "monthly" && (currentPlan === "premium" || currentPlan === "premium_monthly")) {
+        return jsonError("Monthly plan already active. It will renew automatically.", 409);
+      }
+      if (requestedPlan === "yearly" && currentPlan === "premium_yearly") {
+        return jsonError("Yearly plan already active.", 409);
+      }
     }
 
     if (isRateLimited(`user:${userId}`)) {
