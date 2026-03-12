@@ -43,7 +43,7 @@ export default function SiteHeader() {
       }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (_event === "TOKEN_REFRESH_FAILED") {
+      if (String(_event) === "TOKEN_REFRESH_FAILED") {
         const maybeStop = supabase.auth as typeof supabase.auth & { stopAutoRefresh?: () => void };
         if (maybeStop.stopAutoRefresh) maybeStop.stopAutoRefresh();
         supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
