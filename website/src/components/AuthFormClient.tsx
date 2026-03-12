@@ -69,7 +69,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr",
       {
         auth: {
-          flowType: "implicit",
+          flowType: "pkce",
           autoRefreshToken: false,
           persistSession: false,
           detectSessionInUrl: false,
