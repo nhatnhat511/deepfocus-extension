@@ -41,6 +41,12 @@ function mapPaddleError(message: string) {
       code: "requires_action",
     };
   }
+  if (text.includes("frozen") || text.includes("lost") || text.includes("stolen") || text.includes("damaged")) {
+    return {
+      message: "Your card issuer declined this payment. Please use a different card.",
+      code: "card_unavailable",
+    };
+  }
   if (text.includes("payment declined") || (text.includes("card") && text.includes("declined"))) {
     return {
       message: "Your payment was declined. Please update your payment method and try again.",
@@ -188,6 +194,6 @@ export async function POST(req: Request) {
   } catch (e) {
     const raw = e instanceof Error ? e.message : "Unexpected server error.";
     const mapped = mapPaddleError(raw);
-    return NextResponse.json({ error: mapped.message, code: mapped.code }, { status: 400 });
+    return NextResponse.json({ error: mapped.message, code: mapped.code, detail: raw }, { status: 400 });
   }
 }

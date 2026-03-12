@@ -151,10 +151,12 @@ export default function PaddleCheckoutCard({
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        const payload = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        const payload = (await res.json().catch(() => ({}))) as { error?: string; code?: string; detail?: string };
         if (!res.ok) {
           setErrorCode(String(payload?.code || ""));
-          throw new Error(payload?.error || "Upgrade request failed.");
+          const msg = payload?.error || "Upgrade request failed.";
+          const detail = payload?.detail ? ` (${payload.detail})` : "";
+          throw new Error(`${msg}${detail}`);
         }
         return;
       }
@@ -274,16 +276,6 @@ export default function PaddleCheckoutCard({
           <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
             {error}
           </p>
-        ) : null}
-        {isMonthlyUpgradeToYearly && error ? (
-          <button
-            type="button"
-            onClick={openBillingPortal}
-            disabled={loading}
-            className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-          >
-            Try completing in portal
-          </button>
         ) : null}
         <button
           type="button"
