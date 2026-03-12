@@ -79,16 +79,10 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   const [showResend, setShowResend] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
-  const [redirectAfterAuth, setRedirectAfterAuth] = useState("");
   const [forgotBackHref, setForgotBackHref] = useState("/login");
   const [forgotBackLabel, setForgotBackLabel] = useState("Back to sign in");
 
   const signedIn = !!(session?.access_token && session?.user?.id);
-
-  const nextQuery = useMemo(() => {
-    if (!redirectAfterAuth) return "";
-    return `?next=${encodeURIComponent(redirectAfterAuth)}`;
-  }, [redirectAfterAuth]);
 
   const headline = useMemo(() => {
     switch (mode) {
@@ -147,10 +141,6 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const nextRaw = params.get("next");
-    if (nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") && !nextRaw.includes("://")) {
-      setRedirectAfterAuth(nextRaw);
-    }
     if (mode === "forgot") {
       const from = params.get("from");
       if (from === "account") {
@@ -210,14 +200,13 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (sessionLoading || !sessionVerified) return;
     if (!signedIn) return;
     if (mode === "login" || mode === "signup") {
-      const target = redirectAfterAuth || "/account";
       if (typeof window !== "undefined") {
-        window.location.replace(target);
+        window.location.replace("/account");
       } else {
-        router.replace(target);
+        router.replace("/account");
       }
     }
-  }, [signedIn, mode, redirectAfterAuth, router]);
+  }, [signedIn, mode, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -595,12 +584,9 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
     const supabase = supabaseRef.current;
-    const callbackUrl = redirectAfterAuth
-      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectAfterAuth)}`
-      : `${window.location.origin}/auth/callback`;
     supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: callbackUrl },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
@@ -863,7 +849,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       {mode === "login" ? (
         <p className="text-center text-sm text-slate-600">
           New to DeepFocus?{" "}
-          <a href={`/signup${nextQuery}`} className="font-semibold text-emerald-600 hover:underline">
+          <a href="/signup" className="font-semibold text-emerald-600 hover:underline">
             Create an account
           </a>
         </p>
@@ -871,7 +857,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       {mode === "signup" ? (
         <p className="text-center text-sm text-slate-600">
           Already have an account?{" "}
-          <a href={`/login${nextQuery}`} className="font-semibold text-emerald-600 hover:underline">
+          <a href="/login" className="font-semibold text-emerald-600 hover:underline">
             Sign in
           </a>
         </p>
