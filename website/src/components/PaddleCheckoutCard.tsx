@@ -141,6 +141,10 @@ export default function PaddleCheckoutCard({
       setError("Missing subscription details. Please refresh and try again.");
       return;
     }
+    if (plan === "yearly" && currentPlan === "premium_yearly") {
+      setError("You are already on Premium Yearly.");
+      return;
+    }
     if (!window.Paddle && !isMonthlyUpgradeToYearly) {
       setError("Checkout is not ready yet. Please refresh and try again.");
       return;
@@ -149,6 +153,7 @@ export default function PaddleCheckoutCard({
     setLoading(true);
     try {
       if (isMonthlyUpgradeToYearly) {
+        const upgradeStartedAt = Date.now();
         const res = await fetch("/api/paddle/upgrade-subscription", {
           method: "POST",
           headers: {
@@ -162,12 +167,20 @@ export default function PaddleCheckoutCard({
           const detail = payload?.detail ? ` (${payload.detail})` : "";
           throw new Error(`${msg}${detail}`);
         }
-        await fetch("/api/paddle/sync-subscription", {
+        const syncRes = await fetch("/api/paddle/sync-subscription", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }).catch(() => null);
+        });
+        const syncPayload = (await syncRes.json().catch(() => ({}))) as { plan?: string };
+        if (!syncRes.ok || syncPayload.plan !== "premium_yearly") {
+          setSuccess("Upgrade submitted. Please refresh in a moment to see the updated plan.");
+          if (onUpgradeSuccess) {
+            onUpgradeSuccess({ amountText: "" });
+          }
+          return;
+        }
 
         let amountText = "";
         try {
@@ -180,10 +193,20 @@ export default function PaddleCheckoutCard({
           const latestPayload = (await latestRes.json().catch(() => ({}))) as {
             amount?: string;
             currency?: string;
+            createdAt?: string;
           };
           if (latestRes.ok && latestPayload?.amount) {
             const currency = String(latestPayload.currency || "").toUpperCase();
-            const numeric = Number(latestPayload.amount);
+            const rawAmount = String(latestPayload.amount);
+            const isPlainDigits = /^\d+$/.test(rawAmount);
+            const createdAt = latestPayload.createdAt ? Date.parse(latestPayload.createdAt) : NaN;
+            const isAfterUpgrade = Number.isFinite(createdAt)
+              ? createdAt >= upgradeStartedAt - 2 * 60 * 1000
+              : false;
+            if (!isAfterUpgrade) {
+              amountText = "";
+            } else {
+              const numeric = Number(isPlainDigits ? Number(rawAmount) / 100 : rawAmount);
             if (Number.isFinite(numeric) && currency) {
               try {
                 amountText = new Intl.NumberFormat(undefined, {
@@ -194,8 +217,9 @@ export default function PaddleCheckoutCard({
               } catch {
                 amountText = `${latestPayload.amount} ${currency}`;
               }
-            } else {
-              amountText = latestPayload.amount + (currency ? ` ${currency}` : "");
+            } else if (isAfterUpgrade) {
+              amountText = rawAmount + (currency ? ` ${currency}` : "");
+            }
             }
           }
         } catch {

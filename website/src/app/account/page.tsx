@@ -90,6 +90,7 @@ export default function AccountPage() {
     scheduledEffectiveAt?: string | null;
   } | null>(null);
   const [billingMetaLoading, setBillingMetaLoading] = useState(false);
+  const syncAttemptedRef = useRef(false);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -448,6 +449,29 @@ export default function AccountPage() {
     };
   }, [signedIn, profile?.paddle_subscription_id, session?.access_token]);
 
+  useEffect(() => {
+    if (!signedIn || !session?.access_token) return;
+    if (!profile?.paddle_subscription_id) return;
+    if (syncAttemptedRef.current) return;
+    syncAttemptedRef.current = true;
+    const syncNow = async () => {
+      try {
+        const res = await fetch("/api/paddle/sync-subscription", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        if (res.ok) {
+          await refreshCurrentUser(session);
+        }
+      } catch {
+        // ignore sync failures; webhook will catch up
+      }
+    };
+    void syncNow();
+  }, [signedIn, session?.access_token, profile?.paddle_subscription_id]);
+
   async function onAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files && e.target.files[0];
     if (!file || !session?.access_token) return;
@@ -611,11 +635,6 @@ export default function AccountPage() {
                   currentPlan={currentPlan}
                   subscriptionId={profile?.paddle_subscription_id || null}
                   onUpgradeSuccess={({ amountText }) => {
-                    const message = amountText
-                      ? `Upgrade successful. Amount paid: ${amountText}.`
-                      : "Upgrade successful. Your account is now Premium Yearly.";
-                    setStatus(message);
-                    setStatusType("success");
                     void refreshCurrentUser(session);
                   }}
                   allowedPlans={
