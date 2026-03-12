@@ -168,7 +168,10 @@ export default function SiteHeader() {
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-[1px]"
           />
-          <nav className="fixed left-0 top-0 z-50 h-full w-[68%] max-w-xs border-r border-slate-200 bg-white px-4 py-6 shadow-2xl ring-1 ring-slate-200/70">
+          <nav
+            className="fixed left-0 top-0 z-50 h-full w-[68%] max-w-xs border-r border-slate-200 bg-white px-4 py-6 shadow-2xl ring-1 ring-slate-200/70"
+            style={{ backgroundColor: "#ffffff" }}
+          >
             <div className="mb-5 flex items-center justify-between">
               <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Menu</span>
               <button
