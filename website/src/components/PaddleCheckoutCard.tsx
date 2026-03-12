@@ -206,20 +206,23 @@ export default function PaddleCheckoutCard({
             if (!isAfterUpgrade) {
               amountText = "";
             } else {
-              const numeric = Number(isPlainDigits ? Number(rawAmount) / 100 : rawAmount);
-            if (Number.isFinite(numeric) && currency) {
-              try {
-                amountText = new Intl.NumberFormat(undefined, {
-                  style: "currency",
-                  currency,
-                  minimumFractionDigits: 2,
-                }).format(numeric);
-              } catch {
-                amountText = `${latestPayload.amount} ${currency}`;
+              let numeric = Number(isPlainDigits ? Number(rawAmount) / 100 : rawAmount);
+              if (!Number.isFinite(numeric)) {
+                amountText = "";
+              } else if (numeric > 1000) {
+                // Avoid showing an incorrect amount when units are unclear.
+                amountText = "";
+              } else if (currency) {
+                try {
+                  amountText = new Intl.NumberFormat(undefined, {
+                    style: "currency",
+                    currency,
+                    minimumFractionDigits: 2,
+                  }).format(numeric);
+                } catch {
+                  amountText = `${numeric.toFixed(2)} ${currency}`;
+                }
               }
-            } else if (isAfterUpgrade) {
-              amountText = rawAmount + (currency ? ` ${currency}` : "");
-            }
             }
           }
         } catch {

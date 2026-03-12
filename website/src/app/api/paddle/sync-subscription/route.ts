@@ -6,10 +6,18 @@ type PaddleSubscription = {
   id?: string;
   customer_id?: string | null;
   status?: string | null;
-  items?: Array<{
-    price_id?: string | null;
-    price?: { id?: string | null } | null;
-  }> | null;
+  items?:
+    | Array<{
+        price_id?: string | null;
+        price?: { id?: string | null; billing_cycle?: { interval?: string | null } | null } | null;
+      }>
+    | {
+        data?: Array<{
+          price_id?: string | null;
+          price?: { id?: string | null; billing_cycle?: { interval?: string | null } | null } | null;
+        }>;
+      }
+    | null;
   next_billed_at?: string | null;
   current_billing_period?: {
     starts_at?: string | null;
@@ -59,14 +67,22 @@ function derivePlanAndUntilFromSubscription(data: PaddleSubscription) {
   const shouldGrantPremium = activeByStatus || hasFutureWindow;
 
   let resolvedPlan = "";
-  if (data.items && data.items.length > 0) {
-    const priceIds = data.items
-      .map((item) => item.price_id || item.price?.id || "")
-      .filter(Boolean);
+  const items = Array.isArray(data.items)
+    ? data.items
+    : (data.items?.data || []);
+  if (items.length > 0) {
+    const priceIds = items.map((item) => item.price_id || item.price?.id || "").filter(Boolean);
     if (PADDLE_PRICE_ID_YEARLY && priceIds.includes(PADDLE_PRICE_ID_YEARLY)) {
       resolvedPlan = "premium_yearly";
     } else if (PADDLE_PRICE_ID_MONTHLY && priceIds.includes(PADDLE_PRICE_ID_MONTHLY)) {
       resolvedPlan = "premium_monthly";
+    } else {
+      const interval = String(items[0]?.price?.billing_cycle?.interval || "").toLowerCase();
+      if (interval === "year" || interval === "yearly" || interval === "annual") {
+        resolvedPlan = "premium_yearly";
+      } else if (interval === "month" || interval === "monthly") {
+        resolvedPlan = "premium_monthly";
+      }
     }
   }
 
