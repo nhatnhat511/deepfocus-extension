@@ -4,7 +4,9 @@ import type { SetAllCookies } from "@supabase/ssr";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
 
 export const runtime = "edge";
 
@@ -33,7 +35,8 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(new URL("/login?error=callback_failed", request.url));
+    const reason = encodeURIComponent(error.message || "exchange_failed");
+    return NextResponse.redirect(new URL(`/login?error=callback_failed&reason=${reason}`, request.url));
   }
 
   return response;
