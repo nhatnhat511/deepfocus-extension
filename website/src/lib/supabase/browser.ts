@@ -10,10 +10,6 @@ export function createSupabaseBrowserClient() {
   if (browserClient) {
     return browserClient;
   }
-  const cookieDomain =
-    typeof window !== "undefined" && window.location.hostname.endsWith("deepfocustime.com")
-      ? ".deepfocustime.com"
-      : undefined;
   browserClient = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       flowType: "pkce",
@@ -22,9 +18,9 @@ export function createSupabaseBrowserClient() {
       detectSessionInUrl: false,
     },
     cookieOptions: {
-      domain: cookieDomain,
       path: "/",
       sameSite: "lax",
+      secure: typeof window !== "undefined" && window.location.protocol === "https:",
     },
   });
   return browserClient;
