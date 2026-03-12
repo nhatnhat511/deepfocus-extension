@@ -12,6 +12,8 @@ export function createSupabaseBrowserClient() {
   return createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       flowType: "pkce",
+      autoRefreshToken: false,
+      persistSession: true,
       detectSessionInUrl: false,
     },
     cookieOptions: {
