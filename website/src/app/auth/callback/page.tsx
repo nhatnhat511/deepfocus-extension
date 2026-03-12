@@ -36,6 +36,23 @@ export default function AuthCallbackPage() {
 
     const run = async () => {
       try {
+        // Clear stale session tokens without touching PKCE code_verifier.
+        const projectRef = (process.env.NEXT_PUBLIC_SUPABASE_URL || "")
+          .replace("https://", "")
+          .split(".")[0];
+        const tokenKey = projectRef ? `sb-${projectRef}-auth-token` : "";
+        if (tokenKey && typeof window !== "undefined") {
+          try {
+            window.localStorage.removeItem(tokenKey);
+          } catch {
+            // ignore
+          }
+          const domain = window.location.hostname.endsWith("deepfocustime.com") ? ".deepfocustime.com" : "";
+          const baseCookie = `${tokenKey}=; Max-Age=0; path=/`;
+          document.cookie = domain ? `${baseCookie}; domain=${domain}` : baseCookie;
+          document.cookie = baseCookie;
+        }
+
         const { hash, search } = window.location;
         if (hash) {
           const params = new URLSearchParams(hash.replace(/^#/, ""));
