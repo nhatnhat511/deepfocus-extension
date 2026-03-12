@@ -23,18 +23,13 @@ export default function AuthCallbackPage() {
         const { hash, search } = window.location;
         if (hash) {
           const params = new URLSearchParams(hash.replace(/^#/, ""));
-          const accessToken = params.get("access_token");
           const flowType = params.get("type");
-          const refreshToken = params.get("refresh_token") || "";
-          if (accessToken) {
-            const { error } = await supabaseRef.current.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            if (error) {
-              redirectTo("/login?error=oauth_session");
-              return;
-            }
+          const { error } = await supabaseRef.current.auth.getSessionFromUrl({
+            storeSession: true,
+          });
+          if (error) {
+            redirectTo("/login?error=oauth_session");
+            return;
           }
           // Give cookies a brief moment to persist before redirecting.
           await new Promise((resolve) => setTimeout(resolve, 150));
