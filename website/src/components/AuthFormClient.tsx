@@ -200,11 +200,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (sessionLoading || !sessionVerified) return;
     if (!signedIn) return;
     if (mode === "login" || mode === "signup") {
-      if (typeof window !== "undefined") {
-        window.location.replace("/account");
-      } else {
-        router.replace("/account");
-      }
+      router.replace("/account");
     }
   }, [signedIn, mode, router]);
 
@@ -436,11 +432,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setShowResend(false);
       setPendingEmail("");
       setPassword("");
-      if (typeof window !== "undefined") {
-        window.location.replace("/account");
-      } else {
-        router.replace("/account");
-      }
+      router.replace("/account");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign in failed.";
       if (isRateLimited(message)) return setError("Too many attempts. Please wait and try again.");

@@ -559,10 +559,15 @@ export default function AccountPage() {
         <p className="mt-2 text-sm text-slate-600">Manage your DeepFocus account, login, and profile settings.</p>
       </section>
 
-      {!signedIn ? (
+      {!signedIn && !sessionLoading ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-900">Sign in required</h2>
           <p className="mt-2 text-sm text-slate-600">Redirecting you to the sign in page...</p>
+        </section>
+      ) : sessionLoading ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Loading account</h2>
+          <p className="mt-2 text-sm text-slate-600">Fetching your account details...</p>
         </section>
       ) : (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
