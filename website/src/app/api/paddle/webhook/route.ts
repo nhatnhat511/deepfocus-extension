@@ -235,6 +235,28 @@ function parseSubscriptionWindow(data: PaddleSubscription) {
   return fromCurrentPeriod || fromNextBilled;
 }
 
+function inferPlanFromPeriod(data: PaddleSubscription) {
+  const startRaw = data.current_billing_period?.starts_at || "";
+  const endRaw = data.current_billing_period?.ends_at || "";
+  const startTs = startRaw ? Date.parse(startRaw) : NaN;
+  const endTs = endRaw ? Date.parse(endRaw) : NaN;
+  const now = Date.now();
+  const durationMs = Number.isFinite(startTs) && Number.isFinite(endTs) ? endTs - startTs : NaN;
+  const remainingMs = Number.isFinite(endTs) ? endTs - now : NaN;
+  const days = Number.isFinite(durationMs) ? durationMs / (1000 * 60 * 60 * 24) : NaN;
+  const remainingDays = Number.isFinite(remainingMs) ? remainingMs / (1000 * 60 * 60 * 24) : NaN;
+
+  if (Number.isFinite(days)) {
+    if (days >= 300) return "premium_yearly";
+    if (days >= 20) return "premium_monthly";
+  }
+  if (Number.isFinite(remainingDays)) {
+    if (remainingDays >= 200) return "premium_yearly";
+    if (remainingDays >= 10) return "premium_monthly";
+  }
+  return "";
+}
+
 function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: string) {
   const status = String(data.status || "").toLowerCase();
   const rawUntil = parseSubscriptionWindow(data);
@@ -261,6 +283,9 @@ function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: 
         resolvedPlan = "premium_monthly";
       }
     }
+  }
+  if (!resolvedPlan) {
+    resolvedPlan = inferPlanFromPeriod(data);
   }
   const normalizedPlan = resolvedPlan || "premium";
 
