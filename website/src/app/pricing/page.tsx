@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PricingUpgradeButton from "@/components/PricingUpgradeButton";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -132,12 +131,12 @@ export default function PricingPage() {
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <PricingUpgradeButton
-            plan="monthly"
+          <Link
+            href="/account?plan=monthly#billing-plan"
             className="mt-6 inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
           >
             Upgrade to Premium
-          </PricingUpgradeButton>
+          </Link>
         </article>
 
         <article className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -155,12 +154,12 @@ export default function PricingPage() {
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <PricingUpgradeButton
-            plan="yearly"
+          <Link
+            href="/account?plan=yearly#billing-plan"
             className="mt-6 inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
           >
             Upgrade to Premium
-          </PricingUpgradeButton>
+          </Link>
         </article>
       </section>
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 text-sm text-emerald-900">
