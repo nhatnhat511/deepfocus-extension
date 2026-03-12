@@ -433,6 +433,13 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setPendingEmail("");
       setPassword("");
       router.replace("/account");
+      if (typeof window !== "undefined") {
+        setTimeout(() => {
+          if (window.location.pathname === "/login") {
+            window.location.replace("/account");
+          }
+        }, 150);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sign in failed.";
       if (isRateLimited(message)) return setError("Too many attempts. Please wait and try again.");
