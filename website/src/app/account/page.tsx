@@ -865,13 +865,13 @@ export default function AccountPage() {
                     Profile
                   </h3>
                 <div className="mt-4 flex items-center gap-4">
-                  <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 aspect-square">
                     {(avatarPreview || avatarUrl || fallbackAvatar) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={avatarPreview || avatarUrl || fallbackAvatar}
                         alt="Avatar"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover rounded-full"
                       />
                     ) : null}
                   </div>
