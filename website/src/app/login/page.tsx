@@ -17,7 +17,11 @@ export const metadata = {
 
 export const runtime = "edge";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const cookieStore = await cookies();
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
@@ -30,7 +34,9 @@ export default async function LoginPage() {
     },
   });
   const { data } = await supabase.auth.getSession();
-  if (data.session) {
+  const extRedirect = searchParams?.ext_redirect;
+  const hasExtRedirect = Array.isArray(extRedirect) ? extRedirect[0] : extRedirect;
+  if (data.session && !hasExtRedirect) {
     redirect("/account");
   }
   return (
