@@ -1319,8 +1319,12 @@ async function checkWebsiteSession(){
     if(!payload || payload.authenticated !== true) return
     const userEmail = payload.user && payload.user.email ? String(payload.user.email) : ""
     if(!authSession || !authSession.user){
-      authSession = { user: { email: userEmail } }
-    }else if(userEmail && !authSession.user.email){
+      return
+    }
+    if(userEmail && authSession.user.email && userEmail.toLowerCase() !== String(authSession.user.email).toLowerCase()){
+      return
+    }
+    if(userEmail && !authSession.user.email){
       authSession.user.email = userEmail
     }
     if(payload.entitlement && typeof payload.entitlement === "object"){
