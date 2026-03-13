@@ -36,7 +36,7 @@ type PaddleCheckoutCardProps = {
   allowedPlans?: PlanOption[];
   currentPlan?: string;
   subscriptionId?: string | null;
-  onUpgradeSuccess?: (summary: { amountText?: string }) => void;
+  onUpgradeSuccess?: (summary: { amountText?: string; plan?: PlanOption | "upgrade_yearly" }) => void;
 };
 
 const monthlyPrice = 2.99;
@@ -44,6 +44,12 @@ const yearlyDiscountRate = 0.3;
 const yearlyBase = monthlyPrice * 12;
 const yearlyFinal = yearlyBase * (1 - yearlyDiscountRate);
 const yearlyPriceLabel = yearlyFinal.toFixed(2);
+const pendingCheckoutKey = "df_pending_checkout";
+
+type PendingCheckout = {
+  plan: PlanOption | "upgrade_yearly";
+  startedAt: number;
+};
 
 export default function PaddleCheckoutCard({
   defaultPlan = "monthly",
@@ -137,6 +143,19 @@ export default function PaddleCheckoutCard({
     }
   }, [ready]);
 
+  function writePendingCheckout(nextPlan: PendingCheckout["plan"]) {
+    if (typeof window === "undefined") return;
+    try {
+      const payload: PendingCheckout = {
+        plan: nextPlan,
+        startedAt: Date.now(),
+      };
+      window.localStorage.setItem(pendingCheckoutKey, JSON.stringify(payload));
+    } catch {
+      // ignore storage failures
+    }
+  }
+
   async function startCheckout() {
     setError("");
     setErrorCode("");
@@ -193,10 +212,12 @@ export default function PaddleCheckoutCard({
         if (!syncRes.ok || syncPayload.plan !== "premium_yearly") {
           setSuccess("Upgrade submitted. Please refresh in a moment to see the updated plan.");
           if (onUpgradeSuccess) {
-            onUpgradeSuccess({ amountText: "" });
+            onUpgradeSuccess({ amountText: "", plan: "upgrade_yearly" });
           }
           return;
         }
+
+        writePendingCheckout("upgrade_yearly");
 
         let amountText = "";
         try {
@@ -249,7 +270,7 @@ export default function PaddleCheckoutCard({
           : "Upgrade successful. Your account is now Premium Yearly.";
         setSuccess(successMsg);
         if (onUpgradeSuccess) {
-          onUpgradeSuccess({ amountText });
+          onUpgradeSuccess({ amountText, plan: "upgrade_yearly" });
         }
         return;
       }
@@ -277,7 +298,6 @@ export default function PaddleCheckoutCard({
       if (payload.accountEmail && payload.accountEmail !== email.trim().toLowerCase()) {
         setEmail(payload.accountEmail);
       }
-
       window.Paddle?.Checkout.open({
         transactionId: payload.transactionId,
         settings: {

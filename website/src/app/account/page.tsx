@@ -92,6 +92,7 @@ export default function AccountPage() {
   const [billingMetaLoading, setBillingMetaLoading] = useState(false);
   const syncAttemptedRef = useRef(false);
   const loginRetryRef = useRef(false);
+  const pollingRef = useRef<number | null>(null);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -190,6 +191,7 @@ export default function AccountPage() {
   const canUpgradeYearly =
     currentPlan === "free" || isTrialActive || currentPlan === "premium" || currentPlan === "premium_monthly";
   const isYearlyPlan = currentPlan === "premium_yearly";
+  const pendingCheckoutKey = "df_pending_checkout";
 
   useEffect(() => {
     const supabase = supabaseRef.current;
@@ -466,6 +468,72 @@ export default function AccountPage() {
     }
   }
 
+  function readPendingCheckout() {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(pendingCheckoutKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { plan?: string; startedAt?: number };
+      const startedAt = Number(parsed?.startedAt || 0);
+      if (!Number.isFinite(startedAt) || startedAt <= 0) {
+        window.localStorage.removeItem(pendingCheckoutKey);
+        return null;
+      }
+      const ageMinutes = (Date.now() - startedAt) / (1000 * 60);
+      if (ageMinutes > 30) {
+        window.localStorage.removeItem(pendingCheckoutKey);
+        return null;
+      }
+      return { plan: String(parsed?.plan || ""), startedAt };
+    } catch {
+      return null;
+    }
+  }
+
+  function clearPendingCheckout() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(pendingCheckoutKey);
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function stopPolling() {
+    if (pollingRef.current) {
+      window.clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }
+
+  async function pollUserPlan(expectedPlans: string[]) {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch("/api/user", { method: "GET", cache: "no-store" });
+      const payload = (await res.json().catch(() => ({}))) as {
+        entitlement?: { plan?: string } | null;
+      };
+      const plan = String(payload?.entitlement?.plan || "");
+      if (res.ok && plan && expectedPlans.includes(plan)) {
+        stopPolling();
+        clearPendingCheckout();
+        await refreshCurrentUser(session);
+        await refreshBillingMeta();
+      }
+    } catch {
+      // ignore polling errors
+    }
+  }
+
+  function startPolling(expectedPlans: string[]) {
+    if (typeof window === "undefined") return;
+    if (pollingRef.current) return;
+    pollingRef.current = window.setInterval(() => {
+      void pollUserPlan(expectedPlans);
+    }, 2000);
+    void pollUserPlan(expectedPlans);
+  }
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!signedIn || !profile?.paddle_subscription_id) return;
@@ -494,6 +562,22 @@ export default function AccountPage() {
       document.removeEventListener("visibilitychange", handleFocus);
     };
   }, [signedIn, profile?.paddle_subscription_id, profile?.plan, session?.access_token, session]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!signedIn || !session?.access_token) return;
+    const pending = readPendingCheckout();
+    if (!pending) return;
+    const plan = pending.plan;
+    const expectedPlans =
+      plan === "upgrade_yearly" || plan === "yearly"
+        ? ["premium_yearly"]
+        : ["premium_monthly", "premium_yearly", "premium"];
+    startPolling(expectedPlans);
+    return () => {
+      stopPolling();
+    };
+  }, [signedIn, session?.access_token]);
 
   useEffect(() => {
     if (!signedIn || !session?.access_token) return;
@@ -709,8 +793,12 @@ export default function AccountPage() {
                   defaultPlan={preferredPlan}
                   currentPlan={currentPlan}
                   subscriptionId={profile?.paddle_subscription_id || null}
-                  onUpgradeSuccess={({ amountText }) => {
-                    void refreshCurrentUser(session);
+                  onUpgradeSuccess={({ plan }) => {
+                    const expectedPlans =
+                      plan === "upgrade_yearly" || plan === "yearly"
+                        ? ["premium_yearly"]
+                        : ["premium_monthly", "premium_yearly", "premium"];
+                    startPolling(expectedPlans);
                   }}
                   allowedPlans={
                     canUpgradeMonthly && canUpgradeYearly
