@@ -877,7 +877,7 @@ export default function AccountPage() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
-                    <p className="text-sm font-semibold text-slate-900">{user?.email || "-"}</p>
+                    <p className="text-sm font-semibold text-slate-900 break-all">{user?.email || "-"}</p>
                     <p className="text-xs text-slate-500">Sign-in method: {providerLabel}</p>
                     <p className="text-xs text-slate-500">
                       Account created: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "-"}
