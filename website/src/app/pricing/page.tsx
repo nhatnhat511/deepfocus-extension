@@ -111,10 +111,10 @@ export default function PricingPage() {
             ))}
           </ul>
           <Link
-            href="/account"
+            href="/login"
             className="mt-6 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
           >
-            Continue with Free
+            Get Started for Free
           </Link>
         </article>
 
@@ -163,7 +163,10 @@ export default function PricingPage() {
         </article>
       </section>
       <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 text-sm text-emerald-900">
-        Want Premium without paying today? Start a 7-day free trial with no card required.
+        <a href="/login" className="font-semibold text-emerald-900 hover:text-emerald-800">
+          Start a 7-day free trial
+        </a>
+        . No credit card required.
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
