@@ -910,13 +910,13 @@ premiumUntil
 }
 
 async function activateFreeTrial(source = "popup"){
-if(!authSession || !authSession.user || !authSession.access_token){
-openDetailView("account")
-setAccountStatus("Please sign in before starting the free trial.", true)
-pendingTrialActivation = true
-await savePendingTrialFlag(true)
-return false
-}
+  if(!authSession || !authSession.user){
+    openDetailView("account")
+    setAccountStatus("Please sign in before starting the free trial.", true)
+    pendingTrialActivation = true
+    await savePendingTrialFlag(true)
+    return false
+  }
 
 if(isPremiumActive()){
 setAccountStatus("Premium is already active.", false)
@@ -932,25 +932,53 @@ await savePendingTrialFlag(false)
 return false
 }
 
-updateAccountButtonsLoading(true)
-setAccountStatus("Activating free trial...", false)
-try{
-const payload = await supabaseRequest("/rest/v1/rpc/start_free_trial", {
-method: "POST",
-body: JSON.stringify({})
-}, authSession.access_token)
-accountProfile = mapEntitlement(normalizeRpcRow(payload))
+  updateAccountButtonsLoading(true)
+  setAccountStatus("Activating free trial...", false)
+  try{
+    let payload = null
+    if(authSession.access_token){
+      payload = await supabaseRequest("/rest/v1/rpc/start_free_trial", {
+        method: "POST",
+        body: JSON.stringify({})
+      }, authSession.access_token)
+    }else{
+      const response = await fetch("https://deepfocustime.com/api/extension/start-trial", {
+        method: "POST",
+        credentials: "include"
+      })
+      if(response.status === 401){
+        openDetailView("account")
+        setAccountStatus("Please sign in before starting the free trial.", true)
+        pendingTrialActivation = true
+        await savePendingTrialFlag(true)
+        return false
+      }
+      if(!response.ok){
+        const errText = await response.text().catch(()=> "")
+        throw new Error(errText || "Unable to activate trial.")
+      }
+      payload = await response.json()
+    }
+    accountProfile = mapEntitlement(normalizeRpcRow(payload))
 if(!accountProfile){
 await fetchProfile()
 }
-renderAccountMeta()
-pendingTrialActivation = false
-await savePendingTrialFlag(false)
-setAccountStatus("Free trial activated. Premium unlocked.", false)
-if(source === "shortcuts" || source === "settings"){
-closeDetailView()
-}
-return true
+  renderAccountMeta()
+  pendingTrialActivation = false
+  await savePendingTrialFlag(false)
+  setAccountStatus("Free trial activated. Premium unlocked.", false)
+  if(source === "shortcuts"){
+    closeDetailView()
+  }
+  if(source === "settings" && activeDetailKey === "settings"){
+    if(detailActionBtn){
+      detailActionBtn.style.display = "none"
+      detailActionBtn.textContent = ""
+    }
+    detailText.textContent = "Free trial activated successfully. You can check the expiration in your account page."
+    detailList.style.display = "none"
+  }
+  return true
 }catch(err){
 const msg = (err && err.message) ? String(err.message) : "Unable to activate trial."
 if(msg.includes("TRIAL_ALREADY_USED")){
@@ -1583,14 +1611,22 @@ advancedQuickBtn.addEventListener("click", ()=>openDetailView("settings"))
 }
 
 detailActionBtn.addEventListener("click", ()=>{
-if(activeDetailKey==="shortcuts"){
-requestTrialActivation("shortcuts")
-return
-}
-if(activeDetailKey==="settings"){
-requestTrialActivation("settings")
-return
-}
+  if(activeDetailKey==="shortcuts"){
+    requestTrialActivation("shortcuts")
+    return
+  }
+  if(activeDetailKey==="settings"){
+    if(!authSession || !authSession.user){
+      openDetailView("account")
+      setAccountStatus("Please sign in before starting the free trial.", true)
+      return
+    }
+    const currentPlan = accountProfile && accountProfile.plan ? String(accountProfile.plan).toLowerCase() : "free"
+    if(currentPlan === "free"){
+      activateFreeTrial("settings")
+    }
+    return
+  }
 })
 if(shortcutSettingsBtn){
 shortcutSettingsBtn.addEventListener("click", ()=>{
