@@ -45,28 +45,13 @@ const smartInsightAction = document.getElementById("smartInsightAction")
 const meetingAutoPauseEnabledInput = document.getElementById("meetingAutoPauseEnabled")
 const accountPanel = document.getElementById("accountPanel")
 const accountStatus = document.getElementById("accountStatus")
-const accountEmailInput = document.getElementById("accountEmail")
-const accountPasswordInput = document.getElementById("accountPassword")
-const accountPasswordNote = document.getElementById("accountPasswordNote")
-const accountSubmitBtn = document.getElementById("accountSubmitBtn")
-const accountSwitchPrompt = document.getElementById("accountSwitchPrompt")
-const accountSwitchLink = document.getElementById("accountSwitchLink")
-const accountGoogleBtn = document.getElementById("accountGoogleBtn")
-const accountGoogleLabel = document.getElementById("accountGoogleLabel")
-const accountAppleBtn = document.getElementById("accountAppleBtn")
-const accountAppleLabel = document.getElementById("accountAppleLabel")
+const accountWebLoginBtn = document.getElementById("accountWebLoginBtn")
+const accountManageBtn = document.getElementById("accountManageBtn")
 const accountRefreshBtn = document.getElementById("accountRefreshBtn")
 const accountSignOutBtn = document.getElementById("accountSignOutBtn")
 const accountMeta = document.getElementById("accountMeta")
-const accountOauthLabel = document.getElementById("accountOauthLabel")
-const accountProfileActions = document.getElementById("accountProfileActions")
-const accountEditProfileBtn = document.getElementById("accountEditProfileBtn")
-const accountTrialWrap = document.getElementById("accountTrialWrap")
-const accountTrialBtn = document.getElementById("accountTrialBtn")
-const accountAuthFields = document.getElementById("accountAuthFields")
-const accountAuthActions = document.getElementById("accountAuthActions")
-const accountSwitch = document.getElementById("accountSwitch")
-const accountOAuthActions = document.getElementById("accountOAuthActions")
+const accountSignedOut = document.getElementById("accountSignedOut")
+const accountSignedIn = document.getElementById("accountSignedIn")
 const accountSessionActions = document.getElementById("accountSessionActions")
 let isPaused = false
 let activeDetailKey = null
@@ -110,7 +95,7 @@ pauseBtn.textContent = paused ? "\u25B6 Resume" : "\u23F8 Pause"
 }
 
 function isPremiumActive(){
-if(!accountProfile || (accountProfile.plan !== "premium" && accountProfile.plan !== "trial")) return false
+if(!accountProfile || !["premium","trial","premium_monthly","premium_yearly"].includes(accountProfile.plan)) return false
 if(!accountProfile.premium_until) return false
 const untilTs = Date.parse(accountProfile.premium_until)
 return Number.isFinite(untilTs) && untilTs > Date.now()
@@ -124,7 +109,7 @@ return Number.isFinite(untilTs) && untilTs > Date.now()
 }
 
 function isPaidPremiumActive(){
-if(!accountProfile || accountProfile.plan !== "premium") return false
+if(!accountProfile || !["premium","premium_monthly","premium_yearly"].includes(accountProfile.plan)) return false
 if(!accountProfile.premium_until) return false
 const untilTs = Date.parse(accountProfile.premium_until)
 return Number.isFinite(untilTs) && untilTs > Date.now()
@@ -149,6 +134,23 @@ if(!Number.isFinite(n) || n <= 0) return "0 B"
 if(n < 1024) return `${n} B`
 if(n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
 return `${(n / (1024 * 1024)).toFixed(2)} MB`
+}
+
+function getSignInMethod(){
+if(!authSession || !authSession.user) return "Email"
+const meta = authSession.user.app_metadata || {}
+const provider = String(meta.provider || "").toLowerCase()
+if(provider === "google") return "Google"
+if(provider === "github") return "GitHub"
+return "Email"
+}
+
+function formatPlanLabel(plan){
+if(plan === "trial") return "Trial"
+if(plan === "premium_monthly") return "Premium (Monthly)"
+if(plan === "premium_yearly") return "Premium (Yearly)"
+if(plan === "premium") return "Premium"
+return "Free"
 }
 
 function renderBreakVisualBackgroundInfo(){
@@ -189,7 +191,7 @@ actionLabel: "Start 7-day Free Trial (No Card)"
 },
 account: {
 title: "Account",
-text: "Sign in to activate your Premium plan and unlock all DeepFocus features.",
+text: "Sign in on the DeepFocus Time website to link your extension and unlock premium features.",
 list: [],
 actionLabel: ""
 },
@@ -715,30 +717,17 @@ accountStatus.style.color = isError ? "#991b1b" : "#334155"
 }
 
 function updateAccountButtonsLoading(loading){
-accountSubmitBtn.disabled = loading
-accountGoogleBtn.disabled = loading
-accountAppleBtn.disabled = loading
-accountRefreshBtn.disabled = loading
-accountSignOutBtn.disabled = loading
-if(accountTrialBtn) accountTrialBtn.disabled = loading
+if(accountWebLoginBtn) accountWebLoginBtn.disabled = loading
+if(accountManageBtn) accountManageBtn.disabled = loading
+if(accountRefreshBtn) accountRefreshBtn.disabled = loading
+if(accountSignOutBtn) accountSignOutBtn.disabled = loading
 }
 
 function syncAccountUiBySession(){
 const signedIn = !!(authSession && authSession.user)
-accountAuthFields.classList.toggle("hidden", signedIn)
-accountAuthActions.classList.toggle("hidden", signedIn)
-accountSwitch.classList.toggle("hidden", signedIn)
-if(accountOauthLabel){
-accountOauthLabel.classList.toggle("hidden", signedIn)
-}
-accountOAuthActions.classList.toggle("hidden", signedIn)
-accountSessionActions.classList.toggle("hidden", !signedIn)
-if(accountProfileActions){
-accountProfileActions.classList.toggle("hidden", !signedIn)
-}
-if(signedIn){
-accountPasswordInput.value = ""
-}
+if(accountSignedOut) accountSignedOut.classList.toggle("hidden", signedIn)
+if(accountSignedIn) accountSignedIn.classList.toggle("hidden", !signedIn)
+if(accountSessionActions) accountSessionActions.classList.toggle("hidden", !signedIn)
 }
 
 function syncPremiumControls(){
@@ -777,28 +766,16 @@ renderAdvancedStats()
 
 function renderAccountMeta(){
 if(!authSession || !authSession.user){
-accountMeta.innerHTML = "<strong>Plan:</strong> Free"
-if(accountTrialWrap) accountTrialWrap.classList.add("hidden")
+if(accountMeta) accountMeta.innerHTML = "<strong>Plan:</strong> Free"
 syncPremiumControls()
 syncAccountStatusToBackground()
 return
 }
 
 const userEmail = authSession.user.email || "-"
-const premium = isPremiumActive()
-const trial = isTrialActive()
-const paidPremium = isPaidPremiumActive()
-const plan = trial ? "Trial" : (premium ? "Premium" : "Free")
-const expiresText = premium && accountProfile && accountProfile.premium_until
-? new Date(accountProfile.premium_until).toLocaleString()
-: "N/A"
-const remaining = premium ? getRemainingTrialLabel() : ""
-accountMeta.innerHTML = premium
-? (trial
-? `<strong>Email:</strong> ${userEmail}<br><strong>Plan:</strong> ${plan}<br><strong>Trial Time Remaining:</strong> ${remaining}`
-: `<strong>Email:</strong> ${userEmail}<br><strong>Plan:</strong> ${plan}<br><strong>Premium Until:</strong> ${expiresText}`)
-: `<strong>Email:</strong> ${userEmail}<br><strong>Plan:</strong> ${plan}`
-if(accountTrialWrap) accountTrialWrap.classList.toggle("hidden", premium || paidPremium)
+const planLabel = formatPlanLabel(accountProfile && accountProfile.plan ? accountProfile.plan : "free")
+let metaHtml = `<strong>Email:</strong> ${userEmail}<br><strong>Plan:</strong> ${planLabel}`
+accountMeta.innerHTML = metaHtml
 syncPremiumControls()
 syncAccountStatusToBackground()
 }
@@ -912,7 +889,15 @@ renderAccountMeta()
 
 function syncAccountStatusToBackground(){
 const premium = isPremiumActive()
-const plan = premium && accountProfile && accountProfile.plan === "trial" ? "trial" : (premium ? "premium" : "free")
+let plan = "free"
+if(premium && accountProfile){
+const rawPlan = String(accountProfile.plan || "").toLowerCase()
+if(rawPlan === "trial" || rawPlan === "premium" || rawPlan === "premium_monthly" || rawPlan === "premium_yearly"){
+plan = rawPlan
+}else{
+plan = "premium"
+}
+}
 const premiumUntil = premium && accountProfile && accountProfile.premium_until ? accountProfile.premium_until : ""
 chrome.storage.local.set({
 [ACCOUNT_STATUS_KEY]: { plan, premiumUntil }
@@ -1041,6 +1026,25 @@ merged.set(key, value)
 })
 
 return merged
+}
+
+async function startWebsiteAuthFlow(){
+updateAccountButtonsLoading(true)
+setAccountStatus("Opening DeepFocus sign-in...", false)
+try{
+chrome.runtime.sendMessage({ type: "START_WEB_LOGIN" }, (resp)=>{
+if(chrome.runtime.lastError || !resp || resp.ok !== true){
+const msg = (resp && resp.error) ? resp.error : "Unable to open login tab."
+setAccountStatus(msg, true)
+return
+}
+setAccountStatus("Waiting for sign-in in the browser tab...", false)
+})
+}catch(err){
+setAccountStatus(err.message || "Sign in failed.", true)
+}finally{
+updateAccountButtonsLoading(false)
+}
 }
 
 async function signInWithProvider(provider){
@@ -1222,11 +1226,9 @@ updateAccountButtonsLoading(false)
 async function signOutAccount(){
 updateAccountButtonsLoading(true)
 try{
-if(authSession && authSession.access_token){
-await supabaseRequest("/auth/v1/logout", { method: "POST" }, authSession.access_token)
-}
+// do not call website/logout; extension sign out is local only
 }catch(_e){
-// ignore network/logout errors and continue cleanup
+// ignore errors and continue cleanup
 }finally{
 authSession = null
 accountProfile = null
@@ -1237,6 +1239,26 @@ setAccountStatus("Signed out.", false)
 renderAccountMeta()
 syncAccountUiBySession()
 updateAccountButtonsLoading(false)
+}
+}
+
+async function checkWebsiteSession(){
+try{
+const response = await fetch("https://deepfocustime.com/api/me", {
+method: "GET",
+credentials: "include"
+})
+if(response.status === 401){
+if(authSession){
+await signOutAccount()
+}else{
+accountProfile = null
+renderAccountMeta()
+syncAccountUiBySession()
+}
+}
+}catch(_e){
+// ignore fetch errors to avoid blocking popup
 }
 }
 
@@ -1447,6 +1469,10 @@ setPauseLabel(msg.isPaused)
 
 }
 
+if(msg.type==="AUTH_SESSION_UPDATED"){
+restoreAccountSession()
+}
+
 })
 
 lunchEnabledInput.addEventListener("change", saveReminderSettings)
@@ -1472,27 +1498,15 @@ idleAutoPauseEnabledInput.addEventListener("change", saveAdvancedSettings)
 idleAutoPauseMinutesInput.addEventListener("change", saveAdvancedSettings)
 dailyFocusGoalInput.addEventListener("change", saveAdvancedSettings)
 meetingAutoPauseEnabledInput.addEventListener("change", saveAdvancedSettings)
-accountSubmitBtn.addEventListener("click", ()=>{
-if(accountFormMode === "signup"){
-signUpWithPassword()
-return
+if(accountWebLoginBtn){
+accountWebLoginBtn.addEventListener("click", ()=>startWebsiteAuthFlow())
 }
-signInWithPassword()
-})
-accountSwitchLink.addEventListener("click", (e)=>{
-e.preventDefault()
-setAccountMode(accountFormMode === "signup" ? "signin" : "signup")
-})
-accountGoogleBtn.addEventListener("click", ()=>signInWithProvider("google"))
-accountAppleBtn.addEventListener("click", ()=>signInWithProvider("github"))
-if(accountTrialBtn){
-accountTrialBtn.addEventListener("click", ()=>requestTrialActivation("account"))
-}
-if(accountEditProfileBtn){
-accountEditProfileBtn.addEventListener("click", ()=>{
+if(accountManageBtn){
+accountManageBtn.addEventListener("click", ()=>{
 chrome.tabs.create({ url: "https://deepfocustime.com/account" })
 })
 }
+if(accountRefreshBtn){
 accountRefreshBtn.addEventListener("click", async ()=>{
 updateAccountButtonsLoading(true)
 setAccountStatus("Refreshing account...", false)
@@ -1510,7 +1524,10 @@ setAccountStatus(err.message || "Refresh failed.", true)
 updateAccountButtonsLoading(false)
 }
 })
+}
+if(accountSignOutBtn){
 accountSignOutBtn.addEventListener("click", signOutAccount)
+}
 
 document.querySelectorAll(".preset-tag").forEach((btn)=>{
 btn.addEventListener("click", ()=>{
@@ -1532,8 +1549,7 @@ updateNightWorkControls()
 updateBreakVisualControls()
 syncBreakVisualBackgroundState()
 updateProgressReport()
-setAccountMode("signin")
-restoreAccountSession()
+restoreAccountSession().finally(()=>checkWebsiteSession())
 
 aboutBtn.addEventListener("click", ()=>openDetailView("about"))
 shortcutsBtn.addEventListener("click", ()=>openDetailView("shortcuts"))
