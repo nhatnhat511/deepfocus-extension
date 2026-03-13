@@ -10,6 +10,19 @@ const OFFSCREEN_URL = "offscreen.html"
 const LUNCH_NOTIFICATION_ID = "deepfocusLunchNotification"
 const DINNER_NOTIFICATION_ID = "deepfocusDinnerNotification"
 const ACCOUNT_STATUS_KEY = "deepfocusAccountStatus"
+const AUTH_STORAGE_KEY = "deepfocusSupabaseSession"
+const ACCOUNT_PLANS = new Set(["free", "trial", "premium", "premium_monthly", "premium_yearly"])
+const PREMIUM_PLANS = new Set(["trial", "premium", "premium_monthly", "premium_yearly"])
+
+function normalizeAccountPlan(value) {
+    if (typeof value !== "string") return "free"
+    const plan = value.toLowerCase()
+    return ACCOUNT_PLANS.has(plan) ? plan : "free"
+}
+
+function isPremiumPlan(plan) {
+    return PREMIUM_PLANS.has(plan)
+}
 
 let endTime = null
 let mode = "focus"
@@ -68,6 +81,8 @@ let accountPlan = "free"
 let premiumUntil = ""
 let premiumPromptedAt = 0
 let lastPlayedTickSecond = null
+let loginTabId = null
+let loginExtRedirect = null
 
 let stateReadyResolve
 const stateReady = new Promise((resolve) => {
@@ -87,6 +102,73 @@ loadState(() => {
     checkMeetingActivity()
     stateReadyResolve()
 })
+
+function extractAuthParams(urlString) {
+    const parsed = new URL(urlString)
+    const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ""))
+    const queryParams = new URLSearchParams(parsed.search)
+    const merged = new URLSearchParams()
+    hashParams.forEach((value, key) => {
+        merged.set(key, value)
+    })
+    queryParams.forEach((value, key) => {
+        if (!merged.has(key)) merged.set(key, value)
+    })
+    return merged
+}
+
+function clearLoginFlow() {
+    loginTabId = null
+    loginExtRedirect = null
+}
+
+function finalizeLoginFromUrl(urlString) {
+    const authParams = extractAuthParams(urlString)
+    const authError = authParams.get("error_description") || authParams.get("error")
+    if (authError) {
+        chrome.runtime.sendMessage({ type: "AUTH_SESSION_UPDATED", error: authError }, () => {
+            void chrome.runtime.lastError
+        })
+        return
+    }
+    const accessToken = authParams.get("access_token")
+    if (!accessToken) {
+        chrome.runtime.sendMessage({ type: "AUTH_SESSION_UPDATED", error: "Missing access token." }, () => {
+            void chrome.runtime.lastError
+        })
+        return
+    }
+    const session = {
+        access_token: accessToken,
+        refresh_token: authParams.get("refresh_token") || "",
+        token_type: authParams.get("token_type") || "bearer",
+        expires_in: Number(authParams.get("expires_in") || 0),
+        expires_at: Number(authParams.get("expires_at") || 0)
+    }
+    chrome.storage.local.set({ [AUTH_STORAGE_KEY]: session }, () => {
+        chrome.runtime.sendMessage({ type: "AUTH_SESSION_UPDATED" }, () => {
+            void chrome.runtime.lastError
+        })
+    })
+}
+
+function handleLoginTabUpdate(tabId, changeInfo) {
+    if (!loginTabId || tabId !== loginTabId || !changeInfo.url) return
+    if (loginExtRedirect && changeInfo.url.startsWith(loginExtRedirect)) {
+        finalizeLoginFromUrl(changeInfo.url)
+        chrome.tabs.update(tabId, { url: "https://deepfocustime.com/auth/extension-sync" + changeInfo.url.slice(loginExtRedirect.length) }, () => undefined)
+        clearLoginFlow()
+    }
+}
+
+function handleLoginTabClosed(tabId) {
+    if (loginTabId && tabId === loginTabId) {
+        clearLoginFlow()
+    }
+}
+
+chrome.tabs.onUpdated.addListener(handleLoginTabUpdate)
+chrome.tabs.onRemoved.addListener(handleLoginTabClosed)
 
 chrome.runtime.onInstalled.addListener(() => {
     initIdleDetection()
@@ -215,10 +297,28 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             return
         }
 
+        if (msg.type === "START_WEB_LOGIN") {
+            const extRedirect = `https://${chrome.runtime.id}.chromiumapp.org/supabase-auth`
+            const loginUrl = `https://deepfocustime.com/login?ext_redirect=${encodeURIComponent(extRedirect)}`
+            if (loginTabId) {
+                chrome.tabs.remove(loginTabId, () => undefined)
+                clearLoginFlow()
+            }
+            chrome.tabs.create({ url: loginUrl, active: true }, (tab) => {
+                if (chrome.runtime.lastError || !tab) {
+                    sendResponse({ ok: false, error: "Unable to open login tab." })
+                    return
+                }
+                loginTabId = tab.id
+                loginExtRedirect = extRedirect
+                sendResponse({ ok: true })
+            })
+            return true
+        }
+
         if (msg.type === "UPDATE_ACCOUNT_STATUS") {
             if (typeof msg.plan === "string") {
-                const nextPlan = msg.plan.toLowerCase()
-                accountPlan = (nextPlan === "premium" || nextPlan === "trial") ? nextPlan : "free"
+                accountPlan = normalizeAccountPlan(msg.plan)
             }
             premiumUntil = typeof msg.premiumUntil === "string" ? msg.premiumUntil : ""
             if (!isPremiumActive()) {
@@ -572,7 +672,7 @@ function loadState(done) {
         const account = result[ACCOUNT_STATUS_KEY]
         const hasAccountStatusOverride = !!(account && typeof account === "object")
         if (account && typeof account === "object") {
-            accountPlan = (account.plan === "premium" || account.plan === "trial") ? account.plan : "free"
+            accountPlan = normalizeAccountPlan(account.plan)
             premiumUntil = typeof account.premiumUntil === "string" ? account.premiumUntil : ""
         }
         if (!state) {
@@ -648,7 +748,7 @@ function loadState(done) {
         lastLunchReminderMinuteKey = typeof state.lastLunchReminderMinuteKey === "string" ? state.lastLunchReminderMinuteKey : ""
         lastDinnerReminderMinuteKey = typeof state.lastDinnerReminderMinuteKey === "string" ? state.lastDinnerReminderMinuteKey : ""
         if (!hasAccountStatusOverride) {
-            if (state.accountPlan === "premium" || state.accountPlan === "trial" || state.accountPlan === "free") {
+            if (ACCOUNT_PLANS.has(state.accountPlan)) {
                 accountPlan = state.accountPlan
             }
             if (typeof state.premiumUntil === "string") {
@@ -1360,7 +1460,7 @@ function handleSoundCueAlarm() {
 }
 
 function isPremiumActive() {
-    if (accountPlan !== "premium" && accountPlan !== "trial") return false
+    if (!isPremiumPlan(accountPlan)) return false
     if (!premiumUntil) return false
     const untilTs = Date.parse(premiumUntil)
     if (!Number.isFinite(untilTs)) return false
@@ -1378,7 +1478,7 @@ function persistAccountStatus() {
 
 function enforceFreeTierDefaults() {
     const now = Date.now()
-    const expiredPremium = (accountPlan === "premium" || accountPlan === "trial") && !isPremiumActive()
+    const expiredPremium = isPremiumPlan(accountPlan) && !isPremiumActive()
     if (expiredPremium && now - premiumPromptedAt > 6 * 60 * 60 * 1000) {
         premiumPromptedAt = now
         showUpgradeNotification()
