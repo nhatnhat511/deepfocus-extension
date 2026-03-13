@@ -15,6 +15,8 @@ export const metadata = {
   description: "Sign in to manage your DeepFocus Time account and subscription.",
 };
 
+export const runtime = "edge";
+
 export default async function LoginPage() {
   const cookieStore = await cookies();
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
