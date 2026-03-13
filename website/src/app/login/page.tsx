@@ -1,4 +1,5 @@
 import AuthFormClient from "@/components/AuthFormClient";
+import LoginRedirector from "@/components/LoginRedirector";
 
 export const metadata = {
   title: "Sign In",
@@ -6,5 +7,10 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  return <AuthFormClient mode="login" />;
+  return (
+    <>
+      <LoginRedirector />
+      <AuthFormClient mode="login" />
+    </>
+  );
 }
