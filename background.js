@@ -117,6 +117,11 @@ function extractAuthParams(urlString) {
     return merged
 }
 
+function isExtensionRedirectUrl(urlString) {
+    const origin = `https://${chrome.runtime.id}.chromiumapp.org/`
+    return typeof urlString === "string" && urlString.startsWith(origin)
+}
+
 function clearLoginFlow() {
     loginTabId = null
     loginExtRedirect = null
@@ -152,11 +157,31 @@ function finalizeLoginFromUrl(urlString) {
     })
 }
 
+function buildWebsiteSyncUrl(authParams) {
+    const params = new URLSearchParams()
+    ;["access_token", "refresh_token", "expires_in", "expires_at", "token_type"].forEach((key) => {
+        const value = authParams.get(key)
+        if (value) params.set(key, value)
+    })
+    return `https://deepfocustime.com/auth/extension-sync#${params.toString()}`
+}
+
 function handleLoginTabUpdate(tabId, changeInfo) {
-    if (!loginTabId || tabId !== loginTabId || !changeInfo.url) return
-    if (loginExtRedirect && changeInfo.url.startsWith(loginExtRedirect)) {
+    if (!changeInfo.url) return
+    // If the service worker restarted, loginTabId may be lost. Still capture
+    // extension redirects to persist the session.
+    if (isExtensionRedirectUrl(changeInfo.url)) {
+        const authParams = extractAuthParams(changeInfo.url)
         finalizeLoginFromUrl(changeInfo.url)
-        chrome.tabs.update(tabId, { url: "https://deepfocustime.com/auth/extension-sync" + changeInfo.url.slice(loginExtRedirect.length) }, () => undefined)
+        chrome.tabs.update(tabId, { url: buildWebsiteSyncUrl(authParams) }, () => undefined)
+        clearLoginFlow()
+        return
+    }
+    if (!loginTabId || tabId !== loginTabId) return
+    if (loginExtRedirect && changeInfo.url.startsWith(loginExtRedirect)) {
+        const authParams = extractAuthParams(changeInfo.url)
+        finalizeLoginFromUrl(changeInfo.url)
+        chrome.tabs.update(tabId, { url: buildWebsiteSyncUrl(authParams) }, () => undefined)
         clearLoginFlow()
     }
 }
