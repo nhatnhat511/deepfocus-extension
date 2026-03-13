@@ -533,6 +533,24 @@ export default function AccountPage() {
     }
   }
 
+  async function fallbackSyncEntitlement() {
+    if (!session?.access_token) return false;
+    try {
+      const res = await fetch("/api/paddle/sync-subscription", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (!res.ok) return false;
+      await refreshCurrentUser(session);
+      await refreshBillingMeta();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function startPolling(expectedPlans: string[]) {
     if (typeof window === "undefined") return;
     if (pollingRef.current) return;
@@ -543,7 +561,9 @@ export default function AccountPage() {
       const elapsedMs = Date.now() - pollingStartedAtRef.current;
       if (elapsedMs > 2 * 60 * 1000 || pollingAttemptsRef.current > 90) {
         stopPolling();
-        clearPendingCheckout();
+        void fallbackSyncEntitlement().finally(() => {
+          clearPendingCheckout();
+        });
         return;
       }
       void pollUserPlan(expectedPlans);
@@ -810,6 +830,8 @@ export default function AccountPage() {
                   defaultPlan={preferredPlan}
                   currentPlan={currentPlan}
                   subscriptionId={profile?.paddle_subscription_id || null}
+                  accountEmail={user?.email || ""}
+                  accountAccessToken={session?.access_token || ""}
                   onCheckoutStart={({ plan }) => {
                     const expectedPlans =
                       plan === "upgrade_yearly" || plan === "yearly"

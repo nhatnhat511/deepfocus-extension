@@ -36,6 +36,8 @@ type PaddleCheckoutCardProps = {
   allowedPlans?: PlanOption[];
   currentPlan?: string;
   subscriptionId?: string | null;
+  accountEmail?: string;
+  accountAccessToken?: string;
   onCheckoutStart?: (summary: { plan: PlanOption | "upgrade_yearly" }) => void;
   onUpgradeSuccess?: (summary: { amountText?: string; plan?: PlanOption | "upgrade_yearly" }) => void;
 };
@@ -57,6 +59,8 @@ export default function PaddleCheckoutCard({
   allowedPlans,
   currentPlan,
   subscriptionId,
+  accountEmail,
+  accountAccessToken,
   onCheckoutStart,
   onUpgradeSuccess,
 }: PaddleCheckoutCardProps) {
@@ -95,6 +99,16 @@ export default function PaddleCheckoutCard({
   const isActiveYearly = currentPlan === "premium_yearly";
 
   useEffect(() => {
+    if (accountAccessToken) {
+      setAccessToken(accountAccessToken);
+    }
+    if (accountEmail) {
+      setEmail(accountEmail);
+    }
+  }, [accountAccessToken, accountEmail]);
+
+  useEffect(() => {
+    if (accountAccessToken || accountEmail) return;
     const supabase = supabaseRef.current;
     const applySession = (session: { access_token?: string; user?: { email?: string } } | null) => {
       setAccessToken(String(session?.access_token || ""));
