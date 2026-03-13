@@ -154,6 +154,13 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   }, [mode]);
 
   useEffect(() => {
+    if (!sessionVerified) return;
+    if (mode === "signup" && signedIn) {
+      router.replace("/account");
+    }
+  }, [mode, router, sessionVerified, signedIn]);
+
+  useEffect(() => {
     const supabase = supabaseRef.current;
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
