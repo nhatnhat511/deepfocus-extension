@@ -661,10 +661,35 @@ display:none;
 }
 
 .account-actions button{
-flex:1 1 92px;
-min-width:92px;
-padding:6px 8px;
-font-size:12px;
+  flex:1 1 92px;
+  min-width:92px;
+  padding:6px 8px;
+  font-size:12px;
+  }
+
+.account-upgrade{
+  margin-top:8px;
+  display:flex;
+  width:100%;
+}
+
+.account-upgrade.hidden{
+  display:none;
+}
+
+.account-upgrade button{
+  width:100%;
+  padding:7px 10px;
+  border-radius:9px;
+  border:1px solid #10b981;
+  background:#10b981;
+  color:#ffffff;
+  font-size:12px;
+  font-weight:700;
+}
+
+.account-upgrade button:hover{
+  background:#0ea371;
 }
 
 .account-switch{
@@ -816,12 +841,15 @@ background:#1d4ed8;
 <div class="account-note">Sign in on deepfocustime.com to connect your extension account.</div>
 </div>
 <div id="accountSignedIn" class="account-signedin hidden">
-<div id="accountMeta" class="account-meta"></div>
-<div id="accountSessionActions" class="account-actions">
-<button id="accountManageBtn" type="button">Manage Account</button>
-<button id="accountSignOutBtn" type="button">Sign Out</button>
-</div>
-</div>
+  <div id="accountMeta" class="account-meta"></div>
+  <div id="accountUpgradeWrap" class="account-upgrade hidden">
+    <button id="accountUpgradeBtn" type="button">Upgrade to Premium</button>
+  </div>
+  <div id="accountSessionActions" class="account-actions">
+  <button id="accountManageBtn" type="button">Manage Account</button>
+  <button id="accountSignOutBtn" type="button">Sign Out</button>
+  </div>
+  </div>
 </div>
 <div id="advancedSettingsPanel" class="detail-settings">
 <div class="premium-note">Premium feature preview is temporarily enabled for testing.</div>

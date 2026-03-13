@@ -177,7 +177,7 @@ export async function POST(req: Request) {
     const plan = String(profile?.plan || "");
     const premiumUntil = profile?.premium_until ? Date.parse(profile.premium_until) : 0;
     const hasActivePremium = Number.isFinite(premiumUntil) && premiumUntil > Date.now();
-    if (!plan || (plan !== "premium" && plan !== "premium_monthly")) {
+    if (!plan || plan !== "premium_monthly") {
       return jsonError("Only monthly subscriptions can be upgraded to yearly.", 400);
     }
     if (!hasActivePremium) {
@@ -188,20 +188,10 @@ export async function POST(req: Request) {
       return jsonError("Missing Paddle subscription. Please contact support.", 400);
     }
 
-    const updated = await paddlePatch<PaddleSubscription>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
-      proration_billing_mode: "prorated_immediately",
-      custom_data: {
-        deepfocus_user_id: userId,
-        deepfocus_email: email || undefined,
-        deepfocus_plan: "premium_yearly",
-      },
-      items: [
-        {
-          price_id: PADDLE_PRICE_ID_YEARLY,
-          quantity: 1,
-        },
-      ],
-    });
+    const updated = await paddlePatch<PaddleSubscription>(
+      `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+      buildUpgradePayload({ userId, email, priceId: PADDLE_PRICE_ID_YEARLY })
+    );
 
     return NextResponse.json({ subscriptionId: updated?.id || subscriptionId });
   } catch (e) {
@@ -209,4 +199,29 @@ export async function POST(req: Request) {
     const mapped = mapPaddleError(raw);
     return NextResponse.json({ error: mapped.message, code: mapped.code, detail: raw }, { status: 400 });
   }
+}
+
+export function buildUpgradePayload({
+  userId,
+  email,
+  priceId,
+}: {
+  userId: string;
+  email: string;
+  priceId: string;
+}) {
+  return {
+    proration_billing_mode: "prorated_immediately",
+    custom_data: {
+      deepfocus_user_id: userId,
+      deepfocus_email: email || undefined,
+      deepfocus_plan: "premium_yearly",
+    },
+    items: [
+      {
+        price_id: priceId,
+        quantity: 1,
+      },
+    ],
+  };
 }

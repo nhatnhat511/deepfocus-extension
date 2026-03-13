@@ -50,6 +50,8 @@ const accountManageBtn = document.getElementById("accountManageBtn")
 const accountRefreshBtn = document.getElementById("accountRefreshBtn")
 const accountSignOutBtn = document.getElementById("accountSignOutBtn")
 const accountMeta = document.getElementById("accountMeta")
+const accountUpgradeWrap = document.getElementById("accountUpgradeWrap")
+const accountUpgradeBtn = document.getElementById("accountUpgradeBtn")
 const accountSignedOut = document.getElementById("accountSignedOut")
 const accountSignedIn = document.getElementById("accountSignedIn")
 const accountSessionActions = document.getElementById("accountSessionActions")
@@ -765,19 +767,46 @@ renderAdvancedStats()
 }
 
 function renderAccountMeta(){
-if(!authSession || !authSession.user){
-if(accountMeta) accountMeta.innerHTML = "<strong>Plan:</strong> Free"
-syncPremiumControls()
-syncAccountStatusToBackground()
-return
-}
+  if(!authSession || !authSession.user){
+    if(accountMeta) accountMeta.innerHTML = "<strong>Plan:</strong> Free"
+    updateAccountUpgradeCta()
+    syncPremiumControls()
+    syncAccountStatusToBackground()
+    return
+  }
 
 const userEmail = authSession.user.email || "-"
 const planLabel = formatPlanLabel(accountProfile && accountProfile.plan ? accountProfile.plan : "free")
-let metaHtml = `<strong>Email:</strong> ${userEmail}<br><strong>Plan:</strong> ${planLabel}`
-accountMeta.innerHTML = metaHtml
-syncPremiumControls()
-syncAccountStatusToBackground()
+  let metaHtml = `<strong>Email:</strong> ${userEmail}<br><strong>Plan:</strong> ${planLabel}`
+  accountMeta.innerHTML = metaHtml
+  updateAccountUpgradeCta()
+  syncPremiumControls()
+  syncAccountStatusToBackground()
+}
+
+function updateAccountUpgradeCta(){
+  if(!accountUpgradeWrap || !accountUpgradeBtn) return
+  const signedIn = !!(authSession && authSession.user)
+  if(!signedIn){
+    accountUpgradeWrap.classList.add("hidden")
+    accountUpgradeBtn.dataset.target = ""
+    return
+  }
+  const currentPlan = accountProfile && accountProfile.plan ? String(accountProfile.plan).toLowerCase() : "free"
+  if(currentPlan === "trial"){
+    accountUpgradeBtn.textContent = "Upgrade to Premium"
+    accountUpgradeBtn.dataset.target = "monthly"
+    accountUpgradeWrap.classList.remove("hidden")
+    return
+  }
+  if(currentPlan === "premium_monthly"){
+    accountUpgradeBtn.textContent = "Upgrade to Yearly"
+    accountUpgradeBtn.dataset.target = "yearly"
+    accountUpgradeWrap.classList.remove("hidden")
+    return
+  }
+  accountUpgradeWrap.classList.add("hidden")
+  accountUpgradeBtn.dataset.target = ""
 }
 
 async function supabaseRequest(path, options = {}, accessToken){
@@ -1553,6 +1582,20 @@ accountWebLoginBtn.addEventListener("click", ()=>startWebsiteAuthFlow())
 if(accountManageBtn){
 accountManageBtn.addEventListener("click", ()=>{
 chrome.tabs.create({ url: "https://deepfocustime.com/account" })
+})
+}
+if(accountUpgradeBtn){
+accountUpgradeBtn.addEventListener("click", ()=>{
+const target = accountUpgradeBtn.dataset.target
+if(target === "monthly"){
+chrome.tabs.create({ url: "https://deepfocustime.com/account?plan=monthly#billing-plan" })
+return
+}
+if(target === "yearly"){
+chrome.tabs.create({ url: "https://deepfocustime.com/account?plan=yearly#billing-plan" })
+return
+}
+chrome.tabs.create({ url: "https://deepfocustime.com/account#billing-plan" })
 })
 }
 if(accountRefreshBtn){

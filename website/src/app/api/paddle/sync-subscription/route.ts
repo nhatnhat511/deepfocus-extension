@@ -112,7 +112,7 @@ function derivePlanAndUntilFromSubscription(data: PaddleSubscription) {
     resolvedPlan = inferPlanFromPeriod(data);
   }
 
-  const normalizedPlan = resolvedPlan || "premium";
+  const normalizedPlan = resolvedPlan || "premium_monthly";
   return {
     plan: shouldGrantPremium ? normalizedPlan : "free",
     premiumUntil: shouldGrantPremium && rawUntil ? rawUntil : null,

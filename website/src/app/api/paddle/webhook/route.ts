@@ -53,7 +53,7 @@ function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
-function parseSignatureHeader(headerValue: string) {
+export function parseSignatureHeader(headerValue: string) {
   const parts = headerValue
     .split(";")
     .map((part) => part.trim())
@@ -83,7 +83,7 @@ function bytesToHex(bytes: Uint8Array) {
   return out;
 }
 
-async function signHmacSha256Hex(secret: string, message: string) {
+export async function signHmacSha256Hex(secret: string, message: string) {
   const key = await crypto.subtle.importKey(
     "raw",
     textToBytes(secret),
@@ -104,7 +104,7 @@ function secureEqualHex(a: string, b: string) {
   return diff === 0;
 }
 
-async function verifyPaddleSignature(rawBody: string, headerValue: string, secret: string) {
+export async function verifyPaddleSignature(rawBody: string, headerValue: string, secret: string) {
   const parsed = parseSignatureHeader(headerValue);
   if (!parsed.ts || !parsed.signatures.length) return false;
 
@@ -118,7 +118,7 @@ async function verifyPaddleSignature(rawBody: string, headerValue: string, secre
   });
 }
 
-function isRecentSignature(headerValue: string, maxSkewSeconds = 1800) {
+export function isRecentSignature(headerValue: string, maxSkewSeconds = 1800) {
   const parsed = parseSignatureHeader(headerValue);
   const ts = Number(parsed.ts || 0);
   if (!Number.isFinite(ts) || ts <= 0) return false;
@@ -237,7 +237,7 @@ function toUserId(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizePlanHint(value: unknown) {
+export function normalizePlanHint(value: unknown) {
   const text = typeof value === "string" ? value.trim().toLowerCase() : "";
   if (!text) return "";
   if (text.includes("year")) return "premium_yearly";
@@ -252,7 +252,7 @@ function parseSubscriptionWindow(data: PaddleSubscription) {
   return fromCurrentPeriod || fromNextBilled;
 }
 
-function inferPlanFromPeriod(data: PaddleSubscription) {
+export function inferPlanFromPeriod(data: PaddleSubscription) {
   const startRaw = data.current_billing_period?.starts_at || "";
   const endRaw = data.current_billing_period?.ends_at || "";
   const startTs = startRaw ? Date.parse(startRaw) : NaN;
@@ -274,7 +274,7 @@ function inferPlanFromPeriod(data: PaddleSubscription) {
   return "";
 }
 
-function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: string) {
+export function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: string) {
   const status = String(data.status || "").toLowerCase();
   const rawUntil = parseSubscriptionWindow(data);
   const untilTs = rawUntil ? Date.parse(rawUntil) : NaN;

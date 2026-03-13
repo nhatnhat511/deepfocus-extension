@@ -13,7 +13,7 @@ type AuthSession = NonNullable<
 type ProfileRow = {
   id: string;
   email: string | null;
-  plan: "free" | "trial" | "premium" | "premium_monthly" | "premium_yearly";
+  plan: "free" | "trial" | "premium_monthly" | "premium_yearly";
   premium_until: string | null;
   trial_used: boolean;
   trial_started_at: string | null;
@@ -134,7 +134,6 @@ export default function AccountPage() {
   const inferredPlan = useMemo(() => {
     if (!profile) return "free";
     if (profile.plan === "trial") return "trial";
-    if (profile.plan === "premium") return "premium_monthly";
     const untilTs = profile.premium_until ? Date.parse(profile.premium_until) : NaN;
     const remainingDays = Number.isFinite(untilTs) ? (untilTs - Date.now()) / (1000 * 60 * 60 * 24) : NaN;
     if (Number.isFinite(remainingDays)) {
@@ -575,10 +574,7 @@ export default function AccountPage() {
     if (!signedIn || !profile?.paddle_subscription_id) return;
     const handleFocus = () => {
       void refreshBillingMeta();
-      if (
-        profile?.plan === "premium" ||
-        profile?.plan === "premium_monthly"
-      ) {
+      if (profile?.plan === "premium_monthly" || profile?.plan === "premium_yearly") {
         void fetch("/api/paddle/sync-subscription", {
           method: "POST",
           headers: {
@@ -608,7 +604,7 @@ export default function AccountPage() {
     const expectedPlans =
       plan === "upgrade_yearly" || plan === "yearly"
         ? ["premium_yearly"]
-        : ["premium_monthly", "premium_yearly", "premium"];
+        : ["premium_monthly", "premium_yearly"];
     startPolling(expectedPlans);
     return () => {
       stopPolling();
@@ -836,7 +832,7 @@ export default function AccountPage() {
                     const expectedPlans =
                       plan === "upgrade_yearly" || plan === "yearly"
                         ? ["premium_yearly"]
-                        : ["premium_monthly", "premium_yearly", "premium"];
+                        : ["premium_monthly", "premium_yearly"];
                     startPolling(expectedPlans);
                   }}
                   onUpgradeSuccess={() => {}}

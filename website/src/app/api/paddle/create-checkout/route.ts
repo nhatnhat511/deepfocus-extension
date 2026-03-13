@@ -211,7 +211,7 @@ export async function POST(req: Request) {
     }
 
     if (hasActivePremium) {
-      if (requestedPlan === "monthly" && (currentPlan === "premium" || currentPlan === "premium_monthly")) {
+      if (requestedPlan === "monthly" && currentPlan === "premium_monthly") {
         return jsonError("Monthly plan already active. It will renew automatically.", 409);
       }
       if (requestedPlan === "yearly" && currentPlan === "premium_yearly") {

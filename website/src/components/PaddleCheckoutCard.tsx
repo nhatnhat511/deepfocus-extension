@@ -96,9 +96,8 @@ export default function PaddleCheckoutCard({
       normalizedAllowedPlans.includes(plan)
     );
   }, [accessToken, email, loading, paddleToken, ready, normalizedAllowedPlans, plan]);
-  const isMonthlyUpgradeToYearly =
-    (currentPlan === "premium" || currentPlan === "premium_monthly") && plan === "yearly";
-  const isActiveMonthly = currentPlan === "premium" || currentPlan === "premium_monthly";
+  const isMonthlyUpgradeToYearly = currentPlan === "premium_monthly" && plan === "yearly";
+  const isActiveMonthly = currentPlan === "premium_monthly";
   const isActiveYearly = currentPlan === "premium_yearly";
 
   useEffect(() => {
