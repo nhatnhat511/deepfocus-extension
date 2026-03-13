@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "edge";
 
@@ -124,6 +125,17 @@ async function getUserFromAccessToken(accessToken: string) {
   return payload;
 }
 
+async function getUserFromCookies() {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data?.user) return null;
+    return data.user as SupabaseUser;
+  } catch {
+    return null;
+  }
+}
+
 async function getProfile(accessToken: string, userId: string) {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/profiles?select=plan,premium_until&id=eq.${encodeURIComponent(userId)}&limit=1`,
@@ -163,11 +175,11 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get("authorization") || "";
     const bearer = authHeader.match(/^Bearer\s+(.+)$/i);
     const accessToken = bearer ? bearer[1].trim() : "";
-    if (!accessToken) {
+    const cookieUser = await getUserFromCookies();
+    const user = cookieUser || (accessToken ? await getUserFromAccessToken(accessToken) : null);
+    if (!user) {
       return jsonError("Unauthorized. Please sign in before checkout.", 401);
     }
-
-    const user = await getUserFromAccessToken(accessToken);
     const userId = String(user.id || "");
     const email = normalizeEmail(String(user.email || ""));
     if (!userId || !/^\S+@\S+\.\S+$/.test(email)) {
