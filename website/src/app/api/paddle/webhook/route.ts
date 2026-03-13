@@ -126,6 +126,14 @@ export function isRecentSignature(headerValue: string, maxSkewSeconds = 1800) {
   return Math.abs(now - ts) <= maxSkewSeconds;
 }
 
+function isEventTooOld(occurredAt: string, maxAgeDays = 7) {
+  if (!occurredAt) return false;
+  const ts = Date.parse(occurredAt);
+  if (!Number.isFinite(ts)) return false;
+  const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+  return Date.now() - ts > maxAgeMs;
+}
+
 async function paddleApi<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${PADDLE_API_BASE}${path}`, {
     ...init,
@@ -499,8 +507,12 @@ export async function POST(req: Request) {
     const eventId = String(event.event_id || "");
     const eventType = String(event.event_type || "");
     const data = (event.data || {}) as Record<string, unknown>;
+    const occurredAt = String(payloadForStore?.occurred_at || "");
 
     if (!eventId || !eventType) return jsonError("Invalid webhook payload.", 400);
+    if (isEventTooOld(occurredAt)) {
+      return jsonError("Webhook event is too old.", 400);
+    }
 
     if (!isRecentSignature(signature)) {
       const alreadyStored = await hasWebhookEvent(eventId);
