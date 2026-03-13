@@ -6,6 +6,7 @@ type PaddleSubscription = {
   id?: string;
   customer_id?: string | null;
   status?: string | null;
+  custom_data?: Record<string, unknown> | null;
   items?:
     | Array<{
         price_id?: string | null;
