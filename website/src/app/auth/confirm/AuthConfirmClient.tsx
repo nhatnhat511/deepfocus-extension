@@ -153,6 +153,15 @@ export default function AuthConfirmClient() {
           return;
         }
 
+        const sessionResult = await supabaseRef.current.auth.getSession();
+        if (sessionResult?.data?.session?.access_token) {
+          setStatus("Email verified");
+          setDetail("Your account is now confirmed. Redirecting you now.");
+          setTimeout(() => window.location.replace(next), 1200);
+          setTimeout(() => window.close(), 1800);
+          return;
+        }
+
         setStatus("Verification link incomplete");
         setDetail("Please reopen the verification link from your email.");
       } catch (err) {
