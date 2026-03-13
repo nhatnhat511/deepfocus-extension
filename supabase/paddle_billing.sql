@@ -158,6 +158,18 @@ grant execute on function public.apply_paddle_billing_by_email(text, text, times
 revoke all on function public.apply_paddle_billing_by_user_id(uuid, text, text, timestamptz, text, text, text) from public;
 grant execute on function public.apply_paddle_billing_by_user_id(uuid, text, text, timestamptz, text, text, text) to service_role;
 
+create or replace function public.paddle_billing_health()
+returns table (ok boolean, version text)
+language sql
+security definer
+set search_path = public
+as $$
+  select true as ok, '2026-03-13'::text as version;
+$$;
+
+revoke all on function public.paddle_billing_health() from public;
+grant execute on function public.paddle_billing_health() to service_role;
+
 -- Ensure plan values stay aligned with current product plans.
 update public.profiles
   set plan = 'premium_monthly'
