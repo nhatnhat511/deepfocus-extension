@@ -397,8 +397,20 @@ async function applyProfileEntitlementByEmail(params: {
 }
 
 async function handleWebhookEvent(eventType: string, data: Record<string, unknown>) {
-  if (!eventType.startsWith("subscription.") && eventType !== "transaction.paid") {
+  if (
+    !eventType.startsWith("subscription.") &&
+    eventType !== "transaction.paid" &&
+    eventType !== "transaction.updated" &&
+    eventType !== "transaction.completed"
+  ) {
     return;
+  }
+
+  if (eventType.startsWith("transaction.")) {
+    const status = String((data as { status?: string }).status || "").toLowerCase();
+    if (status && status !== "paid" && status !== "completed") {
+      return;
+    }
   }
 
   const resolved = await resolveIdentityForEvent(eventType, data);

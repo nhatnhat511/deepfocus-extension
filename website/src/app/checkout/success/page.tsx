@@ -8,7 +8,9 @@ export default function CheckoutSuccessPage() {
 
   useEffect(() => {
     try {
-      const payload = { plan: "checkout", startedAt: Date.now() };
+      const params = new URLSearchParams(window.location.search);
+      const plan = params.get("plan") || "checkout";
+      const payload = { plan, startedAt: Date.now() };
       window.localStorage.setItem("df_pending_checkout", JSON.stringify(payload));
     } catch {
       // ignore storage failures

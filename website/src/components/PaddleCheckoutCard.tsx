@@ -156,6 +156,15 @@ export default function PaddleCheckoutCard({
     }
   }
 
+  function clearPendingCheckout() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(pendingCheckoutKey);
+    } catch {
+      // ignore storage failures
+    }
+  }
+
   async function startCheckout() {
     setError("");
     setErrorCode("");
@@ -189,6 +198,7 @@ export default function PaddleCheckoutCard({
     try {
       if (isMonthlyUpgradeToYearly) {
         const upgradeStartedAt = Date.now();
+        writePendingCheckout("upgrade_yearly");
         const res = await fetch("/api/paddle/upgrade-subscription", {
           method: "POST",
           headers: {
@@ -302,11 +312,12 @@ export default function PaddleCheckoutCard({
         transactionId: payload.transactionId,
         settings: {
           displayMode: "overlay",
-          successUrl: `${window.location.origin}/checkout/success`,
+          successUrl: `${window.location.origin}/checkout/success?plan=${plan}`,
         },
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unable to start checkout.";
+      clearPendingCheckout();
       setError(message);
     } finally {
       setLoading(false);
