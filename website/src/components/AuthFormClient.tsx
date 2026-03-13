@@ -104,7 +104,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
             <path
               fill="currentColor"
-              d="M12 12.5a4 4 0 1 0-4-4a4 4 0 0 0 4 4m0 1.5c-4.42 0-8 2.24-8 5v1h10v-2H6.12a.86.86 0 0 1-.02-.17c0-1.4 2.59-2.83 5.9-2.83.7 0 1.37.06 2 .17V14Zm7-2h-2V9h-2v3h-2v2h2v3h2v-3h2Z"
+              d="M12 6.5a3.5 3.5 0 1 1-3.5 3.5A3.5 3.5 0 0 1 12 6.5m0-2a5.5 5.5 0 1 0 5.5 5.5A5.5 5.5 0 0 0 12 4.5m-7 15a6.5 6.5 0 0 1 10.5-4.99l1.43-1.43A8.5 8.5 0 0 0 3 19.5v1h9v-2H5Zm15-9.5v-2h-2v2h-2v2h2v2h2v-2h2v-2Z"
             />
           </svg>
         );
