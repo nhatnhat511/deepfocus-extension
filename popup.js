@@ -1243,23 +1243,44 @@ updateAccountButtonsLoading(false)
 }
 
 async function checkWebsiteSession(){
-try{
-const response = await fetch("https://deepfocustime.com/api/me", {
-method: "GET",
-credentials: "include"
-})
-if(response.status === 401){
-if(authSession){
-await signOutAccount()
-}else{
-accountProfile = null
-renderAccountMeta()
-syncAccountUiBySession()
-}
-}
-}catch(_e){
-// ignore fetch errors to avoid blocking popup
-}
+  try{
+    const response = await fetch("https://deepfocustime.com/api/me", {
+      method: "GET",
+      credentials: "include"
+    })
+    if(response.status === 401){
+      if(authSession){
+        await signOutAccount()
+      }else{
+        accountProfile = null
+        renderAccountMeta()
+        syncAccountUiBySession()
+      }
+    }
+    if(!response.ok) return
+    const payload = await response.json().catch(()=>null)
+    if(!payload || payload.authenticated !== true) return
+    const userEmail = payload.user && payload.user.email ? String(payload.user.email) : ""
+    if(!authSession || !authSession.user){
+      authSession = { user: { email: userEmail } }
+    }else if(userEmail && !authSession.user.email){
+      authSession.user.email = userEmail
+    }
+    if(payload.entitlement && typeof payload.entitlement === "object"){
+      accountProfile = {
+        plan: payload.entitlement.plan || "free",
+        premium_until: payload.entitlement.premium_until || null,
+        trial_used: !!payload.entitlement.trial_used,
+        trial_started_at: payload.entitlement.trial_started_at || null
+      }
+    }
+    renderAccountMeta()
+    syncAccountUiBySession()
+    syncPremiumControls()
+    syncAccountStatusToBackground()
+  }catch(_e){
+    // ignore fetch errors to avoid blocking popup
+  }
 }
 
 async function restoreAccountSession(){
