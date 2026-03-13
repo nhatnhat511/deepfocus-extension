@@ -33,7 +33,7 @@ export default async function ExtensionLoginPage({ searchParams }: ExtensionLogi
     redirect(`/login`);
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {
