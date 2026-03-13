@@ -36,6 +36,7 @@ type PaddleCheckoutCardProps = {
   allowedPlans?: PlanOption[];
   currentPlan?: string;
   subscriptionId?: string | null;
+  onCheckoutStart?: (summary: { plan: PlanOption | "upgrade_yearly" }) => void;
   onUpgradeSuccess?: (summary: { amountText?: string; plan?: PlanOption | "upgrade_yearly" }) => void;
 };
 
@@ -56,6 +57,7 @@ export default function PaddleCheckoutCard({
   allowedPlans,
   currentPlan,
   subscriptionId,
+  onCheckoutStart,
   onUpgradeSuccess,
 }: PaddleCheckoutCardProps) {
   const [email, setEmail] = useState("");
@@ -199,6 +201,9 @@ export default function PaddleCheckoutCard({
       if (isMonthlyUpgradeToYearly) {
         const upgradeStartedAt = Date.now();
         writePendingCheckout("upgrade_yearly");
+        if (onCheckoutStart) {
+          onCheckoutStart({ plan: "upgrade_yearly" });
+        }
         const res = await fetch("/api/paddle/upgrade-subscription", {
           method: "POST",
           headers: {
@@ -307,6 +312,10 @@ export default function PaddleCheckoutCard({
       }
       if (payload.accountEmail && payload.accountEmail !== email.trim().toLowerCase()) {
         setEmail(payload.accountEmail);
+      }
+      writePendingCheckout(plan);
+      if (onCheckoutStart) {
+        onCheckoutStart({ plan });
       }
       window.Paddle?.Checkout.open({
         transactionId: payload.transactionId,

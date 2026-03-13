@@ -810,13 +810,14 @@ export default function AccountPage() {
                   defaultPlan={preferredPlan}
                   currentPlan={currentPlan}
                   subscriptionId={profile?.paddle_subscription_id || null}
-                  onUpgradeSuccess={({ plan }) => {
+                  onCheckoutStart={({ plan }) => {
                     const expectedPlans =
                       plan === "upgrade_yearly" || plan === "yearly"
                         ? ["premium_yearly"]
                         : ["premium_monthly", "premium_yearly", "premium"];
                     startPolling(expectedPlans);
                   }}
+                  onUpgradeSuccess={() => {}}
                   allowedPlans={
                     canUpgradeMonthly && canUpgradeYearly
                       ? ["monthly", "yearly"]
