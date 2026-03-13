@@ -118,7 +118,7 @@ async function verifyPaddleSignature(rawBody: string, headerValue: string, secre
   });
 }
 
-function isRecentSignature(headerValue: string, maxSkewSeconds = 300) {
+function isRecentSignature(headerValue: string, maxSkewSeconds = 1800) {
   const parsed = parseSignatureHeader(headerValue);
   const ts = Number(parsed.ts || 0);
   if (!Number.isFinite(ts) || ts <= 0) return false;
@@ -194,6 +194,23 @@ async function recordWebhookEvent(eventId: string, eventType: string, payload: R
   throw new Error(`Unable to record webhook event (${res.status})`);
 }
 
+async function hasWebhookEvent(eventId: string) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/paddle_webhook_events?select=event_id&event_id=eq.${encodeURIComponent(eventId)}&limit=1`,
+    {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      cache: "no-store",
+    }
+  );
+  if (!res.ok) return false;
+  const payload = (await res.json().catch(() => [])) as Array<{ event_id?: string }>;
+  return !!payload?.[0]?.event_id;
+}
+
 async function removeWebhookEvent(eventId: string) {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/paddle_webhook_events?event_id=eq.${encodeURIComponent(eventId)}`,
@@ -225,7 +242,7 @@ function normalizePlanHint(value: unknown) {
   if (!text) return "";
   if (text.includes("year")) return "premium_yearly";
   if (text.includes("month")) return "premium_monthly";
-  if (text === "premium") return "premium";
+  if (text === "premium") return "premium_monthly";
   return "";
 }
 
@@ -287,7 +304,7 @@ function derivePlanAndUntilFromSubscription(data: PaddleSubscription, planHint: 
   if (!resolvedPlan) {
     resolvedPlan = inferPlanFromPeriod(data);
   }
-  const normalizedPlan = resolvedPlan || "premium";
+  const normalizedPlan = resolvedPlan || "premium_monthly";
 
   return {
     plan: shouldGrantPremium ? normalizedPlan : "free",
@@ -473,8 +490,6 @@ export async function POST(req: Request) {
     const rawBody = await req.text();
     const signature = req.headers.get("paddle-signature") || "";
     if (!signature) return jsonError("Missing paddle-signature header.", 400);
-    if (!isRecentSignature(signature)) return jsonError("Webhook timestamp is too old.", 400);
-
     if (!(await verifyPaddleSignature(rawBody, signature, PADDLE_WEBHOOK_SECRET))) {
       return jsonError("Invalid webhook signature.", 400);
     }
@@ -486,6 +501,13 @@ export async function POST(req: Request) {
     const data = (event.data || {}) as Record<string, unknown>;
 
     if (!eventId || !eventType) return jsonError("Invalid webhook payload.", 400);
+
+    if (!isRecentSignature(signature)) {
+      const alreadyStored = await hasWebhookEvent(eventId);
+      if (alreadyStored) {
+        return jsonOk({ ok: true, duplicate: true });
+      }
+    }
 
     const recorded = await recordWebhookEvent(eventId, eventType, payloadForStore);
     if (!recorded) return jsonOk({ ok: true, duplicate: true });

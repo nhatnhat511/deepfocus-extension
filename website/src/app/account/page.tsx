@@ -134,6 +134,7 @@ export default function AccountPage() {
   const inferredPlan = useMemo(() => {
     if (!profile) return "free";
     if (profile.plan === "trial") return "trial";
+    if (profile.plan === "premium") return "premium_monthly";
     const untilTs = profile.premium_until ? Date.parse(profile.premium_until) : NaN;
     const remainingDays = Number.isFinite(untilTs) ? (untilTs - Date.now()) / (1000 * 60 * 60 * 24) : NaN;
     if (Number.isFinite(remainingDays)) {
@@ -148,8 +149,7 @@ export default function AccountPage() {
     const now = Date.now();
     const untilTs = profile.premium_until ? Date.parse(profile.premium_until) : 0;
     const activePremium = !!(untilTs && Number.isFinite(untilTs) && untilTs > now);
-    const isPremium =
-      profile.plan === "premium" || profile.plan === "premium_monthly" || profile.plan === "premium_yearly";
+    const isPremium = inferredPlan === "premium_monthly" || inferredPlan === "premium_yearly";
     const premiumLabel =
       inferredPlan === "premium_yearly" ? "Premium (Yearly)" : "Premium (Monthly)";
 
@@ -184,14 +184,13 @@ export default function AccountPage() {
     return action === "cancel" || action === "cancelled";
   }, [billingMeta?.scheduledAction]);
 
-  const isPremiumPlan =
-    inferredPlan === "premium" || inferredPlan === "premium_monthly" || inferredPlan === "premium_yearly";
+  const isPremiumPlan = inferredPlan === "premium_monthly" || inferredPlan === "premium_yearly";
   const currentPlan = inferredPlan || "free";
   const isTrialActive = !!profile?.is_trial_active;
   const canStartTrial = currentPlan === "free" && !profile?.trial_used;
   const canUpgradeMonthly = currentPlan === "free" || isTrialActive;
   const canUpgradeYearly =
-    currentPlan === "free" || isTrialActive || currentPlan === "premium" || currentPlan === "premium_monthly";
+    currentPlan === "free" || isTrialActive || currentPlan === "premium_monthly";
   const isYearlyPlan = currentPlan === "premium_yearly";
   const pendingCheckoutKey = "df_pending_checkout";
 

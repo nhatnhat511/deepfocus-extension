@@ -158,4 +158,16 @@ grant execute on function public.apply_paddle_billing_by_email(text, text, times
 revoke all on function public.apply_paddle_billing_by_user_id(uuid, text, text, timestamptz, text, text, text) from public;
 grant execute on function public.apply_paddle_billing_by_user_id(uuid, text, text, timestamptz, text, text, text) to service_role;
 
+-- Ensure plan values stay aligned with current product plans.
+update public.profiles
+  set plan = 'premium_monthly'
+  where plan = 'premium';
+
+alter table public.profiles
+  drop constraint if exists profiles_plan_check;
+
+alter table public.profiles
+  add constraint profiles_plan_check
+  check (plan in ('free','trial','premium_monthly','premium_yearly'));
+
 commit;
