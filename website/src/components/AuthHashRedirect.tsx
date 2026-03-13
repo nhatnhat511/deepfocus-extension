@@ -6,6 +6,10 @@ export default function AuthHashRedirect() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const { hash, pathname, search } = window.location;
+    if (hash && hash.includes("access_token") && pathname === "/account") {
+      window.history.replaceState(null, "", `${pathname}${search}`);
+      return;
+    }
     const isAuthCallback =
       pathname === "/account" ||
       pathname === "/update-password" ||
