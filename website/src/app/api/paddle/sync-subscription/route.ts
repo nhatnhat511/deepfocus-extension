@@ -45,6 +45,8 @@ const PADDLE_API_BASE = process.env.PADDLE_API_BASE_URL || "https://api.paddle.c
 const PADDLE_API_KEY = process.env.PADDLE_API_KEY || "";
 const PADDLE_PRICE_ID_MONTHLY = process.env.PADDLE_PRICE_ID || "";
 const PADDLE_PRICE_ID_YEARLY = process.env.PADDLE_PRICE_ID_YEARLY || "";
+const SHOULD_WARN_MISSING_PRICE_IDS =
+  !PADDLE_PRICE_ID_MONTHLY || !PADDLE_PRICE_ID_YEARLY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
@@ -52,6 +54,15 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+function warnMissingPriceIds(context: string) {
+  if (!SHOULD_WARN_MISSING_PRICE_IDS) return;
+  console.warn(
+    `[paddle] ${context}: missing price ids (monthly=${Boolean(PADDLE_PRICE_ID_MONTHLY)}, yearly=${Boolean(
+      PADDLE_PRICE_ID_YEARLY
+    )})`
+  );
 }
 
 function parseSubscriptionWindow(data: PaddleSubscription) {
@@ -314,6 +325,7 @@ export async function POST(req: Request) {
       return jsonError("Missing Paddle subscription.", 400);
     }
 
+    warnMissingPriceIds("sync-subscription");
     const entitlement = derivePlanAndUntilFromSubscription(subscription);
 
     await applyProfileEntitlementByUserId({

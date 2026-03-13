@@ -44,6 +44,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABAS
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const PADDLE_PRICE_ID_MONTHLY = process.env.PADDLE_PRICE_ID || "";
 const PADDLE_PRICE_ID_YEARLY = process.env.PADDLE_PRICE_ID_YEARLY || "";
+const SHOULD_WARN_MISSING_PRICE_IDS =
+  !PADDLE_PRICE_ID_MONTHLY || !PADDLE_PRICE_ID_YEARLY;
 
 function jsonOk(data: Record<string, unknown> = {}) {
   return NextResponse.json(data, { status: 200 });
@@ -51,6 +53,15 @@ function jsonOk(data: Record<string, unknown> = {}) {
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+function warnMissingPriceIds(context: string) {
+  if (!SHOULD_WARN_MISSING_PRICE_IDS) return;
+  console.warn(
+    `[paddle] ${context}: missing price ids (monthly=${Boolean(PADDLE_PRICE_ID_MONTHLY)}, yearly=${Boolean(
+      PADDLE_PRICE_ID_YEARLY
+    )})`
+  );
 }
 
 export function parseSignatureHeader(headerValue: string) {
@@ -513,6 +524,7 @@ export async function POST(req: Request) {
     if (isEventTooOld(occurredAt)) {
       return jsonError("Webhook event is too old.", 400);
     }
+    warnMissingPriceIds("webhook");
 
     if (!isRecentSignature(signature)) {
       const alreadyStored = await hasWebhookEvent(eventId);
