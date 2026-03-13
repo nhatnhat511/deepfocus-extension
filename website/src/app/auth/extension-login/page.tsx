@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function ExtensionLoginPage() {
-  const searchParams = useSearchParams();
-  const extRedirect = searchParams.get("ext_redirect") || "";
-
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const extRedirect = searchParams.get("ext_redirect") || "";
     if (!extRedirect) return;
     const supabase = createSupabaseBrowserClient();
     supabase.auth.getSession().then(({ data }) => {
@@ -27,7 +26,7 @@ export default function ExtensionLoginPage() {
       const loginUrl = `https://deepfocustime.com/login?ext_redirect=${encodeURIComponent(extRedirect)}`;
       window.location.replace(loginUrl);
     });
-  }, [extRedirect]);
+  }, []);
 
   return (
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6">
