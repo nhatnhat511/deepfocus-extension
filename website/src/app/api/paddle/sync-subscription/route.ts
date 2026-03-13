@@ -241,10 +241,17 @@ function isActiveStatus(status: string) {
   return normalized === "active" || normalized === "trialing" || normalized === "past_due";
 }
 
-function pickBestSubscription(subscriptions: PaddleSubscription[]) {
+function pickBestSubscription(subscriptions: PaddleSubscription[], userId: string) {
   if (!subscriptions.length) return null;
-  const active = subscriptions.filter((sub) => isActiveStatus(String(sub.status || "")));
-  const candidates = active.length ? active : subscriptions;
+  const normalizedUserId = String(userId || "").trim();
+  const matchesUser = subscriptions.filter((sub) => {
+    if (!normalizedUserId) return false;
+    const customData = (sub.custom_data || {}) as Record<string, unknown>;
+    return String(customData.deepfocus_user_id || "").trim() === normalizedUserId;
+  });
+  const pool = matchesUser.length ? matchesUser : subscriptions;
+  const active = pool.filter((sub) => isActiveStatus(String(sub.status || "")));
+  const candidates = active.length ? active : pool;
   return candidates.reduce((best, current) => {
     const bestEnd = parseSubscriptionEndDate(best);
     const currentEnd = parseSubscriptionEndDate(current);
@@ -292,9 +299,13 @@ export async function POST(req: Request) {
       const list = await paddleGet<PaddleSubscription[]>(
         `/subscriptions?customer_id=${encodeURIComponent(resolvedCustomerId)}&per_page=20`
       );
-      const best = pickBestSubscription(list || []);
-      if (best && (!subscription || best.id !== subscription.id)) {
-        subscription = best;
+      const best = pickBestSubscription(list || [], userId);
+      if (best) {
+        if (!subscription || best.id !== subscription.id) {
+          subscription = best;
+        }
+      } else if (!subscription) {
+        return jsonError("Unable to match Paddle subscription to this account.", 400);
       }
     }
 
