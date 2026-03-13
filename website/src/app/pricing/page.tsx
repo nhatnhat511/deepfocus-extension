@@ -162,8 +162,8 @@ export default function PricingPage() {
           </Link>
         </article>
       </section>
-      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 text-sm text-emerald-900">
-        <a href="/signup" className="font-semibold text-emerald-900 hover:text-emerald-800">
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 text-base text-emerald-900">
+        <a href="/signup" className="font-semibold text-emerald-900 underline hover:text-emerald-800">
           Start a 7-day free trial
         </a>
         . No credit card required.
