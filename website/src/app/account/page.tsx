@@ -93,6 +93,8 @@ export default function AccountPage() {
   const syncAttemptedRef = useRef(false);
   const loginRetryRef = useRef(false);
   const pollingRef = useRef<number | null>(null);
+  const pollingStartedAtRef = useRef<number>(0);
+  const pollingAttemptsRef = useRef<number>(0);
 
   const user = session?.user || null;
   const signedIn = !!(session?.access_token && user?.id);
@@ -504,12 +506,18 @@ export default function AccountPage() {
       window.clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
+    pollingStartedAtRef.current = 0;
+    pollingAttemptsRef.current = 0;
   }
 
   async function pollUserPlan(expectedPlans: string[]) {
     if (!session?.access_token) return;
     try {
       const res = await fetch("/api/user", { method: "GET", cache: "no-store" });
+      if (res.status === 401 || res.status === 403) {
+        stopPolling();
+        return;
+      }
       const payload = (await res.json().catch(() => ({}))) as {
         entitlement?: { plan?: string } | null;
       };
@@ -528,7 +536,16 @@ export default function AccountPage() {
   function startPolling(expectedPlans: string[]) {
     if (typeof window === "undefined") return;
     if (pollingRef.current) return;
+    pollingStartedAtRef.current = Date.now();
+    pollingAttemptsRef.current = 0;
     pollingRef.current = window.setInterval(() => {
+      pollingAttemptsRef.current += 1;
+      const elapsedMs = Date.now() - pollingStartedAtRef.current;
+      if (elapsedMs > 2 * 60 * 1000 || pollingAttemptsRef.current > 90) {
+        stopPolling();
+        clearPendingCheckout();
+        return;
+      }
       void pollUserPlan(expectedPlans);
     }, 2000);
     void pollUserPlan(expectedPlans);
