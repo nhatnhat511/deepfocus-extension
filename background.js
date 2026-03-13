@@ -324,7 +324,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
         if (msg.type === "START_WEB_LOGIN") {
             const extRedirect = `https://${chrome.runtime.id}.chromiumapp.org/supabase-auth`
-            const loginUrl = `https://deepfocustime.com/login?ext_redirect=${encodeURIComponent(extRedirect)}`
+            const loginUrl = `https://deepfocustime.com/auth/extension-login?ext_redirect=${encodeURIComponent(extRedirect)}`
             if (loginTabId) {
                 chrome.tabs.remove(loginTabId, () => undefined)
                 clearLoginFlow()
