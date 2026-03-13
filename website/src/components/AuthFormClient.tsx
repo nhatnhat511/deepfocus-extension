@@ -165,7 +165,33 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
     if (typeof window !== "undefined" && (mode === "login" || mode === "signup")) {
       const { hash, search } = window.location;
       const query = new URLSearchParams(search);
-      if ((hash && hash.includes("access_token")) || query.get("code")) {
+      if (hash && hash.includes("access_token")) {
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        const extRedirect = query.get("ext_redirect");
+        if (extRedirect && /^https:\/\/[a-z0-9]{32}\.chromiumapp\.org(\/.*)?$/i.test(extRedirect)) {
+          window.location.replace(`${extRedirect}#${hashParams.toString()}`);
+          return;
+        }
+        if (accessToken && refreshToken) {
+          supabase.auth
+            .setSession({ access_token: accessToken, refresh_token: refreshToken })
+            .then(({ data, error }) => {
+              if (!error && data.session) {
+                setSession(data.session);
+                router.replace("/account");
+              }
+            })
+            .finally(() => {
+              window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+              setSessionLoading(false);
+              setSessionVerified(true);
+            });
+          return;
+        }
+      }
+      if (query.get("code")) {
         setSessionLoading(false);
         setSessionVerified(true);
         return;

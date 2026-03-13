@@ -13,6 +13,8 @@ export default function AuthHashRedirect() {
     const isAuthCallback =
       pathname === "/account" ||
       pathname === "/update-password" ||
+      pathname === "/login" ||
+      pathname === "/signup" ||
       pathname.startsWith("/auth/confirm") ||
       pathname.startsWith("/auth/callback");
 
