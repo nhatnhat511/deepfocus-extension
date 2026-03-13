@@ -38,6 +38,7 @@ type PaddleCheckoutCardProps = {
   subscriptionId?: string | null;
   accountEmail?: string;
   accountAccessToken?: string;
+  accountUserId?: string;
   onCheckoutStart?: (summary: { plan: PlanOption | "upgrade_yearly" }) => void;
   onUpgradeSuccess?: (summary: { amountText?: string; plan?: PlanOption | "upgrade_yearly" }) => void;
 };
@@ -61,6 +62,7 @@ export default function PaddleCheckoutCard({
   subscriptionId,
   accountEmail,
   accountAccessToken,
+  accountUserId,
   onCheckoutStart,
   onUpgradeSuccess,
 }: PaddleCheckoutCardProps) {
@@ -72,6 +74,7 @@ export default function PaddleCheckoutCard({
   const [success, setSuccess] = useState("");
   const [ready, setReady] = useState(false);
   const [plan, setPlan] = useState<PlanOption>(defaultPlan);
+  const [userId, setUserId] = useState("");
   const supabaseRef = useRef(createSupabaseBrowserClient());
 
   const paddleToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "";
@@ -105,15 +108,21 @@ export default function PaddleCheckoutCard({
     if (accountEmail) {
       setEmail(accountEmail);
     }
-  }, [accountAccessToken, accountEmail]);
+    if (accountUserId) {
+      setUserId(accountUserId);
+    }
+  }, [accountAccessToken, accountEmail, accountUserId]);
 
   useEffect(() => {
-    if (accountAccessToken || accountEmail) return;
+    if (accountAccessToken || accountEmail || accountUserId) return;
     const supabase = supabaseRef.current;
-    const applySession = (session: { access_token?: string; user?: { email?: string } } | null) => {
+    const applySession = (session: { access_token?: string; user?: { email?: string; id?: string } } | null) => {
       setAccessToken(String(session?.access_token || ""));
       if (session?.user?.email) {
         setEmail(String(session.user.email));
+      }
+      if (session?.user?.id) {
+        setUserId(String(session.user.id));
       }
     };
     supabase.auth.getSession().then(async ({ data }) => {
@@ -122,6 +131,9 @@ export default function PaddleCheckoutCard({
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user?.email) {
           setEmail(String(userData.user.email));
+        }
+        if (userData?.user?.id) {
+          setUserId(String(userData.user.id));
         }
       }
     });
@@ -312,7 +324,7 @@ export default function PaddleCheckoutCard({
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), plan }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), plan, userId }),
       });
 
       if (!res.ok) {

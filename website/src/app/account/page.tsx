@@ -832,6 +832,7 @@ export default function AccountPage() {
                   subscriptionId={profile?.paddle_subscription_id || null}
                   accountEmail={user?.email || ""}
                   accountAccessToken={session?.access_token || ""}
+                  accountUserId={user?.id || ""}
                   onCheckoutStart={({ plan }) => {
                     const expectedPlans =
                       plan === "upgrade_yearly" || plan === "yearly"

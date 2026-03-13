@@ -11,6 +11,7 @@ type PaddleTransactionResponse = {
 type CreateCheckoutBody = {
   email?: string;
   plan?: "monthly" | "yearly";
+  userId?: string;
 };
 
 const PADDLE_API_BASE = process.env.PADDLE_API_BASE_URL || "https://api.paddle.com";
@@ -184,6 +185,7 @@ export async function POST(req: Request) {
 
     const body = (await req.json().catch(() => ({}))) as CreateCheckoutBody;
     const requestedEmail = normalizeEmail(String(body.email || ""));
+    const requestedUserId = String(body.userId || "").trim();
     const requestedPlan = body.plan === "yearly" ? "yearly" : "monthly";
     const priceId = requestedPlan === "yearly" ? PADDLE_PRICE_ID_YEARLY : PADDLE_PRICE_ID_MONTHLY;
     if (requestedPlan === "yearly" && !priceId) {
@@ -191,6 +193,9 @@ export async function POST(req: Request) {
     }
     if (requestedEmail && requestedEmail !== email) {
       return jsonError("Checkout email must match your signed-in account.", 403);
+    }
+    if (requestedUserId && requestedUserId !== userId) {
+      return jsonError("Checkout session mismatch. Please sign out and sign in again.", 409);
     }
 
     if (hasActivePremium) {
