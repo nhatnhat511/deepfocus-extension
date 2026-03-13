@@ -11,6 +11,7 @@ const SUPABASE_ANON_KEY =
   "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 type ExtensionLoginProps = {
   searchParams?: { ext_redirect?: string };
