@@ -482,6 +482,13 @@ export default function PaddleCheckoutCard({
             Cancel anytime
           </span>
         </div>
+        <p className="mt-3 text-center text-xs text-slate-500">
+          See all Premium features on{" "}
+          <a href="/pricing" className="font-semibold text-slate-700 hover:text-slate-900">
+            pricing
+          </a>
+          .
+        </p>
       </div>
     </>
   );
