@@ -443,6 +443,19 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
       setShowResend(false);
       setPendingEmail("");
       setPassword("");
+      const params = new URLSearchParams(window.location.search);
+      const extRedirect = params.get("ext_redirect");
+      if (extRedirect && /^https:\/\/[a-z0-9]{32}\.chromiumapp\.org(\/.*)?$/i.test(extRedirect)) {
+        const hash = new URLSearchParams({
+          access_token: verified.session.access_token,
+          refresh_token: verified.session.refresh_token,
+          token_type: verified.session.token_type || "bearer",
+          expires_in: String(verified.session.expires_in || 0),
+          expires_at: String(verified.session.expires_at || 0),
+        });
+        window.location.replace(`${extRedirect}#${hash.toString()}`);
+        return;
+      }
       router.replace("/account");
       if (typeof window !== "undefined") {
         setTimeout(() => {
@@ -594,9 +607,16 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
   function startOAuth(provider: "google" | "github") {
     if (typeof window === "undefined") return;
     const supabase = supabaseRef.current;
+    const params = new URLSearchParams(window.location.search);
+    const extRedirect = params.get("ext_redirect");
+    const redirectBase = `${window.location.origin}/auth/callback`;
+    const redirectTo =
+      extRedirect && /^https:\/\/[a-z0-9]{32}\.chromiumapp\.org(\/.*)?$/i.test(extRedirect)
+        ? `${redirectBase}?ext_redirect=${encodeURIComponent(extRedirect)}`
+        : redirectBase;
     supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo },
     });
   }
 

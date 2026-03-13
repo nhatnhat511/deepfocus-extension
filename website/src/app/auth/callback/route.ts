@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const flowType = url.searchParams.get("type") || "";
+  const extRedirect = url.searchParams.get("ext_redirect") || "";
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=missing_code", request.url));
@@ -34,10 +35,22 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     const reason = encodeURIComponent(error.message || "exchange_failed");
     return NextResponse.redirect(new URL(`/login?error=callback_failed&reason=${reason}`, request.url));
+  }
+
+  if (/^https:\/\/[a-z0-9]{32}\.chromiumapp\.org(\/.*)?$/i.test(extRedirect) && data?.session) {
+    const session = data.session;
+    const hash = new URLSearchParams({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      token_type: session.token_type || "bearer",
+      expires_in: String(session.expires_in || 0),
+      expires_at: String(session.expires_at || 0),
+    });
+    return NextResponse.redirect(`${extRedirect}#${hash.toString()}`);
   }
 
   return response;
