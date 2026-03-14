@@ -320,7 +320,14 @@ export function HomepageRenderer({
             />
           </FieldTarget>
           <FieldTarget blockId={model.hero.id} field="subtitle" controls={editable} className="mt-4 block" label="Body">
-            <p className="max-w-2xl text-lg text-slate-600">{model.hero.subtitle}</p>
+            <InlineEditableText
+              blockId={model.hero.id}
+              field="subtitle"
+              value={model.hero.subtitle}
+              controls={editable}
+              multiline
+              className="max-w-2xl text-lg text-slate-600"
+            />
           </FieldTarget>
           <div className="mt-8 flex flex-wrap gap-3">
             <FieldTarget blockId={model.hero.id} field="primaryLabel" controls={editable} label="Primary CTA">
@@ -413,7 +420,14 @@ export function HomepageRenderer({
                 />
               </FieldTarget>
               <FieldTarget blockId={feature.id} field="subtitle" controls={editable} className="mt-2 block" label="Body">
-                <p className="text-sm text-slate-600">{feature.description}</p>
+                <InlineEditableText
+                  blockId={feature.id}
+                  field="subtitle"
+                  value={feature.description}
+                  controls={editable}
+                  multiline
+                  className="text-sm text-slate-600"
+                />
               </FieldTarget>
             </article>
           </EditableFrame>
@@ -515,7 +529,14 @@ export function HomepageRenderer({
                 />
               </FieldTarget>
               <FieldTarget blockId={model.audience.id} field="mediaUrl" controls={editable} className="mt-2 block" label="Preview Text">
-                <p className="text-sm text-slate-700">{model.audience.previewText}</p>
+                <InlineEditableText
+                  blockId={model.audience.id}
+                  field="mediaUrl"
+                  value={model.audience.previewText}
+                  controls={editable}
+                  multiline
+                  className="text-sm text-slate-700"
+                />
               </FieldTarget>
             </div>
           </article>
@@ -575,7 +596,14 @@ export function HomepageRenderer({
             />
           </FieldTarget>
           <FieldTarget blockId={model.cta.id} field="subtitle" controls={editable} className="mt-2 block" label="Body">
-            <p className="max-w-3xl text-sm text-slate-600">{model.cta.subtitle}</p>
+            <InlineEditableText
+              blockId={model.cta.id}
+              field="subtitle"
+              value={model.cta.subtitle}
+              controls={editable}
+              multiline
+              className="max-w-3xl text-sm text-slate-600"
+            />
           </FieldTarget>
           <div className="mt-5 flex flex-wrap gap-3">
             <FieldTarget blockId={model.cta.id} field="primaryLabel" controls={editable} label="Primary CTA">

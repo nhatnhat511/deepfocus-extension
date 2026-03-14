@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   type HomeSection,
@@ -37,6 +37,7 @@ export default function AdminHome() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [documentId, setDocumentId] = useState("");
   const [blocks, setBlocks] = useState<HomepageBlock[]>([]);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState("");
   const [selectedUid, setSelectedUid] = useState("");
   const [selectedField, setSelectedField] = useState("");
   const [dragUid, setDragUid] = useState("");
@@ -45,6 +46,28 @@ export default function AdminHome() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [compatibilityMode, setCompatibilityMode] = useState(false);
+  const inspectorRefs = useRef<Record<string, HTMLLabelElement | null>>({});
+
+  const normalizeBlocks = useCallback((source: HomepageBlock[]) => {
+    return source.map((block, index) => ({
+      ...block,
+      sortOrder: index,
+      key: block.key.trim(),
+      title: block.title.trim(),
+      subtitle: block.subtitle.trim(),
+      eyebrow: block.eyebrow.trim(),
+      primaryLabel: block.primaryLabel.trim(),
+      primaryHref: block.primaryHref.trim(),
+      secondaryLabel: block.secondaryLabel.trim(),
+      secondaryHref: block.secondaryHref.trim(),
+      mediaUrl: block.mediaUrl.trim(),
+      items: block.items.map((item) => item.trim()).filter(Boolean),
+    }));
+  }, []);
+
+  const snapshotBlocks = useCallback((source: HomepageBlock[]) => {
+    return JSON.stringify(normalizeBlocks(source));
+  }, [normalizeBlocks]);
 
   useEffect(() => {
     async function loadHomepageBuilder() {
@@ -93,6 +116,7 @@ export default function AdminHome() {
 
         setBlocks(initialBlocks);
         setSelectedUid(initialBlocks[0]?.uid || "");
+        setLastSavedSnapshot(snapshotBlocks(initialBlocks));
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Unable to load homepage builder.");
       } finally {
@@ -101,9 +125,21 @@ export default function AdminHome() {
     }
 
     void loadHomepageBuilder();
-  }, [supabase]);
+  }, [snapshotBlocks, supabase]);
 
   const selectedBlock = blocks.find((block) => block.uid === selectedUid) || null;
+  const hasUnsavedChanges = !!blocks.length && snapshotBlocks(blocks) !== lastSavedSnapshot;
+
+  useEffect(() => {
+    if (!selectedField) return;
+
+    const target = inspectorRefs.current[selectedField];
+    if (!target) return;
+
+    target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const focusable = target.querySelector("input, textarea, select") as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+    focusable?.focus();
+  }, [selectedField, selectedUid]);
 
   function replaceBlocks(nextBlocks: HomepageBlock[], nextStatus: string) {
     const normalized = nextBlocks.map((block, index) => ({ ...block, sortOrder: index }));
@@ -203,20 +239,7 @@ export default function AdminHome() {
     setStatus("");
 
     try {
-      const normalizedBlocks = blocks.map((block, index) => ({
-        ...block,
-        sortOrder: index,
-        key: block.key.trim(),
-        title: block.title.trim(),
-        subtitle: block.subtitle.trim(),
-        eyebrow: block.eyebrow.trim(),
-        primaryLabel: block.primaryLabel.trim(),
-        primaryHref: block.primaryHref.trim(),
-        secondaryLabel: block.secondaryLabel.trim(),
-        secondaryHref: block.secondaryHref.trim(),
-        mediaUrl: block.mediaUrl.trim(),
-        items: block.items.map((item) => item.trim()).filter(Boolean),
-      }));
+      const normalizedBlocks = normalizeBlocks(blocks);
 
       if (normalizedBlocks.some((block) => !block.key)) {
         throw new Error("Each block needs a valid key before saving.");
@@ -258,6 +281,7 @@ export default function AdminHome() {
       }
 
       setBlocks(normalizedBlocks);
+      setLastSavedSnapshot(JSON.stringify(normalizedBlocks));
       setStatus(
         documentSaved
           ? "Homepage document saved and synced to the live homepage adapter."
@@ -279,6 +303,12 @@ export default function AdminHome() {
             <p className="mt-2 max-w-4xl text-sm text-slate-600">
               This builder now stores a block document for the homepage and syncs safe compatible data into the live homepage adapter. The public site keeps its current components and layout.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
+              <span className={`rounded-full px-3 py-1 ${hasUnsavedChanges ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
+                {hasUnsavedChanges ? "Unsaved changes" : "All changes saved"}
+              </span>
+              <span className="text-slate-500">{compatibilityMode ? "Syncing through compatibility mode." : "Block document mode active."}</span>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -288,7 +318,7 @@ export default function AdminHome() {
             >
               Load Current Homepage
             </button>
-            <button type="button" onClick={saveHomepage} disabled={saving} className="wp-btn wp-btn-primary">
+            <button type="button" onClick={saveHomepage} disabled={saving || !hasUnsavedChanges} className="wp-btn wp-btn-primary">
               {saving ? "Saving..." : "Save Homepage"}
             </button>
           </div>
@@ -361,7 +391,9 @@ export default function AdminHome() {
             <p className="mt-1 text-xs text-slate-500">Edit the selected block and see the homepage canvas respond immediately.</p>
             {selectedBlock ? (
               <div className="mt-4 grid gap-4">
-                <label className={inspectorFieldClass(selectedField === "key")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.key = node;
+                }} className={inspectorFieldClass(selectedField === "key")}>
                   Block key
                   <input
                     className="wp-field"
@@ -369,7 +401,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { key: event.target.value })}
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "type")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.type = node;
+                }} className={inspectorFieldClass(selectedField === "type")}>
                   Block type
                   <select
                     className="wp-select"
@@ -388,7 +422,9 @@ export default function AdminHome() {
                     ))}
                   </select>
                 </label>
-                <label className={inspectorFieldClass(selectedField === "eyebrow")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.eyebrow = node;
+                }} className={inspectorFieldClass(selectedField === "eyebrow")}>
                   Eyebrow / label
                   <input
                     className="wp-field"
@@ -397,7 +433,9 @@ export default function AdminHome() {
                     placeholder="Optional small label above the block"
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "title")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.title = node;
+                }} className={inspectorFieldClass(selectedField === "title")}>
                   Title
                   <input
                     className="wp-field"
@@ -405,7 +443,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { title: event.target.value })}
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "subtitle")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.subtitle = node;
+                }} className={inspectorFieldClass(selectedField === "subtitle")}>
                   Body / copy
                   <textarea
                     className="wp-textarea"
@@ -415,7 +455,9 @@ export default function AdminHome() {
                     placeholder="Primary descriptive copy for this block"
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "items")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.items = node;
+                }} className={inspectorFieldClass(selectedField === "items")}>
                   Multi-item content
                   <textarea
                     className="wp-textarea"
@@ -429,7 +471,9 @@ export default function AdminHome() {
                     placeholder="One line per item"
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "primaryLabel")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.primaryLabel = node;
+                }} className={inspectorFieldClass(selectedField === "primaryLabel")}>
                   Primary button label
                   <input
                     className="wp-field"
@@ -437,7 +481,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { primaryLabel: event.target.value })}
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "primaryHref")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.primaryHref = node;
+                }} className={inspectorFieldClass(selectedField === "primaryHref")}>
                   Primary button URL
                   <input
                     className="wp-field"
@@ -445,7 +491,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { primaryHref: event.target.value })}
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "secondaryLabel")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.secondaryLabel = node;
+                }} className={inspectorFieldClass(selectedField === "secondaryLabel")}>
                   Secondary button label
                   <input
                     className="wp-field"
@@ -453,7 +501,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { secondaryLabel: event.target.value })}
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "secondaryHref")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.secondaryHref = node;
+                }} className={inspectorFieldClass(selectedField === "secondaryHref")}>
                   Secondary button URL
                   <input
                     className="wp-field"
@@ -461,7 +511,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { secondaryHref: event.target.value })}
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "mediaUrl")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.mediaUrl = node;
+                }} className={inspectorFieldClass(selectedField === "mediaUrl")}>
                   Media / note field
                   <textarea
                     className="wp-textarea"
@@ -471,7 +523,9 @@ export default function AdminHome() {
                     placeholder="Media URL, demo URL, or internal preview note"
                   />
                 </label>
-                <label className={inspectorFieldClass(selectedField === "enabled")}>
+                <label ref={(node) => {
+                  inspectorRefs.current.enabled = node;
+                }} className={inspectorFieldClass(selectedField === "enabled")}>
                   Visibility
                   <select
                     className="wp-select"
