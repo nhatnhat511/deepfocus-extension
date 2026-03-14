@@ -795,6 +795,63 @@ export function HomepageRenderer({
     ? model.flexBlocks
     : model.flexBlocks.filter((block) => allowAllFlex || publicFlexAllowlist.includes(block.key));
 
+  const featureShowcase = [
+    {
+      image: "/features/1.jpg",
+      title: "Adaptive Timer Contrast",
+      description:
+        "The timer box detects the page background and automatically adjusts its color so it stays readable on any site.",
+    },
+    {
+      image: "/features/2.jpg",
+      title: "Clear, Hands-On Controls",
+      description:
+        "Set focus and break minutes, then launch a session with a single Start button. Everything is laid out for fast decisions.",
+    },
+    {
+      image: "/features/3.jpg",
+      title: "Drag Anywhere Placement",
+      description:
+        "Move the timer box to any spot in your Chrome window so it never blocks important content.",
+    },
+    {
+      image: "/features/4.jpg",
+      title: "Lunch and Evening Reminders",
+      description:
+        "Schedule meal reminders at specific times so you step away when you should, even on busy days.",
+    },
+    {
+      image: "/features/5.jpg",
+      title: "Break Visual Tab",
+      description:
+        "Every break opens a calming full-screen tab to help you reset, breathe, and keep your focus rhythm healthy.",
+    },
+    {
+      image: "/features/6.jpg",
+      title: "Night Work Mode",
+      description:
+        "Reduce screen brightness at night to ease eye strain and make late sessions more comfortable.",
+    },
+    {
+      image: "/features/7.jpg",
+      title: "Productivity Analytics",
+      description:
+        "Track daily sessions, completion rate, weekly overview, best focus hours, interruption rate, and smart insights in one place.",
+    },
+    {
+      image: "/features/8.jpg",
+      title: "Mute Distracting Sites",
+      description:
+        "List sites like YouTube, Facebook, X, or Reddit and DeepFocus Time will auto-mute them during focus, then restore sound on breaks.",
+    },
+    {
+      image: "/features/9.jpg",
+      title: "Meeting Auto-Pause",
+      description:
+        "Detects active Meet, Zoom, or Teams tabs and pauses the timer automatically so meetings never skew your focus stats.",
+    },
+  ];
+
   return (
     <div className="space-y-10">
       <EditableFrame
@@ -920,6 +977,32 @@ export function HomepageRenderer({
           ) : null}
         </section>
       </EditableFrame>
+
+      <section className="space-y-8">
+        {featureShowcase.map((item, index) => {
+          const reverse = index % 2 === 1;
+          return (
+            <article
+              key={item.title}
+              className="grid items-center gap-6 rounded-2xl border border-slate-200 bg-white p-6 md:grid-cols-2"
+            >
+              <div className={reverse ? "md:order-2" : ""}>
+                <h3 className="text-2xl font-semibold tracking-tight text-slate-900">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+              </div>
+              <div className={reverse ? "md:order-1" : ""}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full rounded-xl border border-slate-200 object-contain bg-slate-50"
+                  loading="lazy"
+                />
+              </div>
+            </article>
+          );
+        })}
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         {model.features.map((feature) => (
