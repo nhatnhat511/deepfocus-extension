@@ -231,6 +231,15 @@ export default function AdminHome() {
     }
   }
 
+  async function copyKeyToClipboard(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setFlexStatus(`Copied ${value}`);
+    } catch {
+      setFlexStatus("Unable to copy. Copy manually from the list.");
+    }
+  }
+
   function updateAllowlist(next: Set<string>) {
     const normalized = Array.from(next).filter(Boolean).sort().join(",");
     setPublicFlexAllowlist(normalized);
@@ -475,22 +484,45 @@ export default function AdminHome() {
                         <div className="text-xs font-semibold text-slate-800">{block.key}</div>
                         <div className="text-[11px] text-slate-500">{block.type}</div>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={isEnabled}
-                        onChange={(event) => {
-                          const next = new Set(allowlistSet);
-                          if (publicFlexAllowlist.trim() === "*") {
-                            next.clear();
-                          }
-                          if (event.target.checked) {
-                            next.add(block.key);
-                          } else {
-                            next.delete(block.key);
-                          }
-                          updateAllowlist(next);
-                        }}
-                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setSelectedUid(block.uid);
+                            setSelectedField("");
+                          }}
+                        >
+                          Select
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            void copyKeyToClipboard(block.key);
+                          }}
+                        >
+                          Copy key
+                        </button>
+                        <input
+                          type="checkbox"
+                          checked={isEnabled}
+                          onChange={(event) => {
+                            const next = new Set(allowlistSet);
+                            if (publicFlexAllowlist.trim() === "*") {
+                              next.clear();
+                            }
+                            if (event.target.checked) {
+                              next.add(block.key);
+                            } else {
+                              next.delete(block.key);
+                            }
+                            updateAllowlist(next);
+                          }}
+                        />
+                      </div>
                     </label>
                   );
                 })}
