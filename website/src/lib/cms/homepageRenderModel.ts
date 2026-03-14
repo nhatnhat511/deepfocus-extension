@@ -130,7 +130,7 @@ export function buildHomepageRenderModelFromBlocks(blocks: HomepageBlock[]): Hom
       },
       secondaryAction: {
         label: hero?.secondaryLabel || "Compare Plans",
-        href: "/pricing",
+        href: "https://deepfocustime.com/pricing",
       },
       tertiaryAction: {
         label: "Start Free Trial",

@@ -924,7 +924,7 @@ export function HomepageRenderer({
                     editable?.selectedId === model.hero.id && editable?.selectedField === "secondaryLabel" ? "" : model.hero.secondaryAction.label,
                 }}
                 variant="accent"
-                inert
+                inert={!!editable}
               />
             </FieldTarget>
             <ActionButton action={model.hero.tertiaryAction} inert={!!editable} />
