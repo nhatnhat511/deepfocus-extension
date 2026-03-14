@@ -1,6 +1,5 @@
 import "server-only";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   defaultFooterMenu,
   defaultHeaderMenu,
@@ -12,15 +11,28 @@ type MenuRow = {
   items: PublicMenuItem[] | null;
 };
 
-async function getPublicMenu(location: string, fallback: PublicMenuItem[]) {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.from("cms_menus").select("items").eq("location", location).maybeSingle();
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://jpgywjxztjkayynptjrs.supabase.co";
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr";
 
-  if (error) {
+async function getPublicMenu(location: string, fallback: PublicMenuItem[]) {
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/cms_menus?select=items&location=eq.${encodeURIComponent(location)}&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      next: { revalidate: 60 },
+    }
+  );
+
+  if (!response.ok) {
     return fallback;
   }
 
-  return sanitizeMenu((data as MenuRow | null)?.items, fallback);
+  const data = (await response.json()) as MenuRow[];
+  return sanitizeMenu(data[0]?.items, fallback);
 }
 
 export async function getPublicMenus() {
