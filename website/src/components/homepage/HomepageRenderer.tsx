@@ -543,6 +543,87 @@ function ActionButton({
   );
 }
 
+function FlexBlockPublic({ block }: { block: HomepageBlock }) {
+  if (block.type === "image") {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+          {block.mediaUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={block.mediaUrl} alt={block.title || "Homepage image"} className="h-auto w-full object-cover" />
+          ) : (
+            <div className="grid min-h-40 place-items-center text-sm font-semibold text-slate-500">Image URL not set</div>
+          )}
+        </div>
+        {block.title ? <h3 className="mt-4 text-xl font-semibold text-slate-900">{block.title}</h3> : null}
+        {block.subtitle ? <p className="mt-2 text-sm text-slate-600">{block.subtitle}</p> : null}
+      </section>
+    );
+  }
+
+  if (block.type === "video") {
+    const isYouTube = /youtube\.com|youtu\.be/i.test(block.mediaUrl || "");
+    const isVimeo = /vimeo\.com/i.test(block.mediaUrl || "");
+    const embedUrl = block.mediaUrl || "";
+
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+          {embedUrl ? (
+            isYouTube || isVimeo ? (
+              <iframe
+                src={embedUrl}
+                title={block.title || "Homepage video"}
+                className="h-64 w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video controls className="h-64 w-full">
+                <source src={embedUrl} />
+              </video>
+            )
+          ) : (
+            <div className="grid min-h-40 place-items-center text-sm font-semibold text-slate-500">Video URL not set</div>
+          )}
+        </div>
+        {block.title ? <h3 className="mt-4 text-xl font-semibold text-slate-900">{block.title}</h3> : null}
+        {block.subtitle ? <p className="mt-2 text-sm text-slate-600">{block.subtitle}</p> : null}
+      </section>
+    );
+  }
+
+  if (block.type === "html") {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        {block.title ? <h3 className="text-xl font-semibold text-slate-900">{block.title}</h3> : null}
+        <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+          {block.subtitle || "<div>Custom HTML</div>"}
+        </pre>
+      </section>
+    );
+  }
+
+  if (block.type === "columns-2" || block.type === "columns-3") {
+    const columns = block.items.length ? block.items : ["Column one", "Column two"];
+    const grid = block.type === "columns-3" ? "md:grid-cols-3" : "md:grid-cols-2";
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        {block.title ? <h3 className="text-xl font-semibold text-slate-900">{block.title}</h3> : null}
+        <div className={`mt-4 grid gap-3 ${grid}`}>
+          {columns.map((column, index) => (
+            <div key={`${block.uid}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              {column}
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  return null;
+}
+
 export function HomepageRenderer({
   model,
   editable,
@@ -982,7 +1063,7 @@ export function HomepageRenderer({
                 { id: "mediaUrl", label: "Media" },
               ]}
             >
-              <GenericBlockPreview block={block} controls={editable} />
+              {editable ? <GenericBlockPreview block={block} controls={editable} /> : <FlexBlockPublic block={block} />}
             </EditableFrame>
           ))}
         </section>
