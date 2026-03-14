@@ -195,13 +195,16 @@ function handleLoginTabClosed(tabId) {
 chrome.tabs.onUpdated.addListener(handleLoginTabUpdate)
 chrome.tabs.onRemoved.addListener(handleLoginTabClosed)
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
     initIdleDetection()
     scheduleSoundCues()
     scheduleReminderAlarms()
     scheduleReminderHeartbeat()
     reinjectContentScripts()
     ensureOffscreenDocument()
+    if (details && details.reason === "install") {
+        chrome.tabs.create({ url: "https://deepfocustime.com/login" }, () => undefined)
+    }
 })
 
 chrome.runtime.onStartup.addListener(() => {
