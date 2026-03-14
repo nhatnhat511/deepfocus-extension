@@ -9,16 +9,23 @@ const changes = [
   {
     date: "March 2026",
     items: [
-      "Improved website structure with clearer SaaS positioning and onboarding sections.",
-      "Enhanced pricing page clarity with plan comparison and use-case guidance.",
-      "Expanded support, legal, and FAQ coverage for better customer trust.",
+      "Onboarding now opens the signup page after extension install for faster activation.",
+      "Refined signup messaging to align with premium activation and account benefits.",
+      "Expanded FAQ, roadmap, changelog, privacy policy, and terms for a more complete SaaS experience.",
     ],
   },
   {
     date: "February 2026",
     items: [
-      "Added premium-oriented advanced settings controls in the extension workflow.",
-      "Improved account management pages and entitlement status visibility.",
+      "Expanded premium advanced settings for distraction muting, idle auto-pause, meeting auto-pause, and daily goals.",
+      "Polished account status handling and premium entitlement checks in the extension.",
+    ],
+  },
+  {
+    date: "January 2026",
+    items: [
+      "Introduced weekly focus summaries, interruption rate tracking, and smart insights.",
+      "Added best focus hours insights to help users identify their strongest work windows.",
     ],
   },
 ];

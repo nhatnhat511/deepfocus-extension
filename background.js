@@ -203,7 +203,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     reinjectContentScripts()
     ensureOffscreenDocument()
     if (details && details.reason === "install") {
-        chrome.tabs.create({ url: "https://deepfocustime.com/login" }, () => undefined)
+        chrome.tabs.create({ url: "https://deepfocustime.com/signup" }, () => undefined)
     }
 })
 

@@ -9,22 +9,27 @@ const roadmap = [
   {
     stage: "Now",
     points: [
-      "Strengthen onboarding for first-time extension users.",
-      "Improve support documentation and issue triage quality.",
+      "Streamline onboarding from install to account activation and free trial start.",
+      "Expand focus insights with clearer weekly trends and interruption patterns.",
+      "Refine break visuals and scheduled reminders for healthier work rhythms.",
+      "Harden support workflows and self-serve troubleshooting coverage.",
     ],
   },
   {
     stage: "Next",
     points: [
-      "Publish deeper productivity guidance for weekly focus planning.",
-      "Expand account insights around consistency and interruption trends.",
+      "Per-site focus profiles with custom timers and distraction lists.",
+      "Calendar-aware meeting detection beyond URL matching.",
+      "Exportable focus reports and shareable summaries.",
+      "Weekly planning tools that connect goals to completed sessions.",
     ],
   },
   {
     stage: "Later",
     points: [
-      "Add broader self-serve documentation for advanced workflows.",
-      "Improve team-level productivity support options.",
+      "Workspace and team dashboards for shared focus norms.",
+      "Cross-device settings sync and mobile companion reminders.",
+      "Deeper integrations with task and note tools.",
     ],
   },
 ];
@@ -34,7 +39,7 @@ export default function RoadmapPage() {
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Roadmap</h1>
-        <p className="mt-2 text-sm text-slate-600">What we are working on to improve focus outcomes for users.</p>
+        <p className="mt-2 text-sm text-slate-600">What we are building to help you protect deep work time.</p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">

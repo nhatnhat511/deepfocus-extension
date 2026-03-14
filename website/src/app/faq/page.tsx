@@ -4,29 +4,61 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Answers to common questions about the DeepFocus Time Chrome focus timer extension, trials, and premium features.",
+    "Answers to common questions about the DeepFocus Time Chrome extension, accounts, and premium tools.",
 };
 
 const faqs = [
   {
-    q: "What does DeepFocus Time do?",
-    a: "It is a Chrome extension that helps you run structured focus and break sessions with reliable controls and optional advanced automation.",
+    q: "What is DeepFocus Time?",
+    a: "DeepFocus Time is a Chrome extension that helps you run focused work and intentional breaks with smart automation and on-page reminders.",
   },
   {
-    q: "Who is DeepFocus Time for?",
-    a: "It is designed for students, remote workers, and professionals who spend most of their workday inside Chrome.",
+    q: "Who is it for?",
+    a: "It is built for students, creators, and professionals who spend most of their workday in Chrome and want more consistent deep work.",
   },
   {
-    q: "Do I need an account to use it?",
-    a: "You can start with core functionality, and account sign-in helps sync your profile, trial state, and premium entitlement.",
+    q: "Do I need an account to use the extension?",
+    a: "You can start with core timer features right away. An account is needed for premium tools, trial access, and account management.",
+  },
+  {
+    q: "What does the focus and break timer do?",
+    a: "Set focus and break lengths, start or pause sessions, and keep a clear rhythm throughout the day. Your session progress and streaks are tracked inside the extension.",
+  },
+  {
+    q: "What is the on-page timer overlay?",
+    a: "The overlay keeps your timer visible while you work so you can stay oriented without switching tabs.",
+  },
+  {
+    q: "What are break reminders?",
+    a: "Optional lunch and evening reminders can notify you to step away, helping you avoid long, unhealthy work streaks.",
+  },
+  {
+    q: "What is Night Work Mode and Focus Blur?",
+    a: "Night Work Mode dims bright pages and reduces glare at night. Focus Blur softens distracting pages during a focus session.",
+  },
+  {
+    q: "How does Mute Distracting Sites work?",
+    a: "When focus is active, selected domains (like social or video sites) are muted automatically. You control the list.",
+  },
+  {
+    q: "What are Idle Auto-Pause and Meeting Auto-Pause?",
+    a: "Idle Auto-Pause stops the timer when you step away. Meeting Auto-Pause pauses when a meeting tab is active (Meet, Zoom, Teams).",
   },
   {
     q: "What is included in Premium?",
-    a: "Premium includes advanced settings such as distraction mute, idle auto-pause, meeting-aware auto-pause, and productivity-focused automation controls.",
+    a: "Premium unlocks advanced automation and insights like distraction muting, meeting-aware pause, idle pause, focus blur, break visuals, and deeper stats.",
+  },
+  {
+    q: "How do I start the free trial?",
+    a: "Sign in on the website and start the 7-day trial from your account or the extension settings panel.",
+  },
+  {
+    q: "How do I manage billing or cancel?",
+    a: "You can manage billing from your account page. Cancel anytime; your premium access stays active until the period ends.",
   },
   {
     q: "How can I get support?",
-    a: "Use the Support page or Contact form. Include clear steps and screenshots so we can troubleshoot faster.",
+    a: "Visit the Support or Contact page. Include steps to reproduce and screenshots if possible.",
   },
 ];
 
