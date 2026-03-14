@@ -14,9 +14,11 @@ export const metadata: Metadata = {
 export default async function Home() {
   const cmsSections = await getPublicHomeSections();
   const flexAllowlist = await getPublicSiteSetting("homepage_flex_allowlist");
+  const htmlRenderSetting = await getPublicSiteSetting("homepage_html_render");
+  const htmlRenderEnabled = ["1", "true", "enabled", "yes", "on"].includes(htmlRenderSetting.trim().toLowerCase());
   const model = buildHomepageRenderModelFromSections(cmsSections);
 
-  return <HomepageRenderer model={model} flexAllowlist={flexAllowlist} />;
+  return <HomepageRenderer model={model} flexAllowlist={flexAllowlist} htmlRenderEnabled={htmlRenderEnabled} />;
 }
 
 // redeploy trigger

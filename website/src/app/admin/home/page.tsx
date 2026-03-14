@@ -33,6 +33,17 @@ function inspectorFieldClass(isFocused: boolean) {
   return `grid gap-1 rounded-xl border px-3 py-3 text-xs font-semibold ${isFocused ? "border-sky-300 bg-sky-50 text-sky-800 ring-2 ring-sky-100" : "border-slate-200 text-slate-600"}`;
 }
 
+function parseBooleanSetting(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    return ["1", "true", "yes", "on", "enabled"].includes(value.trim().toLowerCase());
+  }
+  if (typeof value === "object" && value !== null && "enabled" in (value as Record<string, unknown>)) {
+    return Boolean((value as { enabled?: unknown }).enabled);
+  }
+  return false;
+}
+
 export default function AdminHome() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [documentId, setDocumentId] = useState("");
@@ -49,6 +60,9 @@ export default function AdminHome() {
   const [publicFlexAllowlist, setPublicFlexAllowlist] = useState("");
   const [flexSaving, setFlexSaving] = useState(false);
   const [flexStatus, setFlexStatus] = useState("");
+  const [publicHtmlRenderEnabled, setPublicHtmlRenderEnabled] = useState(false);
+  const [htmlSaving, setHtmlSaving] = useState(false);
+  const [htmlStatus, setHtmlStatus] = useState("");
   const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number; label: string } | null>(null);
   const [previewPublic, setPreviewPublic] = useState(false);
   const [showMarkdownPreview, setShowMarkdownPreview] = useState(true);
@@ -139,6 +153,14 @@ export default function AdminHome() {
         } else {
           setPublicFlexAllowlist("");
         }
+
+        const { data: htmlSetting } = await supabase
+          .from("cms_site_settings")
+          .select("value")
+          .eq("key", "homepage_html_render")
+          .maybeSingle();
+
+        setPublicHtmlRenderEnabled(parseBooleanSetting(htmlSetting?.value));
 
         setBlocks(initialBlocks);
         setSelectedUid(initialBlocks[0]?.uid || "");
@@ -231,6 +253,26 @@ export default function AdminHome() {
       setFlexStatus(flexError instanceof Error ? flexError.message : "Unable to save flex block visibility.");
     } finally {
       setFlexSaving(false);
+    }
+  }
+
+  async function saveHtmlRenderSetting() {
+    setHtmlSaving(true);
+    setHtmlStatus("");
+
+    try {
+      const { error: htmlError } = await supabase.from("cms_site_settings").upsert({
+        key: "homepage_html_render",
+        value: publicHtmlRenderEnabled ? "enabled" : "",
+        updated_at: new Date().toISOString(),
+      });
+
+      if (htmlError) throw htmlError;
+      setHtmlStatus("Public HTML rendering updated.");
+    } catch (htmlError) {
+      setHtmlStatus(htmlError instanceof Error ? htmlError.message : "Unable to save HTML rendering setting.");
+    } finally {
+      setHtmlSaving(false);
     }
   }
 
@@ -702,6 +744,32 @@ export default function AdminHome() {
           </div>
           {flexStatus ? <div className="text-xs font-semibold text-slate-600">{flexStatus}</div> : null}
         </div>
+        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+          <div className="font-semibold text-slate-900">HTML render toggle</div>
+          <p className="text-slate-600">
+            Enable sanitized HTML rendering for public homepage blocks. Keep off if you only want to display HTML code.
+          </p>
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-slate-800">Render HTML blocks on public site</div>
+              <div className="text-[11px] text-slate-500">Allowed tags only, scripts are stripped.</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={publicHtmlRenderEnabled}
+              onChange={(event) => setPublicHtmlRenderEnabled(event.target.checked)}
+            />
+          </label>
+          <button
+            type="button"
+            className="wp-btn wp-btn-primary w-fit"
+            onClick={saveHtmlRenderSetting}
+            disabled={htmlSaving}
+          >
+            {htmlSaving ? "Saving..." : "Save HTML render"}
+          </button>
+          {htmlStatus ? <div className="text-xs font-semibold text-slate-600">{htmlStatus}</div> : null}
+        </div>
         {compatibilityMode ? (
           <p className="mt-3 text-sm text-amber-700">
             Compatibility mode: run the latest `cms_admin.sql` to enable persistent block documents. The builder will still sync safely to the live homepage through `cms_home_sections`.
@@ -754,6 +822,7 @@ export default function AdminHome() {
               <HomepageRenderer
                 model={buildHomepageRenderModelFromBlocks(blocks)}
                 flexAllowlist={publicFlexAllowlist}
+                htmlRenderEnabled={publicHtmlRenderEnabled}
                 editable={
                   previewPublic
                     ? undefined

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import sanitizeHtml from "sanitize-html";
 import type { HomepageBlock } from "@/lib/cms/homepageBlocks";
 import type { HomepageRenderModel } from "@/lib/cms/homepageRenderModel";
 
@@ -671,7 +672,20 @@ function ActionButton({
   );
 }
 
-function FlexBlockPublic({ block }: { block: HomepageBlock }) {
+function sanitizeHomepageHtml(source: string) {
+  return sanitizeHtml(source, {
+    allowedTags: ["p", "br", "strong", "em", "b", "i", "ul", "ol", "li", "a", "h2", "h3", "h4", "blockquote", "code", "pre"],
+    allowedAttributes: {
+      a: ["href", "target", "rel"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    transformTags: {
+      a: sanitizeHtml.simpleTransform("a", { rel: "noreferrer noopener", target: "_blank" }, true),
+    },
+  });
+}
+
+function FlexBlockPublic({ block, htmlEnabled }: { block: HomepageBlock; htmlEnabled?: boolean }) {
   if (block.type === "image") {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -722,6 +736,18 @@ function FlexBlockPublic({ block }: { block: HomepageBlock }) {
   }
 
   if (block.type === "html") {
+    if (htmlEnabled) {
+      const sanitized = sanitizeHomepageHtml(block.subtitle || "");
+      return (
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+          {block.title ? <h3 className="text-xl font-semibold text-slate-900">{block.title}</h3> : null}
+          <div
+            className="prose prose-slate mt-4 max-w-none text-sm"
+            dangerouslySetInnerHTML={{ __html: sanitized || "<p>No HTML content yet.</p>" }}
+          />
+        </section>
+      );
+    }
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
         {block.title ? <h3 className="text-xl font-semibold text-slate-900">{block.title}</h3> : null}
@@ -756,10 +782,12 @@ export function HomepageRenderer({
   model,
   editable,
   flexAllowlist,
+  htmlRenderEnabled,
 }: {
   model: HomepageRenderModel;
   editable?: EditableControls;
   flexAllowlist?: string;
+  htmlRenderEnabled?: boolean;
 }) {
   const publicFlexAllowlistRaw = flexAllowlist ?? process.env.NEXT_PUBLIC_HOMEPAGE_FLEX_BLOCKS ?? "";
   const publicFlexAllowlist = publicFlexAllowlistRaw
@@ -1187,7 +1215,11 @@ export function HomepageRenderer({
                 { id: "mediaUrl", label: "Media" },
               ]}
             >
-              {editable ? <GenericBlockPreview block={block} controls={editable} /> : <FlexBlockPublic block={block} />}
+              {editable ? (
+                <GenericBlockPreview block={block} controls={editable} />
+              ) : (
+                <FlexBlockPublic block={block} htmlEnabled={htmlRenderEnabled} />
+              )}
             </EditableFrame>
           ))}
         </section>
