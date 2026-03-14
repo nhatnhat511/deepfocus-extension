@@ -78,10 +78,10 @@ const fallbackAudience: HomepageAudienceItem[] = [
 ];
 
 const fallbackProofItems = [
-  "Clear, practical feature set focused on daily execution instead of noisy dashboards.",
-  "Consistent account state across extension and website for trial and premium management.",
-  "Legal pages, support flow, and contact path ready for professional SaaS operations.",
-  "Lightweight UX built to reduce friction before, during, and after each focus session.",
+  "Focused on doing the work, not managing dashboards.",
+  "Seamless sync between the extension and your account for trials and premium access.",
+  "Reliable support and help resources whenever you need them.",
+  "Lightweight UX designed to keep every focus session smooth and distraction-free.",
 ];
 
 function parseAudienceItems(items: string[]) {
@@ -170,7 +170,7 @@ export function buildHomepageRenderModelFromBlocks(blocks: HomepageBlock[]): Hom
     },
     proofGrid: {
       ...(proofBlock ? mapBlockId(proofBlock) : { id: "proof-grid", key: "proof-grid" }),
-      title: proofBlock?.title || "Why teams choose DeepFocus Time",
+      title: proofBlock?.title || "Why people choose DeepFocus Time",
       items: proofBlock?.items.length ? proofBlock.items : fallbackProofItems,
     },
     cta: {

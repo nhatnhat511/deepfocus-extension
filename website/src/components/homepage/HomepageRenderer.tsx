@@ -1049,7 +1049,7 @@ export function HomepageRenderer({
         ))}
       </section>
 
-      <section className="space-y-4 -mt-4">
+      <section className="space-y-4 -mt-8">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center text-lg font-semibold text-slate-900 sm:text-xl">
           And many more features built for deep, uninterrupted focus.
         </div>
