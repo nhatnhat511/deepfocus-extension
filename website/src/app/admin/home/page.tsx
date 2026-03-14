@@ -155,12 +155,17 @@ export default function AdminHome() {
     (block) =>
       !["hero", "hero-highlights", "feature-card", "steps", "audience", "proof-grid", "cta"].includes(block.type)
   );
-  const allowlistSet = new Set(
-    publicFlexAllowlist
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-  );
+  const allowlistTokens = publicFlexAllowlist
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const allowlistSet = new Set(allowlistTokens);
+  const flexKeys = new Set(flexBlocks.map((block) => block.key));
+  const invalidAllowlist = allowlistTokens.filter((key) => !flexKeys.has(key));
+  const enabledCount =
+    publicFlexAllowlist.trim() === "*"
+      ? flexBlocks.length
+      : flexBlocks.filter((block) => allowlistSet.has(block.key)).length;
   const hasUnsavedChanges = !!blocks.length && snapshotBlocks(blocks) !== lastSavedSnapshot;
 
   useEffect(() => {
@@ -450,6 +455,14 @@ export default function AdminHome() {
             onChange={(event) => setPublicFlexAllowlist(event.target.value)}
             placeholder="columns-2-hero,video-demo"
           />
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-500">
+            <span className="rounded-full border border-slate-200 bg-white px-2 py-1">Enabled: {enabledCount}</span>
+            {invalidAllowlist.length ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-amber-700">
+                Unknown keys: {invalidAllowlist.join(", ")}
+              </span>
+            ) : null}
+          </div>
           {flexBlocks.length ? (
             <div className="grid gap-2">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Flex blocks in this homepage</div>
