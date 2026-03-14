@@ -236,7 +236,13 @@ export default function AdminPosts() {
     }
   }
 
-  function getPostViewUrl(post: PostRow, categorySlugOverride?: string) {
+  function getPostViewUrl(
+    post: {
+      slug: string;
+      categories?: string[] | null;
+    },
+    categorySlugOverride?: string,
+  ) {
     const categorySlugValue = categorySlugOverride ?? post.categories?.[0];
     if (categorySlugValue) {
       return `/categories/${categorySlugValue}/${post.slug}`;
@@ -386,7 +392,10 @@ export default function AdminPosts() {
               {form.slug ? (
                 <a
                   className="wp-btn"
-                  href={getPostViewUrl(form as PostRow, selectedCategory)}
+                  href={getPostViewUrl(
+                    { slug: form.slug, categories: selectedCategory ? [selectedCategory] : [] },
+                    selectedCategory,
+                  )}
                   target="_blank"
                   rel="noreferrer"
                 >
