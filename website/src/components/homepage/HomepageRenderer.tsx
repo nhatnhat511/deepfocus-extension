@@ -425,10 +425,36 @@ function FieldTarget({
 
 function GenericBlockPreview({ block, controls }: { block: HomepageBlock; controls?: EditableControls }) {
   if (block.type === "image" || block.type === "video") {
+    const mediaUrl = block.mediaUrl?.trim() || "";
+    const isYouTube = /youtube\.com|youtu\.be/i.test(mediaUrl);
+    const isVimeo = /vimeo\.com/i.test(mediaUrl);
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-sky-200 bg-gradient-to-br from-sky-50 to-slate-50 text-sm font-semibold text-sky-700">
-          {block.type === "image" ? "Image preview" : "Video preview"}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+          {block.type === "image" ? (
+            mediaUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={mediaUrl} alt={block.title || "Homepage image"} className="h-auto w-full object-cover" />
+            ) : (
+              <div className="grid min-h-40 place-items-center text-sm font-semibold text-slate-500">Image URL not set</div>
+            )
+          ) : mediaUrl ? (
+            isYouTube || isVimeo ? (
+              <iframe
+                src={mediaUrl}
+                title={block.title || "Homepage video"}
+                className="h-64 w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video controls className="h-64 w-full">
+                <source src={mediaUrl} />
+              </video>
+            )
+          ) : (
+            <div className="grid min-h-40 place-items-center text-sm font-semibold text-slate-500">Video URL not set</div>
+          )}
         </div>
         <FieldTarget blockId={block.uid} field="title" controls={controls} className="mt-4 block" label="Title">
           <InlineEditableText

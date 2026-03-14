@@ -54,6 +54,7 @@ export default function AdminHome() {
   const [showMarkdownPreview, setShowMarkdownPreview] = useState(true);
   const inspectorRefs = useRef<Record<string, HTMLLabelElement | null>>({});
   const subtitleRef = useRef<HTMLTextAreaElement | null>(null);
+  const subtitleHistoryRef = useRef(new Map<string, { past: string[]; future: string[] }>());
 
   const normalizeBlocks = useCallback((source: HomepageBlock[]) => {
     return source.map((block, index) => ({
@@ -264,6 +265,41 @@ export default function AdminHome() {
       const cursor = start + prefix.length + middle.length + suffix.length;
       textarea.setSelectionRange(cursor, cursor);
     });
+  }
+
+  function getSubtitleHistory(uid: string) {
+    let entry = subtitleHistoryRef.current.get(uid);
+    if (!entry) {
+      entry = { past: [], future: [] };
+      subtitleHistoryRef.current.set(uid, entry);
+    }
+    return entry;
+  }
+
+  function trackSubtitleChange(uid: string, nextValue: string) {
+    const history = getSubtitleHistory(uid);
+    const currentValue = blocks.find((block) => block.uid === uid)?.subtitle ?? "";
+    if (currentValue === nextValue) return;
+    history.past.push(currentValue);
+    history.future = [];
+  }
+
+  function undoSubtitle(uid: string) {
+    const history = getSubtitleHistory(uid);
+    if (!history.past.length) return;
+    const currentValue = blocks.find((block) => block.uid === uid)?.subtitle ?? "";
+    const previous = history.past.pop() ?? "";
+    history.future.push(currentValue);
+    updateBlock(uid, { subtitle: previous });
+  }
+
+  function redoSubtitle(uid: string) {
+    const history = getSubtitleHistory(uid);
+    if (!history.future.length) return;
+    const currentValue = blocks.find((block) => block.uid === uid)?.subtitle ?? "";
+    const nextValue = history.future.pop() ?? "";
+    history.past.push(currentValue);
+    updateBlock(uid, { subtitle: nextValue });
   }
 
   function renderInlineMarkdown(source: string) {
@@ -809,7 +845,10 @@ export default function AdminHome() {
                     className="wp-textarea"
                     rows={selectedBlock.type === "html" ? 8 : 5}
                     value={selectedBlock.subtitle}
-                    onChange={(event) => updateBlock(selectedBlock.uid, { subtitle: event.target.value })}
+                    onChange={(event) => {
+                      trackSubtitleChange(selectedBlock.uid, event.target.value);
+                      updateBlock(selectedBlock.uid, { subtitle: event.target.value });
+                    }}
                     placeholder="Primary descriptive copy for this block"
                   />
                   <div className="flex flex-wrap gap-2">
@@ -833,6 +872,22 @@ export default function AdminHome() {
                       onClick={() => insertMarkdown("[", "](https://example.com)", "link")}
                     >
                       Link
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-40"
+                      onClick={() => undoSubtitle(selectedBlock.uid)}
+                      disabled={!getSubtitleHistory(selectedBlock.uid).past.length}
+                    >
+                      Undo
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-40"
+                      onClick={() => redoSubtitle(selectedBlock.uid)}
+                      disabled={!getSubtitleHistory(selectedBlock.uid).future.length}
+                    >
+                      Redo
                     </button>
                     <button
                       type="button"
