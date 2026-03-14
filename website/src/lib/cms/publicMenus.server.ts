@@ -23,7 +23,7 @@ async function getPublicMenu(location: string, fallback: PublicMenuItem[]) {
         apikey: SUPABASE_ANON_KEY,
         authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      next: { revalidate: 60 },
+      cache: "no-store",
     }
   );
 
