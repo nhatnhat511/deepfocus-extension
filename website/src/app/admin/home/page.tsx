@@ -51,6 +51,7 @@ export default function AdminHome() {
   const [flexStatus, setFlexStatus] = useState("");
   const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number; label: string } | null>(null);
   const [previewPublic, setPreviewPublic] = useState(false);
+  const [showMarkdownPreview, setShowMarkdownPreview] = useState(true);
   const inspectorRefs = useRef<Record<string, HTMLLabelElement | null>>({});
   const subtitleRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -263,6 +264,80 @@ export default function AdminHome() {
       const cursor = start + prefix.length + middle.length + suffix.length;
       textarea.setSelectionRange(cursor, cursor);
     });
+  }
+
+  function renderInlineMarkdown(source: string) {
+    const nodes: React.ReactNode[] = [];
+    let remaining = source;
+    let key = 0;
+
+    const patterns = [
+      { type: "link", regex: /\[([^\]]+?)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/ },
+      { type: "bold", regex: /\*\*([^*]+?)\*\*/ },
+      { type: "italic", regex: /\*([^*]+?)\*/ },
+    ];
+
+    const pushText = (text: string) => {
+      const parts = text.split("\n");
+      parts.forEach((part, index) => {
+        if (part) {
+          nodes.push(<span key={`t-${key++}`}>{part}</span>);
+        }
+        if (index < parts.length - 1) {
+          nodes.push(<br key={`br-${key++}`} />);
+        }
+      });
+    };
+
+    while (remaining.length) {
+      let earliestMatch: RegExpExecArray | null = null;
+      let matchedType: string | null = null;
+      let matchedIndex = -1;
+
+      for (const pattern of patterns) {
+        const match = pattern.regex.exec(remaining);
+        if (!match) continue;
+        if (matchedIndex === -1 || match.index < matchedIndex) {
+          earliestMatch = match;
+          matchedType = pattern.type;
+          matchedIndex = match.index;
+        }
+      }
+
+      if (!earliestMatch || matchedType === null) {
+        pushText(remaining);
+        break;
+      }
+
+      if (matchedIndex > 0) {
+        pushText(remaining.slice(0, matchedIndex));
+      }
+
+      if (matchedType === "link") {
+        const [, label, href] = earliestMatch;
+        nodes.push(
+          <a key={`lnk-${key++}`} href={href} className="text-sky-700 underline decoration-sky-300" target="_blank" rel="noreferrer">
+            {label}
+          </a>
+        );
+      } else if (matchedType === "bold") {
+        nodes.push(
+          <strong key={`b-${key++}`} className="font-semibold text-slate-900">
+            {earliestMatch[1]}
+          </strong>
+        );
+      } else if (matchedType === "italic") {
+        nodes.push(
+          <em key={`i-${key++}`} className="italic">
+            {earliestMatch[1]}
+          </em>
+        );
+      }
+
+      remaining = remaining.slice(matchedIndex + earliestMatch[0].length);
+    }
+
+    return nodes;
   }
 
   function updateAllowlist(next: Set<string>) {
@@ -759,10 +834,22 @@ export default function AdminHome() {
                     >
                       Link
                     </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                      onClick={() => setShowMarkdownPreview((prev) => !prev)}
+                    >
+                      {showMarkdownPreview ? "Hide preview" : "Show preview"}
+                    </button>
                   </div>
                   <span className="text-[11px] font-semibold text-slate-400">
                     Supports **bold**, *italic*, and [link](https://example.com)
                   </span>
+                  {showMarkdownPreview ? (
+                    <div className="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                      {renderInlineMarkdown(selectedBlock.subtitle || "Preview text")}
+                    </div>
+                  ) : null}
                 </label>
                 <label ref={(node) => {
                   inspectorRefs.current.items = node;
