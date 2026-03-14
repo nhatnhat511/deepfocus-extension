@@ -149,8 +149,16 @@ create policy "cms_posts_update" on public.cms_posts
 create policy "cms_posts_delete" on public.cms_posts
   for delete using (public.is_cms_admin());
 
+drop policy if exists "cms_home_sections_select" on public.cms_home_sections;
+drop policy if exists "cms_home_sections_public_select" on public.cms_home_sections;
+drop policy if exists "cms_home_sections_insert" on public.cms_home_sections;
+drop policy if exists "cms_home_sections_update" on public.cms_home_sections;
+drop policy if exists "cms_home_sections_delete" on public.cms_home_sections;
+
 create policy "cms_home_sections_select" on public.cms_home_sections
   for select using (public.is_cms_admin());
+create policy "cms_home_sections_public_select" on public.cms_home_sections
+  for select using (is_enabled = true);
 create policy "cms_home_sections_insert" on public.cms_home_sections
   for insert with check (public.is_cms_admin());
 create policy "cms_home_sections_update" on public.cms_home_sections
@@ -175,8 +183,16 @@ create policy "cms_menus_update" on public.cms_menus
 create policy "cms_menus_delete" on public.cms_menus
   for delete using (public.is_cms_admin());
 
+drop policy if exists "cms_faq_select" on public.cms_faq;
+drop policy if exists "cms_faq_public_select" on public.cms_faq;
+drop policy if exists "cms_faq_insert" on public.cms_faq;
+drop policy if exists "cms_faq_update" on public.cms_faq;
+drop policy if exists "cms_faq_delete" on public.cms_faq;
+
 create policy "cms_faq_select" on public.cms_faq
   for select using (public.is_cms_admin());
+create policy "cms_faq_public_select" on public.cms_faq
+  for select using (is_published = true);
 create policy "cms_faq_insert" on public.cms_faq
   for insert with check (public.is_cms_admin());
 create policy "cms_faq_update" on public.cms_faq
@@ -184,8 +200,16 @@ create policy "cms_faq_update" on public.cms_faq
 create policy "cms_faq_delete" on public.cms_faq
   for delete using (public.is_cms_admin());
 
+drop policy if exists "cms_changelog_select" on public.cms_changelog;
+drop policy if exists "cms_changelog_public_select" on public.cms_changelog;
+drop policy if exists "cms_changelog_insert" on public.cms_changelog;
+drop policy if exists "cms_changelog_update" on public.cms_changelog;
+drop policy if exists "cms_changelog_delete" on public.cms_changelog;
+
 create policy "cms_changelog_select" on public.cms_changelog
   for select using (public.is_cms_admin());
+create policy "cms_changelog_public_select" on public.cms_changelog
+  for select using (is_published = true);
 create policy "cms_changelog_insert" on public.cms_changelog
   for insert with check (public.is_cms_admin());
 create policy "cms_changelog_update" on public.cms_changelog
@@ -193,8 +217,16 @@ create policy "cms_changelog_update" on public.cms_changelog
 create policy "cms_changelog_delete" on public.cms_changelog
   for delete using (public.is_cms_admin());
 
+drop policy if exists "cms_roadmap_select" on public.cms_roadmap;
+drop policy if exists "cms_roadmap_public_select" on public.cms_roadmap;
+drop policy if exists "cms_roadmap_insert" on public.cms_roadmap;
+drop policy if exists "cms_roadmap_update" on public.cms_roadmap;
+drop policy if exists "cms_roadmap_delete" on public.cms_roadmap;
+
 create policy "cms_roadmap_select" on public.cms_roadmap
   for select using (public.is_cms_admin());
+create policy "cms_roadmap_public_select" on public.cms_roadmap
+  for select using (is_published = true);
 create policy "cms_roadmap_insert" on public.cms_roadmap
   for insert with check (public.is_cms_admin());
 create policy "cms_roadmap_update" on public.cms_roadmap

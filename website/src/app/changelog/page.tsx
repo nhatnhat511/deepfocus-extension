@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getPublicChangelog } from "@/lib/cms/publicContent.server";
 
 export const metadata: Metadata = {
   title: "Changelog",
@@ -30,7 +31,18 @@ const changes = [
   },
 ];
 
-export default function ChangelogPage() {
+export default async function ChangelogPage() {
+  const cmsChanges = await getPublicChangelog();
+  const entries =
+    cmsChanges.length > 0
+      ? cmsChanges.map((entry) => ({
+          date: entry.release_date
+            ? new Date(entry.release_date).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+            : entry.title,
+          items: Array.isArray(entry.items) ? entry.items : [],
+        }))
+      : changes;
+
   return (
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
       <header>
@@ -39,7 +51,7 @@ export default function ChangelogPage() {
       </header>
 
       <div className="space-y-4">
-        {changes.map((entry) => (
+        {entries.map((entry) => (
           <section key={entry.date} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <h2 className="text-base font-semibold text-slate-900">{entry.date}</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">

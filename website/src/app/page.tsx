@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getPublicHomeSections } from "@/lib/cms/publicContent.server";
 
 export const metadata: Metadata = {
   title: {
@@ -39,29 +40,43 @@ const steps = [
   "Start a session and keep momentum with reminders and smart controls.",
 ];
 
-export default function Home() {
+export default async function Home() {
+  const cmsSections = await getPublicHomeSections();
+  const heroSection = cmsSections.find((section) => section.key === "hero");
+  const ctaSection = cmsSections.find((section) => section.key === "cta");
+  const featureSections = cmsSections.filter((section) => !["hero", "cta"].includes(section.key));
+
   return (
     <div className="space-y-10">
       <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-8 sm:p-10">
         <p className="mb-3 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-          Chrome Extension for Intentional Work
+          {heroSection?.key === "hero" && heroSection.title ? "Homepage Hero" : "Chrome Extension for Intentional Work"}
         </p>
         <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-          Focus deeper in Chrome with a timer built for real workdays.
+          {heroSection?.title || "Focus deeper in Chrome with a timer built for real workdays."}
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-slate-600">
-          DeepFocus Time combines session timing, mindful breaks, account sync, and advanced productivity settings in
-          one lightweight extension.
+          {heroSection?.subtitle ||
+            "DeepFocus Time combines session timing, mindful breaks, account sync, and advanced productivity settings in one lightweight extension."}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <a
-            href="https://chromewebstore.google.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
-          >
-            Add to Chrome
-          </a>
+          {heroSection?.cta_label && heroSection?.cta_href ? (
+            <Link
+              href={heroSection.cta_href}
+              className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+            >
+              {heroSection.cta_label}
+            </Link>
+          ) : (
+            <a
+              href="https://chromewebstore.google.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+            >
+              Add to Chrome
+            </a>
+          )}
           <Link
             href="/pricing"
             className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100"
@@ -83,7 +98,13 @@ export default function Home() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        {coreFeatures.map((feature) => (
+        {(featureSections.length
+          ? featureSections.map((section) => ({
+              title: section.title || section.key,
+              description: section.subtitle || "Update this homepage block from the CMS admin.",
+            }))
+          : coreFeatures
+        ).map((feature) => (
           <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="text-lg font-semibold text-slate-900">{feature.title}</h2>
             <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
@@ -150,19 +171,31 @@ export default function Home() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold text-slate-900">Ready to improve focus consistency?</h2>
+        <h2 className="text-xl font-semibold text-slate-900">
+          {ctaSection?.title || "Ready to improve focus consistency?"}
+        </h2>
         <p className="mt-2 max-w-3xl text-sm text-slate-600">
-          Install the extension, run your first session, and refine your setup with features that match your workflow.
+          {ctaSection?.subtitle ||
+            "Install the extension, run your first session, and refine your setup with features that match your workflow."}
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <a
-            href="https://chromewebstore.google.com/"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
-          >
-            Add to Chrome
-          </a>
+          {ctaSection?.cta_label && ctaSection?.cta_href ? (
+            <Link
+              href={ctaSection.cta_href}
+              className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+            >
+              {ctaSection.cta_label}
+            </Link>
+          ) : (
+            <a
+              href="https://chromewebstore.google.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
+            >
+              Add to Chrome
+            </a>
+          )}
           <Link
             href="/faq"
             className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100"

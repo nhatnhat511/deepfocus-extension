@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getPublicFaq } from "@/lib/cms/publicContent.server";
 
 export const metadata: Metadata = {
   title: "FAQ",
@@ -62,7 +63,16 @@ const faqs = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const cmsFaq = await getPublicFaq();
+  const items =
+    cmsFaq.length > 0
+      ? cmsFaq.map((item) => ({
+          q: item.question,
+          a: item.answer,
+        }))
+      : faqs;
+
   return (
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
       <header>
@@ -71,7 +81,7 @@ export default function FaqPage() {
       </header>
 
       <div className="space-y-4">
-        {faqs.map((item) => (
+        {items.map((item) => (
           <section key={item.q} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <h2 className="text-base font-semibold text-slate-900">{item.q}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">{item.a}</p>
