@@ -352,8 +352,34 @@ function GenericBlockPreview({ block, controls }: { block: HomepageBlock; contro
         <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-sky-200 bg-gradient-to-br from-sky-50 to-slate-50 text-sm font-semibold text-sky-700">
           {block.type === "image" ? "Image preview" : "Video preview"}
         </div>
-        <h3 className="mt-4 text-xl font-semibold text-slate-900">{block.title || "Media block"}</h3>
-        <p className="mt-2 text-sm text-slate-600">{block.subtitle || "Standalone media module."}</p>
+        <FieldTarget blockId={block.uid} field="title" controls={controls} className="mt-4 block" label="Title">
+          <InlineEditableText
+            blockId={block.uid}
+            field="title"
+            value={block.title || "Media block"}
+            controls={controls}
+            className="text-xl font-semibold text-slate-900"
+          />
+        </FieldTarget>
+        <FieldTarget blockId={block.uid} field="subtitle" controls={controls} className="mt-2 block" label="Body">
+          <InlineEditableText
+            blockId={block.uid}
+            field="subtitle"
+            value={block.subtitle || "Standalone media module."}
+            controls={controls}
+            multiline
+            className="text-sm text-slate-600"
+          />
+        </FieldTarget>
+        <FieldTarget blockId={block.uid} field="mediaUrl" controls={controls} className="mt-3 block" label="Media">
+          <InlineEditableText
+            blockId={block.uid}
+            field="mediaUrl"
+            value={block.mediaUrl || "https://media-url.example"}
+            controls={controls}
+            className="text-xs font-semibold text-slate-500"
+          />
+        </FieldTarget>
       </div>
     );
   }
@@ -361,10 +387,34 @@ function GenericBlockPreview({ block, controls }: { block: HomepageBlock; contro
   if (block.type === "html") {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h3 className="text-xl font-semibold text-slate-900">{block.title || "HTML embed"}</h3>
-        <code className="mt-4 block rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-          {block.subtitle || "<div>Custom HTML</div>"}
-        </code>
+        <FieldTarget blockId={block.uid} field="title" controls={controls} className="block" label="Title">
+          <InlineEditableText
+            blockId={block.uid}
+            field="title"
+            value={block.title || "HTML embed"}
+            controls={controls}
+            className="text-xl font-semibold text-slate-900"
+          />
+        </FieldTarget>
+        <FieldTarget blockId={block.uid} field="subtitle" controls={controls} className="mt-4 block" label="Body">
+          <InlineEditableText
+            blockId={block.uid}
+            field="subtitle"
+            value={block.subtitle || "<div>Custom HTML</div>"}
+            controls={controls}
+            multiline
+            className="block rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100"
+          />
+        </FieldTarget>
+        <FieldTarget blockId={block.uid} field="mediaUrl" controls={controls} className="mt-3 block" label="Preview Note">
+          <InlineEditableText
+            blockId={block.uid}
+            field="mediaUrl"
+            value={block.mediaUrl || "Optional preview note"}
+            controls={controls}
+            className="text-xs font-semibold text-slate-500"
+          />
+        </FieldTarget>
       </div>
     );
   }
