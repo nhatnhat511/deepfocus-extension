@@ -293,6 +293,9 @@ function FieldTarget({
           controls.onSelect?.(blockId);
           controls.onFocusField?.(blockId, field);
         }}
+        data-editor-block={blockId}
+        data-editor-field={field}
+        data-editor-label={label || ""}
         className={`w-full rounded-md text-left transition ${
           isSelected
             ? "bg-sky-50/70 ring-2 ring-sky-300 ring-offset-2 ring-offset-white"
@@ -311,35 +314,6 @@ function FieldTarget({
         >
           {label}
         </span>
-      ) : null}
-      {isSelected && (controls.onDuplicate || controls.onRemove) ? (
-        <div className="absolute -top-4 right-0 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 shadow-sm">
-          <span className="uppercase tracking-[0.18em]">{label || "Field"}</span>
-          {controls.onDuplicate ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                controls.onDuplicate?.(blockId);
-              }}
-              className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
-            >
-              Duplicate
-            </button>
-          ) : null}
-          {controls.onRemove ? (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                controls.onRemove?.(blockId);
-              }}
-              className="rounded-full border border-rose-200 px-2 py-0.5 text-[10px] font-semibold text-rose-600 hover:text-rose-700"
-            >
-              Remove
-            </button>
-          ) : null}
-        </div>
       ) : null}
     </span>
   );
@@ -572,11 +546,13 @@ function ActionButton({
 export function HomepageRenderer({
   model,
   editable,
+  flexAllowlist,
 }: {
   model: HomepageRenderModel;
   editable?: EditableControls;
+  flexAllowlist?: string;
 }) {
-  const publicFlexAllowlistRaw = process.env.NEXT_PUBLIC_HOMEPAGE_FLEX_BLOCKS || "";
+  const publicFlexAllowlistRaw = flexAllowlist ?? process.env.NEXT_PUBLIC_HOMEPAGE_FLEX_BLOCKS ?? "";
   const publicFlexAllowlist = publicFlexAllowlistRaw
     .split(",")
     .map((value) => value.trim())

@@ -41,6 +41,11 @@ type RoadmapEntry = {
   is_published: boolean | null;
 };
 
+type SiteSettingEntry = {
+  key: string;
+  value: unknown;
+};
+
 async function fetchCmsRows<T>(path: string) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
@@ -77,4 +82,24 @@ export async function getPublicChangelog() {
 
 export async function getPublicRoadmap() {
   return (await fetchCmsRows<RoadmapEntry>("cms_roadmap?select=*&is_published=eq.true&order=sort_order.asc")) ?? [];
+}
+
+export async function getPublicSiteSetting(settingKey: string) {
+  const rows =
+    (await fetchCmsRows<SiteSettingEntry>(
+      `cms_site_settings?select=key,value&key=eq.${encodeURIComponent(settingKey)}`
+    )) ?? [];
+  const entry = rows[0];
+  if (!entry || entry.value == null) return "";
+
+  if (typeof entry.value === "string") {
+    return entry.value;
+  }
+
+  if (typeof entry.value === "object" && "allowlist" in (entry.value as Record<string, unknown>)) {
+    const allowlist = (entry.value as { allowlist?: string }).allowlist;
+    return allowlist ?? "";
+  }
+
+  return "";
 }

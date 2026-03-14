@@ -246,6 +246,9 @@ create policy "cms_roadmap_delete" on public.cms_roadmap
 
 create policy "cms_site_settings_select" on public.cms_site_settings
   for select using (public.is_cms_admin());
+drop policy if exists "cms_site_settings_public_select" on public.cms_site_settings;
+create policy "cms_site_settings_public_select" on public.cms_site_settings
+  for select using (key in ('homepage_flex_allowlist'));
 create policy "cms_site_settings_insert" on public.cms_site_settings
   for insert with check (public.is_cms_admin());
 create policy "cms_site_settings_update" on public.cms_site_settings

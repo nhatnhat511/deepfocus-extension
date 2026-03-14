@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { HomepageRenderer } from "@/components/homepage/HomepageRenderer";
-import { getPublicHomeSections } from "@/lib/cms/publicContent.server";
+import { getPublicHomeSections, getPublicSiteSetting } from "@/lib/cms/publicContent.server";
 import { buildHomepageRenderModelFromSections } from "@/lib/cms/homepageRenderModel";
 
 export const metadata: Metadata = {
@@ -13,9 +13,10 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const cmsSections = await getPublicHomeSections();
+  const flexAllowlist = await getPublicSiteSetting("homepage_flex_allowlist");
   const model = buildHomepageRenderModelFromSections(cmsSections);
 
-  return <HomepageRenderer model={model} />;
+  return <HomepageRenderer model={model} flexAllowlist={flexAllowlist} />;
 }
 
 // redeploy trigger

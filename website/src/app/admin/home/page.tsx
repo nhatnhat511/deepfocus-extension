@@ -46,6 +46,10 @@ export default function AdminHome() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [compatibilityMode, setCompatibilityMode] = useState(false);
+  const [publicFlexAllowlist, setPublicFlexAllowlist] = useState("");
+  const [flexSaving, setFlexSaving] = useState(false);
+  const [flexStatus, setFlexStatus] = useState("");
+  const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number; label: string } | null>(null);
   const inspectorRefs = useRef<Record<string, HTMLLabelElement | null>>({});
 
   const normalizeBlocks = useCallback((source: HomepageBlock[]) => {
@@ -74,6 +78,7 @@ export default function AdminHome() {
       setLoading(true);
       setError("");
       setStatus("");
+      setFlexStatus("");
 
       try {
         let initialBlocks: HomepageBlock[] = [];
@@ -114,6 +119,23 @@ export default function AdminHome() {
           );
         }
 
+        const { data: flexSetting } = await supabase
+          .from("cms_site_settings")
+          .select("value")
+          .eq("key", "homepage_flex_allowlist")
+          .maybeSingle();
+
+        if (flexSetting?.value) {
+          if (typeof flexSetting.value === "string") {
+            setPublicFlexAllowlist(flexSetting.value);
+          } else if (typeof flexSetting.value === "object" && flexSetting.value !== null && "allowlist" in flexSetting.value) {
+            const allowlist = (flexSetting.value as { allowlist?: string }).allowlist ?? "";
+            setPublicFlexAllowlist(allowlist);
+          }
+        } else {
+          setPublicFlexAllowlist("");
+        }
+
         setBlocks(initialBlocks);
         setSelectedUid(initialBlocks[0]?.uid || "");
         setLastSavedSnapshot(snapshotBlocks(initialBlocks));
@@ -140,6 +162,58 @@ export default function AdminHome() {
     const focusable = target.querySelector("input, textarea, select") as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
     focusable?.focus();
   }, [selectedField, selectedUid]);
+
+  useEffect(() => {
+    if (!selectedUid || !selectedField) {
+      setToolbarPosition(null);
+      return;
+    }
+
+    const updateToolbar = () => {
+      const selector = `[data-editor-block="${selectedUid}"][data-editor-field="${selectedField}"]`;
+      const target = document.querySelector(selector) as HTMLElement | null;
+      if (!target) {
+        setToolbarPosition(null);
+        return;
+      }
+      const rect = target.getBoundingClientRect();
+      const label = target.getAttribute("data-editor-label") || "Field";
+      setToolbarPosition({
+        top: rect.top + window.scrollY - 12,
+        left: rect.left + window.scrollX + rect.width / 2,
+        label,
+      });
+    };
+
+    updateToolbar();
+    window.addEventListener("scroll", updateToolbar, true);
+    window.addEventListener("resize", updateToolbar);
+
+    return () => {
+      window.removeEventListener("scroll", updateToolbar, true);
+      window.removeEventListener("resize", updateToolbar);
+    };
+  }, [selectedField, selectedUid]);
+
+  async function saveFlexAllowlist() {
+    setFlexSaving(true);
+    setFlexStatus("");
+
+    try {
+      const { error: flexError } = await supabase.from("cms_site_settings").upsert({
+        key: "homepage_flex_allowlist",
+        value: publicFlexAllowlist,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (flexError) throw flexError;
+      setFlexStatus("Public flex block visibility updated.");
+    } catch (flexError) {
+      setFlexStatus(flexError instanceof Error ? flexError.message : "Unable to save flex block visibility.");
+    } finally {
+      setFlexSaving(false);
+    }
+  }
 
   function replaceBlocks(nextBlocks: HomepageBlock[], nextStatus: string) {
     const normalized = nextBlocks.map((block, index) => ({ ...block, sortOrder: index }));
@@ -296,6 +370,32 @@ export default function AdminHome() {
 
   return (
     <section className="space-y-6">
+      {toolbarPosition ? (
+        <div
+          className="pointer-events-auto fixed z-50 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-lg"
+          style={{
+            top: toolbarPosition.top,
+            left: toolbarPosition.left,
+            transform: "translate(-50%, -100%)",
+          }}
+        >
+          <span className="uppercase tracking-[0.2em]">{toolbarPosition.label}</span>
+          <button
+            type="button"
+            onClick={() => selectedUid && duplicateBlock(selectedUid)}
+            className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+          >
+            Duplicate
+          </button>
+          <button
+            type="button"
+            onClick={() => selectedUid && removeBlock(selectedUid)}
+            className="rounded-full border border-rose-200 px-2 py-0.5 text-[10px] font-semibold text-rose-600 hover:text-rose-700"
+          >
+            Remove
+          </button>
+        </div>
+      ) : null}
       <header className="wp-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -322,6 +422,43 @@ export default function AdminHome() {
               {saving ? "Saving..." : "Save Homepage"}
             </button>
           </div>
+        </div>
+        <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
+          <div className="font-semibold text-slate-900">Public flex blocks visibility</div>
+          <p className="text-slate-600">
+            Use comma-separated block keys to enable flex blocks on the public homepage. Leave empty to keep them admin-only. Use `*` to enable all.
+          </p>
+          <input
+            className="wp-field"
+            value={publicFlexAllowlist}
+            onChange={(event) => setPublicFlexAllowlist(event.target.value)}
+            placeholder="columns-2-hero,video-demo"
+          />
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="wp-btn"
+              onClick={() => setPublicFlexAllowlist("")}
+            >
+              Disable public flex blocks
+            </button>
+            <button
+              type="button"
+              className="wp-btn"
+              onClick={() => setPublicFlexAllowlist("*")}
+            >
+              Enable all
+            </button>
+            <button
+              type="button"
+              className="wp-btn wp-btn-primary"
+              onClick={saveFlexAllowlist}
+              disabled={flexSaving}
+            >
+              {flexSaving ? "Saving..." : "Save visibility"}
+            </button>
+          </div>
+          {flexStatus ? <div className="text-xs font-semibold text-slate-600">{flexStatus}</div> : null}
         </div>
         {compatibilityMode ? (
           <p className="mt-3 text-sm text-amber-700">
