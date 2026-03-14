@@ -129,6 +129,59 @@ function InlineEditableList({
   );
 }
 
+function InlineEditableColumnsList({
+  blockId,
+  field,
+  items,
+  controls,
+  columns = 2,
+}: {
+  blockId: string;
+  field: string;
+  items: string[];
+  controls?: EditableControls;
+  columns?: 2 | 3;
+}) {
+  const active = controls?.selectedId === blockId && controls?.selectedField === field;
+
+  if (!controls?.onInlineChange || !active) {
+    return null;
+  }
+
+  const updateItems = (next: string[]) => {
+    controls.onInlineChange?.(blockId, field, next.join("\n"));
+  };
+
+  const maxColumns = columns === 3 ? 3 : 2;
+  const normalized = items.length ? items : Array.from({ length: maxColumns }, () => "");
+  const filled = normalized.slice(0, maxColumns);
+
+  return (
+    <div className={`grid gap-3 ${columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      {filled.map((item, index) => (
+        <div key={`${blockId}-${field}-${index}`} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Column {index + 1}
+          </span>
+          <textarea
+            value={item}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              const next = [...filled];
+              next[index] = event.target.value;
+              updateItems(next);
+            }}
+            className="min-h-[96px] w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none ring-2 ring-sky-100"
+          />
+        </div>
+      ))}
+      <div className="col-span-full text-xs text-slate-500">
+        Columns are stored line-by-line under `items` for this block.
+      </div>
+    </div>
+  );
+}
+
 function InlineEditableRoleList({
   blockId,
   field,
@@ -259,11 +312,40 @@ function FieldTarget({
           {label}
         </span>
       ) : null}
+      {isSelected && (controls.onDuplicate || controls.onRemove) ? (
+        <div className="absolute -top-4 right-0 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-600 shadow-sm">
+          <span className="uppercase tracking-[0.18em]">{label || "Field"}</span>
+          {controls.onDuplicate ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                controls.onDuplicate?.(blockId);
+              }}
+              className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+            >
+              Duplicate
+            </button>
+          ) : null}
+          {controls.onRemove ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                controls.onRemove?.(blockId);
+              }}
+              className="rounded-full border border-rose-200 px-2 py-0.5 text-[10px] font-semibold text-rose-600 hover:text-rose-700"
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </span>
   );
 }
 
-function GenericBlockPreview({ block }: { block: HomepageBlock }) {
+function GenericBlockPreview({ block, controls }: { block: HomepageBlock; controls?: EditableControls }) {
   if (block.type === "image" || block.type === "video") {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -291,13 +373,25 @@ function GenericBlockPreview({ block }: { block: HomepageBlock }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6">
       <h3 className="text-xl font-semibold text-slate-900">{block.title || "Columns block"}</h3>
-      <div className={`mt-4 grid gap-3 ${block.type === "columns-3" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-        {columns.map((column, index) => (
-          <div key={`${block.uid}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-            {column}
-          </div>
-        ))}
-      </div>
+      {controls?.selectedId === block.uid && controls?.selectedField === "items" ? (
+        <div className="mt-4">
+          <InlineEditableColumnsList
+            blockId={block.uid}
+            field="items"
+            items={block.items}
+            controls={controls}
+            columns={block.type === "columns-3" ? 3 : 2}
+          />
+        </div>
+      ) : (
+        <div className={`mt-4 grid gap-3 ${block.type === "columns-3" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+          {columns.map((column, index) => (
+            <div key={`${block.uid}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              {column}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -432,6 +526,16 @@ export function HomepageRenderer({
   model: HomepageRenderModel;
   editable?: EditableControls;
 }) {
+  const publicFlexAllowlistRaw = process.env.NEXT_PUBLIC_HOMEPAGE_FLEX_BLOCKS || "";
+  const publicFlexAllowlist = publicFlexAllowlistRaw
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const allowAllFlex = publicFlexAllowlistRaw.trim() === "*";
+  const visibleFlexBlocks = editable
+    ? model.flexBlocks
+    : model.flexBlocks.filter((block) => allowAllFlex || publicFlexAllowlist.includes(block.key));
+
   return (
     <div className="space-y-10">
       <EditableFrame
@@ -831,12 +935,14 @@ export function HomepageRenderer({
         </section>
       </EditableFrame>
 
-      {model.flexBlocks.length ? (
+      {visibleFlexBlocks.length ? (
         <section className="space-y-4">
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Flexible blocks below are stored in the block schema and are ready for later public rendering rollout.
-          </div>
-          {model.flexBlocks.map((block) => (
+          {editable ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+              Flexible blocks below are stored in the block schema and are ready for later public rendering rollout.
+            </div>
+          ) : null}
+          {visibleFlexBlocks.map((block) => (
             <EditableFrame
               key={block.uid}
               id={block.uid}
@@ -850,7 +956,7 @@ export function HomepageRenderer({
                 { id: "mediaUrl", label: "Media" },
               ]}
             >
-              <GenericBlockPreview block={block} />
+              <GenericBlockPreview block={block} controls={editable} />
             </EditableFrame>
           ))}
         </section>
