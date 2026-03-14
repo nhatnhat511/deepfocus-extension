@@ -129,6 +129,87 @@ function InlineEditableList({
   );
 }
 
+function InlineEditableRoleList({
+  blockId,
+  field,
+  items,
+  controls,
+  className = "",
+}: {
+  blockId: string;
+  field: string;
+  items: Array<{ role: string; note: string }>;
+  controls?: EditableControls;
+  className?: string;
+}) {
+  const active = controls?.selectedId === blockId && controls?.selectedField === field;
+
+  if (!controls?.onInlineChange || !active) {
+    return null;
+  }
+
+  const updateItems = (next: Array<{ role: string; note: string }>) => {
+    const lines = next
+      .map((item) => `${item.role || ""}: ${item.note || ""}`.trim())
+      .filter(Boolean);
+    controls.onInlineChange?.(blockId, field, lines.join("\n"));
+  };
+
+  return (
+    <div className={`grid gap-2 ${className}`}>
+      {items.map((item, index) => (
+        <div key={`${blockId}-${field}-${index}`} className="grid gap-2 rounded-xl border border-slate-200 bg-white p-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              value={item.role}
+              placeholder="Role"
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => {
+                const next = [...items];
+                next[index] = { ...next[index], role: event.target.value };
+                updateItems(next);
+              }}
+              className="w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none ring-2 ring-sky-100"
+            />
+            <input
+              value={item.note}
+              placeholder="Note"
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => {
+                const next = [...items];
+                next[index] = { ...next[index], note: event.target.value };
+                updateItems(next);
+              }}
+              className="w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none ring-2 ring-sky-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              const next = items.filter((_, itemIndex) => itemIndex !== index);
+              updateItems(next);
+            }}
+            className="w-fit rounded-full border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-slate-300 hover:text-slate-700"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          updateItems([...items, { role: "", note: "" }]);
+        }}
+        className="mt-1 w-fit rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:border-sky-300 hover:bg-sky-100"
+      >
+        Add audience row
+      </button>
+    </div>
+  );
+}
+
 function FieldTarget({
   blockId,
   field,
@@ -599,15 +680,25 @@ export function HomepageRenderer({
                 className="text-xl font-semibold text-slate-900"
               />
             </FieldTarget>
-            <div className="mt-4 space-y-3 text-sm text-slate-700">
-              {model.audience.items.map((item) => (
-                <FieldTarget key={item.role} blockId={model.audience.id} field="items" controls={editable} className="block" label="Items">
-                  <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span className="font-semibold text-slate-900">{item.role}:</span> {item.note}
-                  </p>
-                </FieldTarget>
-              ))}
-            </div>
+            <FieldTarget blockId={model.audience.id} field="items" controls={editable} className="mt-4 block" label="Items">
+              {editable?.selectedId === model.audience.id && editable?.selectedField === "items" ? (
+                <InlineEditableRoleList
+                  blockId={model.audience.id}
+                  field="items"
+                  items={model.audience.items}
+                  controls={editable}
+                  className="mt-2"
+                />
+              ) : (
+                <div className="space-y-3 text-sm text-slate-700">
+                  {model.audience.items.map((item) => (
+                    <p key={`${item.role}-${item.note}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <span className="font-semibold text-slate-900">{item.role}:</span> {item.note}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </FieldTarget>
             <div className="mt-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
               <FieldTarget blockId={model.audience.id} field="eyebrow" controls={editable} className="block" label="Preview Label">
                 <InlineEditableText
