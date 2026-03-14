@@ -52,6 +52,7 @@ export default function AdminHome() {
   const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number; label: string } | null>(null);
   const [previewPublic, setPreviewPublic] = useState(false);
   const inspectorRefs = useRef<Record<string, HTMLLabelElement | null>>({});
+  const subtitleRef = useRef<HTMLTextAreaElement | null>(null);
 
   const normalizeBlocks = useCallback((source: HomepageBlock[]) => {
     return source.map((block, index) => ({
@@ -238,6 +239,30 @@ export default function AdminHome() {
     } catch {
       setFlexStatus("Unable to copy. Copy manually from the list.");
     }
+  }
+
+  function insertMarkdown(prefix: string, suffix: string, placeholder: string) {
+    if (!selectedBlock) return;
+    const fieldValue = selectedBlock.subtitle;
+    const textarea = subtitleRef.current;
+    if (!textarea) {
+      updateBlock(selectedBlock.uid, { subtitle: `${fieldValue}${prefix}${placeholder}${suffix}` });
+      return;
+    }
+
+    const start = textarea.selectionStart ?? fieldValue.length;
+    const end = textarea.selectionEnd ?? fieldValue.length;
+    const before = fieldValue.slice(0, start);
+    const middle = fieldValue.slice(start, end) || placeholder;
+    const after = fieldValue.slice(end);
+    const nextValue = `${before}${prefix}${middle}${suffix}${after}`;
+
+    updateBlock(selectedBlock.uid, { subtitle: nextValue });
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = start + prefix.length + middle.length + suffix.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
   }
 
   function updateAllowlist(next: Set<string>) {
@@ -705,12 +730,36 @@ export default function AdminHome() {
                 }} className={inspectorFieldClass(selectedField === "subtitle")}>
                   Body / copy
                   <textarea
+                    ref={subtitleRef}
                     className="wp-textarea"
                     rows={selectedBlock.type === "html" ? 8 : 5}
                     value={selectedBlock.subtitle}
                     onChange={(event) => updateBlock(selectedBlock.uid, { subtitle: event.target.value })}
                     placeholder="Primary descriptive copy for this block"
                   />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                      onClick={() => insertMarkdown("**", "**", "bold text")}
+                    >
+                      Bold
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                      onClick={() => insertMarkdown("*", "*", "italic text")}
+                    >
+                      Italic
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500 hover:text-slate-700"
+                      onClick={() => insertMarkdown("[", "](https://example.com)", "link")}
+                    >
+                      Link
+                    </button>
+                  </div>
                   <span className="text-[11px] font-semibold text-slate-400">
                     Supports **bold**, *italic*, and [link](https://example.com)
                   </span>
