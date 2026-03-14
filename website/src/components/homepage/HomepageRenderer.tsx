@@ -61,6 +61,74 @@ function InlineEditableText({
   return multiline ? <p className={className}>{value}</p> : <span className={className}>{value}</span>;
 }
 
+function InlineEditableList({
+  blockId,
+  field,
+  items,
+  controls,
+  className = "",
+  inputClassName = "",
+  addLabel = "Add item",
+}: {
+  blockId: string;
+  field: string;
+  items: string[];
+  controls?: EditableControls;
+  className?: string;
+  inputClassName?: string;
+  addLabel?: string;
+}) {
+  const active = controls?.selectedId === blockId && controls?.selectedField === field;
+
+  if (!controls?.onInlineChange || !active) {
+    return null;
+  }
+
+  const updateItems = (next: string[]) => {
+    controls.onInlineChange?.(blockId, field, next.join("\n"));
+  };
+
+  return (
+    <div className={`grid gap-2 ${className}`}>
+      {items.map((item, index) => (
+        <div key={`${blockId}-${field}-${index}`} className="flex items-center gap-2">
+          <input
+            value={item}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              const next = [...items];
+              next[index] = event.target.value;
+              updateItems(next);
+            }}
+            className={`w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none ring-2 ring-sky-100 ${inputClassName}`}
+          />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              const next = items.filter((_, itemIndex) => itemIndex !== index);
+              updateItems(next);
+            }}
+            className="rounded-full border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-slate-300 hover:text-slate-700"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          updateItems([...items, ""]);
+        }}
+        className="mt-1 w-fit rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:border-sky-300 hover:bg-sky-100"
+      >
+        {addLabel}
+      </button>
+    </div>
+  );
+}
+
 function FieldTarget({
   blockId,
   field,
@@ -384,13 +452,25 @@ export function HomepageRenderer({
               compact
               fieldOptions={[{ id: "items", label: "Items" }]}
             >
-              <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-                {model.heroHighlights.items.map((item) => (
-                  <FieldTarget key={item} blockId={model.heroHighlights.id} field="items" controls={editable} className="block" label="Items">
-                    <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">{item}</p>
-                  </FieldTarget>
-                ))}
-              </div>
+              <FieldTarget blockId={model.heroHighlights.id} field="items" controls={editable} className="block" label="Items">
+                {editable?.selectedId === model.heroHighlights.id && editable?.selectedField === "items" ? (
+                  <InlineEditableList
+                    blockId={model.heroHighlights.id}
+                    field="items"
+                    items={model.heroHighlights.items}
+                    controls={editable}
+                    className="grid gap-2 sm:grid-cols-3"
+                  />
+                ) : (
+                  <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
+                    {model.heroHighlights.items.map((item) => (
+                      <p key={item} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                        {item}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </FieldTarget>
             </EditableFrame>
           </div>
         </section>
@@ -456,18 +536,28 @@ export function HomepageRenderer({
                 className="text-xl font-semibold text-slate-900"
               />
             </FieldTarget>
-            <ol className="mt-4 space-y-3 text-sm text-slate-700">
-              {model.steps.items.map((step, index) => (
-                <li key={step} className="flex items-start gap-3">
-                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
-                    {index + 1}
-                  </span>
-                  <FieldTarget blockId={model.steps.id} field="items" controls={editable} label="Items">
-                    <span>{step}</span>
-                  </FieldTarget>
-                </li>
-              ))}
-            </ol>
+            <FieldTarget blockId={model.steps.id} field="items" controls={editable} label="Items">
+              {editable?.selectedId === model.steps.id && editable?.selectedField === "items" ? (
+                <InlineEditableList
+                  blockId={model.steps.id}
+                  field="items"
+                  items={model.steps.items}
+                  controls={editable}
+                  className="mt-4"
+                />
+              ) : (
+                <ol className="mt-4 space-y-3 text-sm text-slate-700">
+                  {model.steps.items.map((step, index) => (
+                    <li key={step} className="flex items-start gap-3">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+                        {index + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </FieldTarget>
             <div className="mt-5">
               <FieldTarget blockId={model.steps.id} field="primaryLabel" controls={editable} label="Button">
                 <ActionButton action={model.steps.primaryAction} inert={!!editable} />
@@ -563,13 +653,25 @@ export function HomepageRenderer({
               className="text-xl font-semibold text-slate-900"
             />
           </FieldTarget>
-          <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-            {model.proofGrid.items.map((item) => (
-              <FieldTarget key={item} blockId={model.proofGrid.id} field="items" controls={editable} className="block" label="Items">
-                <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">{item}</p>
-              </FieldTarget>
-            ))}
-          </div>
+          <FieldTarget blockId={model.proofGrid.id} field="items" controls={editable} className="block" label="Items">
+            {editable?.selectedId === model.proofGrid.id && editable?.selectedField === "items" ? (
+              <InlineEditableList
+                blockId={model.proofGrid.id}
+                field="items"
+                items={model.proofGrid.items}
+                controls={editable}
+                className="mt-4 grid gap-3 sm:grid-cols-2"
+              />
+            ) : (
+              <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+                {model.proofGrid.items.map((item) => (
+                  <p key={item} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    {item}
+                  </p>
+                ))}
+              </div>
+            )}
+          </FieldTarget>
         </section>
       </EditableFrame>
 
