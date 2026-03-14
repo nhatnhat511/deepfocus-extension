@@ -4,6 +4,8 @@ import AppChrome from "@/components/AppChrome";
 import { getPublicMenus } from "@/lib/cms/publicMenus.server";
 import "./globals.css";
 
+export const runtime = "edge";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://deepfocustime.com"),
   title: {
