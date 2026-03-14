@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
 import { getPublicPostByCategorySlug } from "@/lib/cms/publicContent.server";
 
+export const runtime = "edge";
+
 type CategoryPostPageProps = {
   params: { category: string; slug: string };
 };

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
 import { getPublicPostBySlug } from "@/lib/cms/publicContent.server";
 
+export const runtime = "edge";
+
 type BlogPageProps = {
   params: { slug: string };
 };
