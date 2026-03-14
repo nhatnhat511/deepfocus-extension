@@ -106,6 +106,53 @@ const palette: Array<{ type: BlockType; label: string; description: string; seed
   },
 ];
 
+function defaultHomepageSections(): BuilderSection[] {
+  return [
+    makeBlock("hero", {
+      key: "hero",
+      title: "Focus deeper in Chrome with a timer built for real workdays.",
+      subtitle:
+        "DeepFocus Time combines session timing, mindful breaks, account sync, and advanced productivity settings in one lightweight extension.",
+      cta_label: "Add to Chrome",
+      cta_href: "https://chromewebstore.google.com/",
+    }),
+    makeBlock("feature", {
+      key: "feature-focus-timer",
+      title: "Focus timer that stays out of your way",
+      subtitle: "Start, pause, resume, and reset sessions quickly from the popup while keeping a clean workspace.",
+    }),
+    makeBlock("feature", {
+      key: "feature-sync",
+      title: "Reliable session sync across tabs",
+      subtitle: "Your active session state stays consistent while you move between tasks and browser tabs.",
+    }),
+    makeBlock("feature", {
+      key: "feature-advanced-controls",
+      title: "Advanced controls for serious focus",
+      subtitle: "Use premium settings such as distraction mute, idle auto-pause, and meeting-aware automation.",
+    }),
+    makeBlock("steps", {
+      key: "steps-primary",
+      title: "How it works",
+      subtitle:
+        "Install DeepFocus Time from the Chrome Web Store.|Pin the extension and set your focus and break durations.|Start a session and keep momentum with reminders and smart controls.",
+    }),
+    makeBlock("audience", {
+      key: "audience-primary",
+      title: "Designed for people who work in Chrome",
+      subtitle:
+        "Students: Plan study sprints and breaks without breaking concentration.|Remote workers: Protect deep work blocks in busy browser-heavy workflows.|Builders: Run stable coding sessions with predictable timer behavior.",
+    }),
+    makeBlock("cta", {
+      key: "cta",
+      title: "Ready to improve focus consistency?",
+      subtitle: "Install the extension, run your first session, and refine your setup with features that match your workflow.",
+      cta_label: "Add to Chrome",
+      cta_href: "https://chromewebstore.google.com/",
+    }),
+  ].map((section, index) => ({ ...section, sort_order: index }));
+}
+
 function inferType(key: string): BlockType {
   if (key === "hero") return "hero";
   if (key === "cta") return "cta";
@@ -284,9 +331,13 @@ export default function AdminHome() {
         const { data, error: fetchError } = await supabase.from("cms_home_sections").select("*").order("sort_order", { ascending: true });
         if (fetchError) throw fetchError;
         const mapped = ((data as HomeSection[]) || []).map(toBuilder);
-        setSections(mapped);
-        setSelectedKey(mapped[0]?.key || "");
+        const hydrated = mapped.length ? mapped : defaultHomepageSections();
+        setSections(hydrated);
+        setSelectedKey(hydrated[0]?.key || "");
         setRemovedIds([]);
+        if (!mapped.length) {
+          setStatus("Loaded the current homepage structure as the starting point.");
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to load homepage sections.");
       } finally {
@@ -388,18 +439,33 @@ export default function AdminHome() {
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Homepage Visual Builder</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Drag blocks to reorder the page, click a block to edit it, and build your homepage visually with a live canvas.
+              Drag blocks to reorder the page, click a block to edit it, and work against a visual version of the current homepage.
             </p>
           </div>
-          <button type="button" onClick={saveAll} disabled={saving} className="wp-btn wp-btn-primary">
-            {saving ? "Saving..." : "Save Homepage"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const next = defaultHomepageSections();
+                setSections(next);
+                setSelectedKey(next[0]?.key || "");
+                setRemovedIds([]);
+                setStatus("Loaded the current homepage layout into the builder.");
+              }}
+              className="wp-btn"
+            >
+              Load Current Homepage
+            </button>
+            <button type="button" onClick={saveAll} disabled={saving} className="wp-btn wp-btn-primary">
+              {saving ? "Saving..." : "Save Homepage"}
+            </button>
+          </div>
         </div>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         {status ? <p className="mt-3 text-sm text-emerald-600">{status}</p> : null}
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-[280px,minmax(0,1fr),320px]">
+      <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="wp-card p-5">
           <h2 className="wp-panel-title text-base text-slate-900">Block Library</h2>
           <p className="mt-1 text-xs text-slate-500">Add professional homepage blocks and planning modules.</p>
@@ -418,59 +484,60 @@ export default function AdminHome() {
           </div>
         </aside>
 
-        <section className="wp-card p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="wp-panel-title text-base text-slate-900">Live Canvas</h2>
-              <p className="mt-1 text-xs text-slate-500">Visual preview for the homepage structure inside admin.</p>
-            </div>
-            <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{sections.length} blocks</span>
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-slate-600">Loading homepage blocks...</p>
-          ) : sections.length ? (
-            <div className="space-y-4">
-              {sections.map((section) => (
-                <article
-                  key={section.key}
-                  draggable
-                  onDragStart={() => setDragKey(section.key)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => moveBlock(dragKey, section.key)}
-                  onClick={() => setSelectedKey(section.key)}
-                  className={`rounded-[22px] border p-4 transition ${selectedKey === section.key ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"} ${section.is_enabled ? "bg-white" : "bg-slate-50 opacity-55"}`}
-                >
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                      <span className="cursor-grab tracking-[0.25em]">::</span>
-                      <span className="rounded-full bg-slate-100 px-2 py-1 uppercase text-slate-700">{section.type}</span>
-                      <span>{section.key}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={(event) => { event.stopPropagation(); duplicateBlock(section.key); }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700">Duplicate</button>
-                      <button type="button" onClick={(event) => { event.stopPropagation(); removeBlock(section.key); }} className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">Remove</button>
-                    </div>
-                  </div>
-                  <BlockPreview section={section} />
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="grid min-h-80 place-items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="wp-card p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">No blocks yet</h3>
-                <p className="mt-2 text-sm">Start with a Hero block, then add cards, steps, audience, and CTA modules.</p>
+                <h2 className="wp-panel-title text-base text-slate-900">Live Canvas</h2>
+                <p className="mt-1 text-xs text-slate-500">Direct visual editing surface for the current homepage structure.</p>
               </div>
+              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{sections.length} blocks</span>
             </div>
-          )}
-        </section>
 
-        <aside className="wp-card p-5">
-          <h2 className="wp-panel-title text-base text-slate-900">Inspector</h2>
-          <p className="mt-1 text-xs text-slate-500">Edit the selected block with immediate preview feedback.</p>
-          {selectedBlock ? (
-            <div className="mt-4 grid gap-4">
+            {loading ? (
+              <p className="text-sm text-slate-600">Loading homepage blocks...</p>
+            ) : sections.length ? (
+              <div className="space-y-4">
+                {sections.map((section) => (
+                  <article
+                    key={section.key}
+                    draggable
+                    onDragStart={() => setDragKey(section.key)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => moveBlock(dragKey, section.key)}
+                    onClick={() => setSelectedKey(section.key)}
+                    className={`rounded-[22px] border p-4 transition ${selectedKey === section.key ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"} ${section.is_enabled ? "bg-white" : "bg-slate-50 opacity-55"}`}
+                  >
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <span className="cursor-grab tracking-[0.25em]">::</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-1 uppercase text-slate-700">{section.type}</span>
+                        <span>{section.key}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={(event) => { event.stopPropagation(); duplicateBlock(section.key); }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700">Duplicate</button>
+                        <button type="button" onClick={(event) => { event.stopPropagation(); removeBlock(section.key); }} className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700">Remove</button>
+                      </div>
+                    </div>
+                    <BlockPreview section={section} />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-80 place-items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">No blocks yet</h3>
+                  <p className="mt-2 text-sm">Start with a Hero block, then add cards, steps, audience, and CTA modules.</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <aside className="wp-card p-5">
+            <h2 className="wp-panel-title text-base text-slate-900">Inspector</h2>
+            <p className="mt-1 text-xs text-slate-500">Edit the selected block with immediate preview feedback.</p>
+            {selectedBlock ? (
+              <div className="mt-4 grid gap-4">
               <label className="grid gap-1 text-xs font-semibold text-slate-600">
                 Block key
                 <input className="wp-field" value={selectedBlock.key} onChange={(event) => updateBlock(selectedBlock.key, { key: event.target.value })} />
@@ -524,13 +591,14 @@ export default function AdminHome() {
                 <strong className="block text-slate-900">Builder note</strong>
                 Hero, feature-style cards, and CTA blocks map most directly to the current homepage rendering. Advanced blocks give you a more professional visual planning workflow inside admin without changing the public framework.
               </div>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-              Select a block on the canvas to edit it.
-            </div>
-          )}
-        </aside>
+              </div>
+            ) : (
+              <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                Select a block on the canvas to edit it.
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
     </section>
   );
