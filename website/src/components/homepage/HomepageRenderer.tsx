@@ -93,6 +93,7 @@ function EditableFrame({
   controls,
   children,
   compact = false,
+  fieldOptions = [],
 }: {
   id: string;
   label: string;
@@ -100,6 +101,7 @@ function EditableFrame({
   controls?: EditableControls;
   children: React.ReactNode;
   compact?: boolean;
+  fieldOptions?: Array<{ id: string; label: string }>;
 }) {
   const isEditable = !!controls?.onSelect;
   const isSelected = selectedId === id;
@@ -146,6 +148,30 @@ function EditableFrame({
           </button>
         </div>
       </div>
+      {isSelected && fieldOptions.length && controls?.onFocusField ? (
+        <div className="mb-3 flex flex-wrap gap-2 px-1">
+          {fieldOptions.map((field) => {
+            const active = controls.selectedField === field.id;
+            return (
+              <button
+                key={`${id}-${field.id}`}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  controls.onFocusField?.(id, field.id);
+                }}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] transition ${
+                  active
+                    ? "border-sky-300 bg-sky-100 text-sky-800"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-200 hover:text-sky-700"
+                }`}
+              >
+                {field.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       {children}
     </article>
   );
@@ -192,7 +218,19 @@ export function HomepageRenderer({
 }) {
   return (
     <div className="space-y-10">
-      <EditableFrame id={model.hero.id} label="Hero" selectedId={editable?.selectedId} controls={editable}>
+      <EditableFrame
+        id={model.hero.id}
+        label="Hero"
+        selectedId={editable?.selectedId}
+        controls={editable}
+        fieldOptions={[
+          { id: "eyebrow", label: "Label" },
+          { id: "title", label: "Title" },
+          { id: "subtitle", label: "Body" },
+          { id: "primaryLabel", label: "Primary CTA" },
+          { id: "secondaryLabel", label: "Secondary CTA" },
+        ]}
+      >
         <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-8 sm:p-10">
           <p className="mb-3 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
             <FieldTarget blockId={model.hero.id} field="eyebrow" controls={editable}>
@@ -221,6 +259,7 @@ export function HomepageRenderer({
               selectedId={editable?.selectedId}
               controls={editable}
               compact
+              fieldOptions={[{ id: "items", label: "Items" }]}
             >
               <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
                 {model.heroHighlights.items.map((item) => (
@@ -242,6 +281,10 @@ export function HomepageRenderer({
             label="Feature Card"
             selectedId={editable?.selectedId}
             controls={editable}
+            fieldOptions={[
+              { id: "title", label: "Title" },
+              { id: "subtitle", label: "Body" },
+            ]}
           >
             <article className="rounded-2xl border border-slate-200 bg-white p-5">
               <FieldTarget blockId={feature.id} field="title" controls={editable} className="block">
@@ -256,7 +299,17 @@ export function HomepageRenderer({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <EditableFrame id={model.steps.id} label="Steps" selectedId={editable?.selectedId} controls={editable}>
+        <EditableFrame
+          id={model.steps.id}
+          label="Steps"
+          selectedId={editable?.selectedId}
+          controls={editable}
+          fieldOptions={[
+            { id: "title", label: "Title" },
+            { id: "items", label: "Items" },
+            { id: "primaryLabel", label: "Button" },
+          ]}
+        >
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <FieldTarget blockId={model.steps.id} field="title" controls={editable} className="block">
               <h2 className="text-xl font-semibold text-slate-900">{model.steps.title}</h2>
@@ -281,7 +334,18 @@ export function HomepageRenderer({
           </article>
         </EditableFrame>
 
-        <EditableFrame id={model.audience.id} label="Audience" selectedId={editable?.selectedId} controls={editable}>
+        <EditableFrame
+          id={model.audience.id}
+          label="Audience"
+          selectedId={editable?.selectedId}
+          controls={editable}
+          fieldOptions={[
+            { id: "title", label: "Title" },
+            { id: "items", label: "Items" },
+            { id: "eyebrow", label: "Preview Label" },
+            { id: "mediaUrl", label: "Preview Text" },
+          ]}
+        >
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <FieldTarget blockId={model.audience.id} field="title" controls={editable} className="block">
               <h2 className="text-xl font-semibold text-slate-900">{model.audience.title}</h2>
@@ -307,7 +371,16 @@ export function HomepageRenderer({
         </EditableFrame>
       </section>
 
-      <EditableFrame id={model.proofGrid.id} label="Proof Grid" selectedId={editable?.selectedId} controls={editable}>
+      <EditableFrame
+        id={model.proofGrid.id}
+        label="Proof Grid"
+        selectedId={editable?.selectedId}
+        controls={editable}
+        fieldOptions={[
+          { id: "title", label: "Title" },
+          { id: "items", label: "Items" },
+        ]}
+      >
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <FieldTarget blockId={model.proofGrid.id} field="title" controls={editable} className="block">
             <h2 className="text-xl font-semibold text-slate-900">{model.proofGrid.title}</h2>
@@ -322,7 +395,18 @@ export function HomepageRenderer({
         </section>
       </EditableFrame>
 
-      <EditableFrame id={model.cta.id} label="CTA" selectedId={editable?.selectedId} controls={editable}>
+      <EditableFrame
+        id={model.cta.id}
+        label="CTA"
+        selectedId={editable?.selectedId}
+        controls={editable}
+        fieldOptions={[
+          { id: "title", label: "Title" },
+          { id: "subtitle", label: "Body" },
+          { id: "primaryLabel", label: "Primary CTA" },
+          { id: "secondaryLabel", label: "Secondary CTA" },
+        ]}
+      >
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <FieldTarget blockId={model.cta.id} field="title" controls={editable} className="block">
             <h2 className="text-xl font-semibold text-slate-900">{model.cta.title}</h2>
@@ -353,6 +437,12 @@ export function HomepageRenderer({
               label={block.type}
               selectedId={editable?.selectedId}
               controls={editable}
+              fieldOptions={[
+                { id: "title", label: "Title" },
+                { id: "subtitle", label: "Body" },
+                { id: "items", label: "Items" },
+                { id: "mediaUrl", label: "Media" },
+              ]}
             >
               <GenericBlockPreview block={block} />
             </EditableFrame>
