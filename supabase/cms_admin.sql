@@ -158,8 +158,16 @@ create policy "cms_home_sections_update" on public.cms_home_sections
 create policy "cms_home_sections_delete" on public.cms_home_sections
   for delete using (public.is_cms_admin());
 
+drop policy if exists "cms_menus_select" on public.cms_menus;
+drop policy if exists "cms_menus_public_select" on public.cms_menus;
+drop policy if exists "cms_menus_insert" on public.cms_menus;
+drop policy if exists "cms_menus_update" on public.cms_menus;
+drop policy if exists "cms_menus_delete" on public.cms_menus;
+
 create policy "cms_menus_select" on public.cms_menus
   for select using (public.is_cms_admin());
+create policy "cms_menus_public_select" on public.cms_menus
+  for select using (location in ('header', 'footer'));
 create policy "cms_menus_insert" on public.cms_menus
   for insert with check (public.is_cms_admin());
 create policy "cms_menus_update" on public.cms_menus

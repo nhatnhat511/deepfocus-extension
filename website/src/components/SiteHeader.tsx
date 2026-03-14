@@ -6,28 +6,14 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-
-const navLinks = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/account", label: "Account" },
-  { href: "/blog", label: "Blog" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/support", label: "Support" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/contact", label: "Contact" },
-];
+import { defaultHeaderMenu, usePublicMenu } from "@/lib/cms/publicMenus";
 
 export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const supabaseRef = useRef(createSupabaseBrowserClient());
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const navLinks = usePublicMenu("header", defaultHeaderMenu);
 
   useEffect(() => {
     if (pathname?.startsWith("/auth/callback")) {
@@ -166,7 +152,7 @@ export default function SiteHeader() {
         </div>
       </div>
 
-      {mounted && mobileOpen
+      {typeof document !== "undefined" && mobileOpen
         ? createPortal(
             <div className="md:hidden">
               <button

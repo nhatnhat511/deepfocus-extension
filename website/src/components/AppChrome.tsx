@@ -4,10 +4,12 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
+import { defaultFooterMenu, usePublicMenu } from "@/lib/cms/publicMenus";
 
 export default function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
+  const footerLinks = usePublicMenu("footer", defaultFooterMenu);
 
   if (isAdmin) {
     return <>{children}</>;
@@ -21,36 +23,11 @@ export default function AppChrome({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 px-4 py-5 text-sm text-slate-600">
           <span>&copy; {new Date().getFullYear()} DeepFocus Time</span>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/pricing" className="hover:text-slate-900">
-              Pricing
-            </Link>
-            <Link href="/faq" className="hover:text-slate-900">
-              FAQ
-            </Link>
-            <Link href="/blog" className="hover:text-slate-900">
-              Blog
-            </Link>
-            <Link href="/privacy" className="hover:text-slate-900">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-slate-900">
-              Terms
-            </Link>
-            <Link href="/refund" className="hover:text-slate-900">
-              Refund
-            </Link>
-            <Link href="/support" className="hover:text-slate-900">
-              Support
-            </Link>
-            <Link href="/changelog" className="hover:text-slate-900">
-              Changelog
-            </Link>
-            <Link href="/roadmap" className="hover:text-slate-900">
-              Roadmap
-            </Link>
-            <Link href="/contact" className="hover:text-slate-900">
-              Contact
-            </Link>
+            {footerLinks.map((item) => (
+              <Link key={`${item.href}-${item.label}`} href={item.href} className="hover:text-slate-900">
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
       </footer>
