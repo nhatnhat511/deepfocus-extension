@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import sanitizeHtml from "sanitize-html";
 import { getPublicPostByCategorySlug } from "@/lib/cms/publicContent.server";
+import { basicSanitizeHtml } from "@/lib/sanitize/basicSanitize";
 
 export const runtime = "edge";
 
@@ -18,7 +18,7 @@ function formatPostDate(value?: string | null) {
 }
 
 function sanitizePostHtml(source: string) {
-  return sanitizeHtml(source, {
+  return basicSanitizeHtml(source, {
     allowedTags: [
       "p",
       "br",
@@ -47,17 +47,8 @@ function sanitizePostHtml(source: string) {
     allowedAttributes: {
       a: ["href", "target", "rel"],
       img: ["src", "alt", "title", "width", "height", "loading"],
-      span: ["style"],
-      p: ["style"],
-      div: ["style"],
     },
-    allowedSchemes: ["http", "https", "mailto"],
-    allowedSchemesByTag: {
-      img: ["http", "https", "data"],
-    },
-    transformTags: {
-      a: sanitizeHtml.simpleTransform("a", { rel: "noreferrer noopener", target: "_blank" }, true),
-    },
+    allowDataImages: true,
   });
 }
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import sanitizeHtml from "sanitize-html";
+import { basicSanitizeHtml } from "@/lib/sanitize/basicSanitize";
 import type { HomepageBlock } from "@/lib/cms/homepageBlocks";
 import type { HomepageRenderModel } from "@/lib/cms/homepageRenderModel";
 
@@ -673,14 +673,10 @@ function ActionButton({
 }
 
 function sanitizeHomepageHtml(source: string) {
-  return sanitizeHtml(source, {
+  return basicSanitizeHtml(source, {
     allowedTags: ["p", "br", "strong", "em", "b", "i", "ul", "ol", "li", "a", "h2", "h3", "h4", "blockquote", "code", "pre"],
     allowedAttributes: {
       a: ["href", "target", "rel"],
-    },
-    allowedSchemes: ["http", "https", "mailto"],
-    transformTags: {
-      a: sanitizeHtml.simpleTransform("a", { rel: "noreferrer noopener", target: "_blank" }, true),
     },
   });
 }
