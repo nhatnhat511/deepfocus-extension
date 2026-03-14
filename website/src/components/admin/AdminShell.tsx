@@ -185,15 +185,58 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <AdminGuard>
-      <div className="min-h-[80vh] rounded-3xl border border-slate-200 bg-slate-50/90 p-4 shadow-lg lg:p-6">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Administration</p>
-            <h1 className="text-xl font-semibold text-slate-900">DeepFocus Control Center</h1>
+      <div className="wp-topbar">
+        <div className="wp-topbar-inner">
+          <div className="wp-topbar-left">
+            <a href="/admin" className="wp-topbar-brand">
+              DeepFocus CMS
+            </a>
+            <a href="/admin/pages" className="wp-topbar-link">
+              + New Page
+            </a>
+            <a href="/admin/posts" className="wp-topbar-link">
+              + New Post
+            </a>
+            <a href="/admin/media" className="wp-topbar-link">
+              + Upload
+            </a>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">Production</span>
-            <span>CMS modules active</span>
+          <div className="wp-topbar-right">
+            <span className="wp-topbar-pill">Production</span>
+            <a href="/account" className="wp-topbar-link">
+              My Account
+            </a>
+            <a href="/" className="wp-topbar-link">
+              View Site
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div className="wp-admin-frame min-h-[80vh] rounded-3xl border border-slate-200 bg-slate-50/90 p-4 shadow-lg lg:p-6">
+        <div className="mb-6 space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Administration</p>
+                <h1 className="text-xl font-semibold text-slate-900">DeepFocus Control Center</h1>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">Production</span>
+                <span>CMS modules active</span>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">Admin Status</span>
+                <span>Modules ready. Public site unchanged until content is wired.</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-500">Theme: WordPress-style</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -240,6 +283,55 @@ export function AdminShell({ children }: AdminShellProps) {
         @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
         .admin-shell {
           font-family: "Manrope", "Segoe UI", sans-serif;
+          padding-top: 48px;
+        }
+        .admin-shell .wp-topbar {
+          position: sticky;
+          top: 0;
+          z-index: 60;
+          background: #0f172a;
+          color: #e2e8f0;
+          border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .admin-shell .wp-topbar-inner {
+          max-width: 1280px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 18px;
+          font-size: 0.8rem;
+        }
+        .admin-shell .wp-topbar-left,
+        .admin-shell .wp-topbar-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .admin-shell .wp-topbar-brand {
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          color: #f8fafc;
+        }
+        .admin-shell .wp-topbar-link {
+          color: #cbd5f5;
+          padding: 4px 8px;
+          border-radius: 6px;
+        }
+        .admin-shell .wp-topbar-link:hover {
+          background: rgba(148, 163, 184, 0.2);
+          color: #fff;
+        }
+        .admin-shell .wp-topbar-pill {
+          background: rgba(16, 185, 129, 0.2);
+          color: #d1fae5;
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-weight: 600;
+        }
+        .admin-shell .wp-admin-frame {
+          margin-top: 16px;
         }
         .admin-shell .wp-card {
           border-radius: 16px;
@@ -274,6 +366,10 @@ export function AdminShell({ children }: AdminShellProps) {
         .admin-shell .wp-table tbody tr:hover {
           background: #f8fafc;
         }
+        .admin-shell .wp-table .wp-checkbox {
+          width: 16px;
+          height: 16px;
+        }
         .admin-shell .wp-table .wp-actions {
           display: flex;
           gap: 8px;
@@ -291,6 +387,71 @@ export function AdminShell({ children }: AdminShellProps) {
         .admin-shell .wp-pill.is-live {
           background: rgba(16, 185, 129, 0.16);
           color: #047857;
+        }
+        .admin-shell .wp-controls {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 12px;
+        }
+        .admin-shell .wp-controls .wp-bulk {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .admin-shell .wp-controls .wp-search {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .admin-shell .wp-controls .wp-group {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .admin-shell .wp-input {
+          border-radius: 10px;
+          border: 1px solid #cbd5f5;
+          padding: 8px 10px;
+          font-size: 0.85rem;
+          background: #fff;
+        }
+        .admin-shell .wp-select {
+          border-radius: 10px;
+          border: 1px solid #cbd5f5;
+          padding: 8px 10px;
+          font-size: 0.85rem;
+          background: #fff;
+        }
+        .admin-shell .wp-btn {
+          border-radius: 10px;
+          border: 1px solid #cbd5f5;
+          padding: 8px 12px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #0f172a;
+          background: #fff;
+        }
+        .admin-shell .wp-btn-primary {
+          background: #0f172a;
+          color: #fff;
+          border-color: #0f172a;
+        }
+        .admin-shell .wp-pagination {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .admin-shell .wp-pagination .wp-btn {
+          padding: 6px 10px;
+        }
+        .admin-shell .wp-muted {
+          color: #94a3b8;
         }
       `}</style>
     </AdminGuard>

@@ -34,6 +34,12 @@ export default function AdminHome() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState("none");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   async function loadSections() {
     setLoading(true);
@@ -55,6 +61,29 @@ export default function AdminHome() {
   useEffect(() => {
     void loadSections();
   }, []);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredSections = sections.filter((section) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      section.title?.toLowerCase().includes(normalizedSearch) ||
+      section.key?.toLowerCase().includes(normalizedSearch);
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "enabled" && section.is_enabled) ||
+      (statusFilter === "hidden" && !section.is_enabled);
+    return matchesSearch && matchesStatus;
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredSections.length / pageSize));
+  const activePage = Math.min(page, pageCount);
+  const pagedSections = filteredSections.slice((activePage - 1) * pageSize, activePage * pageSize);
+  const currentIds = pagedSections.map((section) => section.id);
+  const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   function startEdit(section: HomeSection) {
     setForm({
@@ -116,6 +145,28 @@ export default function AdminHome() {
       await loadSections();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete section.");
+    }
+  }
+
+  async function applyBulkAction() {
+    if (bulkAction !== "delete" || selectedIds.length === 0) return;
+    setError("");
+    try {
+      const { error: bulkError } = await supabase.from("cms_home_sections").delete().in("id", selectedIds);
+      if (bulkError) throw bulkError;
+      setSelectedIds([]);
+      setBulkAction("none");
+      await loadSections();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to apply bulk action.");
+    }
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])));
+    } else {
+      setSelectedIds((prev) => prev.filter((id) => !currentIds.includes(id)));
     }
   }
 
@@ -224,11 +275,55 @@ export default function AdminHome() {
         <h2 className="wp-panel-title text-base text-slate-900">Existing sections</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading sections...</p>
-        ) : sections.length ? (
+        ) : filteredSections.length ? (
+          <>
+            <div className="wp-controls">
+              <div className="wp-bulk">
+                <select
+                  className="wp-select"
+                  value={bulkAction}
+                  onChange={(e) => setBulkAction(e.target.value)}
+                >
+                  <option value="none">Bulk actions</option>
+                  <option value="delete">Delete</option>
+                </select>
+                <button type="button" className="wp-btn" onClick={applyBulkAction}>
+                  Apply
+                </button>
+                <span className="text-xs text-slate-500">{selectedIds.length} selected</span>
+              </div>
+              <div className="wp-group">
+                <select
+                  className="wp-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All statuses</option>
+                  <option value="enabled">Enabled</option>
+                  <option value="hidden">Hidden</option>
+                </select>
+              </div>
+              <div className="wp-search">
+                <input
+                  className="wp-input"
+                  placeholder="Search sections..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
           <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
             <table className="wp-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      className="wp-checkbox"
+                      checked={allSelected}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th>Section</th>
                   <th>Key</th>
                   <th>Order</th>
@@ -237,8 +332,21 @@ export default function AdminHome() {
                 </tr>
               </thead>
               <tbody>
-                {sections.map((section) => (
+                {pagedSections.map((section) => (
                   <tr key={section.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="wp-checkbox"
+                        checked={selectedIds.includes(section.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelectedIds((prev) =>
+                            checked ? [...prev, section.id] : prev.filter((id) => id !== section.id),
+                          );
+                        }}
+                      />
+                    </td>
                     <td className="font-semibold text-slate-900">{section.title || section.key}</td>
                     <td className="text-slate-600">{section.key}</td>
                     <td className="text-slate-600">{section.sort_order ?? 0}</td>
@@ -270,8 +378,36 @@ export default function AdminHome() {
               </tbody>
             </table>
           </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <span>
+              Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredSections.length)} of{" "}
+              {filteredSections.length}
+            </span>
+            <div className="wp-pagination">
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </button>
+              <span className="wp-muted">
+                Page {activePage} of {pageCount}
+              </span>
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === pageCount}
+                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          </>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">No sections created yet.</p>
+          <p className="mt-3 text-sm text-slate-600">No sections match the current filters.</p>
         )}
       </section>
     </section>

@@ -20,6 +20,11 @@ export default function AdminMedia() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState("none");
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   async function loadFiles() {
     setLoading(true);
@@ -38,6 +43,18 @@ export default function AdminMedia() {
   useEffect(() => {
     void loadFiles();
   }, []);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredFiles = files.filter((file) => !normalizedSearch || file.name.toLowerCase().includes(normalizedSearch));
+  const pageCount = Math.max(1, Math.ceil(filteredFiles.length / pageSize));
+  const activePage = Math.min(page, pageCount);
+  const pagedFiles = filteredFiles.slice((activePage - 1) * pageSize, activePage * pageSize);
+  const currentIds = pagedFiles.map((file) => file.name);
+  const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedPaths.includes(id));
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   async function uploadFile() {
     if (!selectedFile) return;
@@ -75,6 +92,28 @@ export default function AdminMedia() {
     }
   }
 
+  async function applyBulkAction() {
+    if (bulkAction !== "delete" || selectedPaths.length === 0) return;
+    setError("");
+    try {
+      const { error: bulkError } = await supabase.storage.from(bucket).remove(selectedPaths);
+      if (bulkError) throw bulkError;
+      setSelectedPaths([]);
+      setBulkAction("none");
+      await loadFiles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to apply bulk action.");
+    }
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedPaths((prev) => Array.from(new Set([...prev, ...currentIds])));
+    } else {
+      setSelectedPaths((prev) => prev.filter((id) => !currentIds.includes(id)));
+    }
+  }
+
   return (
     <section className="space-y-6">
       <header className="wp-card p-6">
@@ -107,21 +146,67 @@ export default function AdminMedia() {
         <h2 className="wp-panel-title text-base text-slate-900">Files</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading media...</p>
-        ) : files.length ? (
+        ) : filteredFiles.length ? (
+          <>
+            <div className="wp-controls">
+              <div className="wp-bulk">
+                <select
+                  className="wp-select"
+                  value={bulkAction}
+                  onChange={(e) => setBulkAction(e.target.value)}
+                >
+                  <option value="none">Bulk actions</option>
+                  <option value="delete">Delete</option>
+                </select>
+                <button type="button" className="wp-btn" onClick={applyBulkAction}>
+                  Apply
+                </button>
+                <span className="text-xs text-slate-500">{selectedPaths.length} selected</span>
+              </div>
+              <div className="wp-search">
+                <input
+                  className="wp-input"
+                  placeholder="Search media..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
           <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
             <table className="wp-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      className="wp-checkbox"
+                      checked={allSelected}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th>File</th>
                   <th>URL</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {files.map((file) => {
+                {pagedFiles.map((file) => {
                   const url = getPublicUrl(file.name);
                   return (
                     <tr key={file.name}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="wp-checkbox"
+                          checked={selectedPaths.includes(file.name)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSelectedPaths((prev) =>
+                              checked ? [...prev, file.name] : prev.filter((id) => id !== file.name),
+                            );
+                          }}
+                        />
+                      </td>
                       <td className="font-semibold text-slate-900">{file.name}</td>
                       <td>
                         <a href={url} className="text-emerald-700 hover:underline" target="_blank" rel="noreferrer">
@@ -152,8 +237,36 @@ export default function AdminMedia() {
               </tbody>
             </table>
           </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <span>
+              Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredFiles.length)} of{" "}
+              {filteredFiles.length}
+            </span>
+            <div className="wp-pagination">
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </button>
+              <span className="wp-muted">
+                Page {activePage} of {pageCount}
+              </span>
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === pageCount}
+                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          </>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">No media uploaded yet.</p>
+          <p className="mt-3 text-sm text-slate-600">No media files match the current filters.</p>
         )}
       </section>
     </section>

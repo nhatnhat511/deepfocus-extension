@@ -23,6 +23,12 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState("none");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   async function loadAdmins() {
     setLoading(true);
@@ -41,6 +47,26 @@ export default function AdminUsers() {
   useEffect(() => {
     void loadAdmins();
   }, []);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredAdmins = admins.filter((admin) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      admin.email?.toLowerCase().includes(normalizedSearch) ||
+      admin.user_id.toLowerCase().includes(normalizedSearch);
+    const matchesRole = roleFilter === "all" || (admin.role || "admin") === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredAdmins.length / pageSize));
+  const activePage = Math.min(page, pageCount);
+  const pagedAdmins = filteredAdmins.slice((activePage - 1) * pageSize, activePage * pageSize);
+  const currentIds = pagedAdmins.map((admin) => admin.user_id);
+  const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   async function addAdmin() {
     if (!form.user_id.trim()) {
@@ -74,6 +100,28 @@ export default function AdminUsers() {
       await loadAdmins();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to remove admin.");
+    }
+  }
+
+  async function applyBulkAction() {
+    if (bulkAction !== "delete" || selectedIds.length === 0) return;
+    setError("");
+    try {
+      const { error: bulkError } = await supabase.from("cms_admins").delete().in("user_id", selectedIds);
+      if (bulkError) throw bulkError;
+      setSelectedIds([]);
+      setBulkAction("none");
+      await loadAdmins();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to apply bulk action.");
+    }
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])));
+    } else {
+      setSelectedIds((prev) => prev.filter((id) => !currentIds.includes(id)));
     }
   }
 
@@ -132,11 +180,55 @@ export default function AdminUsers() {
         <h2 className="wp-panel-title text-base text-slate-900">Admin list</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading admins...</p>
-        ) : admins.length ? (
+        ) : filteredAdmins.length ? (
+          <>
+            <div className="wp-controls">
+              <div className="wp-bulk">
+                <select
+                  className="wp-select"
+                  value={bulkAction}
+                  onChange={(e) => setBulkAction(e.target.value)}
+                >
+                  <option value="none">Bulk actions</option>
+                  <option value="delete">Remove</option>
+                </select>
+                <button type="button" className="wp-btn" onClick={applyBulkAction}>
+                  Apply
+                </button>
+                <span className="text-xs text-slate-500">{selectedIds.length} selected</span>
+              </div>
+              <div className="wp-group">
+                <select
+                  className="wp-select"
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                >
+                  <option value="all">All roles</option>
+                  <option value="admin">Admin</option>
+                  <option value="editor">Editor</option>
+                </select>
+              </div>
+              <div className="wp-search">
+                <input
+                  className="wp-input"
+                  placeholder="Search admins..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
           <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
             <table className="wp-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      className="wp-checkbox"
+                      checked={allSelected}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th>User</th>
                   <th>Role</th>
                   <th>Added</th>
@@ -144,8 +236,21 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody>
-                {admins.map((admin) => (
+                {pagedAdmins.map((admin) => (
                   <tr key={admin.user_id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="wp-checkbox"
+                        checked={selectedIds.includes(admin.user_id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelectedIds((prev) =>
+                            checked ? [...prev, admin.user_id] : prev.filter((id) => id !== admin.user_id),
+                          );
+                        }}
+                      />
+                    </td>
                     <td className="font-semibold text-slate-900">{admin.email || admin.user_id}</td>
                     <td className="text-slate-600">{admin.role || "admin"}</td>
                     <td className="text-slate-600">
@@ -167,8 +272,36 @@ export default function AdminUsers() {
               </tbody>
             </table>
           </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <span>
+              Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredAdmins.length)} of{" "}
+              {filteredAdmins.length}
+            </span>
+            <div className="wp-pagination">
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </button>
+              <span className="wp-muted">
+                Page {activePage} of {pageCount}
+              </span>
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === pageCount}
+                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          </>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">No admins added yet.</p>
+          <p className="mt-3 text-sm text-slate-600">No admins match the current filters.</p>
         )}
       </section>
     </section>

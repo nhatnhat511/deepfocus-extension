@@ -39,6 +39,12 @@ export default function AdminPages() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ ...emptyForm });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState("none");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   async function loadPages() {
     setLoading(true);
@@ -60,6 +66,26 @@ export default function AdminPages() {
   useEffect(() => {
     void loadPages();
   }, []);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredPages = pages.filter((item) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      item.title?.toLowerCase().includes(normalizedSearch) ||
+      item.slug?.toLowerCase().includes(normalizedSearch);
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredPages.length / pageSize));
+  const activePage = Math.min(page, pageCount);
+  const pagedPages = filteredPages.slice((activePage - 1) * pageSize, activePage * pageSize);
+  const currentIds = pagedPages.map((item) => item.id);
+  const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedIds.includes(id));
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   function startEdit(row: PageRow) {
     setForm({
@@ -123,6 +149,28 @@ export default function AdminPages() {
       await loadPages();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete page.");
+    }
+  }
+
+  async function applyBulkAction() {
+    if (bulkAction !== "delete" || selectedIds.length === 0) return;
+    setError("");
+    try {
+      const { error: bulkError } = await supabase.from("cms_pages").delete().in("id", selectedIds);
+      if (bulkError) throw bulkError;
+      setSelectedIds([]);
+      setBulkAction("none");
+      await loadPages();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to apply bulk action.");
+    }
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])));
+    } else {
+      setSelectedIds((prev) => prev.filter((id) => !currentIds.includes(id)));
     }
   }
 
@@ -243,11 +291,58 @@ export default function AdminPages() {
         <h2 className="wp-panel-title text-base text-slate-900">Existing pages</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading pages...</p>
-        ) : pages.length ? (
+        ) : filteredPages.length ? (
+          <>
+            <div className="wp-controls">
+              <div className="wp-bulk">
+                <select
+                  className="wp-select"
+                  value={bulkAction}
+                  onChange={(e) => setBulkAction(e.target.value)}
+                >
+                  <option value="none">Bulk actions</option>
+                  <option value="delete">Delete</option>
+                </select>
+                <button type="button" className="wp-btn" onClick={applyBulkAction}>
+                  Apply
+                </button>
+                <span className="text-xs text-slate-500">{selectedIds.length} selected</span>
+              </div>
+              <div className="wp-group">
+                <select
+                  className="wp-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All statuses</option>
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="wp-search">
+                <input
+                  className="wp-input"
+                  placeholder="Search pages..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
           <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
             <table className="wp-table">
               <thead>
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      className="wp-checkbox"
+                      checked={allSelected}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th>Title</th>
                   <th>Slug</th>
                   <th>Status</th>
@@ -256,8 +351,21 @@ export default function AdminPages() {
                 </tr>
               </thead>
               <tbody>
-                {pages.map((page) => (
+                {pagedPages.map((page) => (
                   <tr key={page.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        className="wp-checkbox"
+                        checked={selectedIds.includes(page.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelectedIds((prev) =>
+                            checked ? [...prev, page.id] : prev.filter((id) => id !== page.id),
+                          );
+                        }}
+                      />
+                    </td>
                     <td className="font-semibold text-slate-900">{page.title}</td>
                     <td className="text-slate-600">/{page.slug}</td>
                     <td>
@@ -291,8 +399,36 @@ export default function AdminPages() {
               </tbody>
             </table>
           </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <span>
+              Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredPages.length)} of{" "}
+              {filteredPages.length}
+            </span>
+            <div className="wp-pagination">
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              >
+                Previous
+              </button>
+              <span className="wp-muted">
+                Page {activePage} of {pageCount}
+              </span>
+              <button
+                type="button"
+                className="wp-btn"
+                disabled={activePage === pageCount}
+                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          </>
         ) : (
-          <p className="mt-3 text-sm text-slate-600">No pages created yet.</p>
+          <p className="mt-3 text-sm text-slate-600">No pages match the current filters.</p>
         )}
       </section>
     </section>
