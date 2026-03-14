@@ -396,12 +396,47 @@ export function AdminShell({ children }: AdminShellProps) {
           background: #fff;
         }
         .admin-shell .wp-editor-toolbar {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
+          display: grid;
+          gap: 8px;
           padding: 8px;
           background: #f6f7f7;
           border-bottom: 1px solid #dcdcde;
+        }
+        .admin-shell .wp-editor-tabs {
+          display: inline-flex;
+          gap: 6px;
+        }
+        .admin-shell .wp-editor-tab {
+          border: 1px solid #c3c4c7;
+          background: #fff;
+          color: #1d2327;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .admin-shell .wp-editor-tab.is-active {
+          border-color: #2271b1;
+          color: #2271b1;
+          background: #f0f6fc;
+        }
+        .admin-shell .wp-editor-toolbar-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .admin-shell .wp-editor-group {
+          display: inline-flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .admin-shell .wp-editor-select {
+          border: 1px solid #c3c4c7;
+          background: #fff;
+          color: #1d2327;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 700;
         }
         .admin-shell .wp-editor-btn {
           border: 1px solid #c3c4c7;
@@ -419,9 +454,30 @@ export function AdminShell({ children }: AdminShellProps) {
           color: #1d2327;
           outline: none;
         }
+        .admin-shell .wp-editor-html {
+          min-height: 480px;
+          padding: 18px;
+          border: 0;
+          width: 100%;
+          font-size: 13px;
+          font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+          line-height: 1.6;
+          color: #1d2327;
+          outline: none;
+          resize: vertical;
+        }
         .admin-shell .wp-editor-surface:empty:before {
           content: attr(data-placeholder);
           color: #94a3b8;
+        }
+        .admin-shell .wp-editor-status {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 12px;
+          font-size: 11px;
+          color: #646970;
+          border-top: 1px solid #dcdcde;
+          background: #f6f7f7;
         }
         .admin-shell .wp-metabox-title {
           padding: 10px 12px;
