@@ -711,6 +711,9 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { subtitle: event.target.value })}
                     placeholder="Primary descriptive copy for this block"
                   />
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    Supports **bold**, *italic*, and [link](https://example.com)
+                  </span>
                 </label>
                 <label ref={(node) => {
                   inspectorRefs.current.items = node;

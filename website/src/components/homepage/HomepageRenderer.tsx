@@ -61,6 +61,110 @@ function InlineEditableText({
   return multiline ? <p className={className}>{value}</p> : <span className={className}>{value}</span>;
 }
 
+function renderInlineMarkdown(source: string) {
+  const nodes: React.ReactNode[] = [];
+  let remaining = source;
+  let key = 0;
+
+  const patterns = [
+    { type: "link", regex: /\[([^\]]+?)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/ },
+    { type: "bold", regex: /\*\*([^*]+?)\*\*/ },
+    { type: "italic", regex: /\*([^*]+?)\*/ },
+  ];
+
+  const pushText = (text: string) => {
+    const parts = text.split("\n");
+    parts.forEach((part, index) => {
+      if (part) {
+        nodes.push(<span key={`t-${key++}`}>{part}</span>);
+      }
+      if (index < parts.length - 1) {
+        nodes.push(<br key={`br-${key++}`} />);
+      }
+    });
+  };
+
+  while (remaining.length) {
+    let earliestMatch: RegExpExecArray | null = null;
+    let matchedType: string | null = null;
+    let matchedIndex = -1;
+
+    for (const pattern of patterns) {
+      const match = pattern.regex.exec(remaining);
+      if (!match) continue;
+      if (matchedIndex === -1 || match.index < matchedIndex) {
+        earliestMatch = match;
+        matchedType = pattern.type;
+        matchedIndex = match.index;
+      }
+    }
+
+    if (!earliestMatch || matchedType === null) {
+      pushText(remaining);
+      break;
+    }
+
+    if (matchedIndex > 0) {
+      pushText(remaining.slice(0, matchedIndex));
+    }
+
+    if (matchedType === "link") {
+      const [, label, href] = earliestMatch;
+      nodes.push(
+        <a key={`lnk-${key++}`} href={href} className="text-sky-700 underline decoration-sky-300" target="_blank" rel="noreferrer">
+          {label}
+        </a>
+      );
+    } else if (matchedType === "bold") {
+      nodes.push(
+        <strong key={`b-${key++}`} className="font-semibold text-slate-900">
+          {earliestMatch[1]}
+        </strong>
+      );
+    } else if (matchedType === "italic") {
+      nodes.push(
+        <em key={`i-${key++}`} className="italic">
+          {earliestMatch[1]}
+        </em>
+      );
+    }
+
+    remaining = remaining.slice(matchedIndex + earliestMatch[0].length);
+  }
+
+  return nodes;
+}
+
+function InlineEditableMarkdown({
+  blockId,
+  field,
+  value,
+  controls,
+  className,
+}: {
+  blockId: string;
+  field: string;
+  value: string;
+  controls?: EditableControls;
+  className: string;
+}) {
+  const active = controls?.selectedId === blockId && controls?.selectedField === field;
+
+  if (controls?.onInlineChange && active) {
+    return (
+      <textarea
+        value={value}
+        onClick={(event) => event.stopPropagation()}
+        onChange={(event) => controls.onInlineChange?.(blockId, field, event.target.value)}
+        className={`w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-inherit shadow-sm outline-none ring-2 ring-sky-100 ${className}`}
+        rows={4}
+      />
+    );
+  }
+
+  return <span className={className}>{renderInlineMarkdown(value)}</span>;
+}
+
 function InlineEditableList({
   blockId,
   field,
@@ -336,12 +440,11 @@ function GenericBlockPreview({ block, controls }: { block: HomepageBlock; contro
           />
         </FieldTarget>
         <FieldTarget blockId={block.uid} field="subtitle" controls={controls} className="mt-2 block" label="Body">
-          <InlineEditableText
+          <InlineEditableMarkdown
             blockId={block.uid}
             field="subtitle"
             value={block.subtitle || "Standalone media module."}
             controls={controls}
-            multiline
             className="text-sm text-slate-600"
           />
         </FieldTarget>
@@ -371,12 +474,11 @@ function GenericBlockPreview({ block, controls }: { block: HomepageBlock; contro
           />
         </FieldTarget>
         <FieldTarget blockId={block.uid} field="subtitle" controls={controls} className="mt-4 block" label="Body">
-          <InlineEditableText
+          <InlineEditableMarkdown
             blockId={block.uid}
             field="subtitle"
             value={block.subtitle || "<div>Custom HTML</div>"}
             controls={controls}
-            multiline
             className="block rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100"
           />
         </FieldTarget>
@@ -680,12 +782,11 @@ export function HomepageRenderer({
             />
           </FieldTarget>
           <FieldTarget blockId={model.hero.id} field="subtitle" controls={editable} className="mt-4 block" label="Body">
-            <InlineEditableText
+            <InlineEditableMarkdown
               blockId={model.hero.id}
               field="subtitle"
               value={model.hero.subtitle}
               controls={editable}
-              multiline
               className="max-w-2xl text-lg text-slate-600"
             />
           </FieldTarget>
@@ -792,12 +893,11 @@ export function HomepageRenderer({
                 />
               </FieldTarget>
               <FieldTarget blockId={feature.id} field="subtitle" controls={editable} className="mt-2 block" label="Body">
-                <InlineEditableText
+                <InlineEditableMarkdown
                   blockId={feature.id}
                   field="subtitle"
                   value={feature.description}
                   controls={editable}
-                  multiline
                   className="text-sm text-slate-600"
                 />
               </FieldTarget>
@@ -921,12 +1021,11 @@ export function HomepageRenderer({
                 />
               </FieldTarget>
               <FieldTarget blockId={model.audience.id} field="mediaUrl" controls={editable} className="mt-2 block" label="Preview Text">
-                <InlineEditableText
+                <InlineEditableMarkdown
                   blockId={model.audience.id}
                   field="mediaUrl"
                   value={model.audience.previewText}
                   controls={editable}
-                  multiline
                   className="text-sm text-slate-700"
                 />
               </FieldTarget>
@@ -1000,12 +1099,11 @@ export function HomepageRenderer({
             />
           </FieldTarget>
           <FieldTarget blockId={model.cta.id} field="subtitle" controls={editable} className="mt-2 block" label="Body">
-            <InlineEditableText
+            <InlineEditableMarkdown
               blockId={model.cta.id}
               field="subtitle"
               value={model.cta.subtitle}
               controls={editable}
-              multiline
               className="max-w-3xl text-sm text-slate-600"
             />
           </FieldTarget>
