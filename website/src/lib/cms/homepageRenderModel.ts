@@ -63,26 +63,7 @@ export type HomepageRenderModel = {
   flexBlocks: HomepageBlock[];
 };
 
-const fallbackFeatures = [
-  {
-    id: "feature-focus-timer",
-    key: "feature-focus-timer",
-    title: "Focus timer that stays out of your way",
-    description: "Start, pause, resume, and reset sessions quickly from the popup while keeping a clean workspace.",
-  },
-  {
-    id: "feature-sync",
-    key: "feature-sync",
-    title: "Reliable session sync across tabs",
-    description: "Your active session state stays consistent while you move between tasks and browser tabs.",
-  },
-  {
-    id: "feature-advanced-controls",
-    key: "feature-advanced-controls",
-    title: "Advanced controls for serious focus",
-    description: "Use premium settings such as distraction mute, idle auto-pause, and meeting-aware automation.",
-  },
-];
+const fallbackFeatures: HomepageFeatureCard[] = [];
 
 const fallbackSteps = [
   "Install DeepFocus Time from the Chrome Web Store.",
@@ -158,14 +139,7 @@ export function buildHomepageRenderModelFromBlocks(blocks: HomepageBlock[]): Hom
     },
     heroHighlights: {
       ...(heroHighlights ? mapBlockId(heroHighlights) : { id: "hero-highlights", key: "hero-highlights" }),
-      items:
-        heroHighlights?.items.length
-          ? heroHighlights.items
-          : [
-              "No card needed to start trial",
-              "Built for focused browser workflows",
-              "Secure account auth with Supabase",
-            ],
+      items: heroHighlights?.items.length ? heroHighlights.items : [],
     },
     features: featureBlocks.length
       ? featureBlocks.map((block) => ({
