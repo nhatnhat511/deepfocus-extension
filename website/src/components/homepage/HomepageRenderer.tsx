@@ -279,7 +279,7 @@ function FieldTarget({
   label?: string;
 }) {
   if (!controls?.onFocusField) {
-    return <>{children}</>;
+    return <span className={className}>{children}</span>;
   }
 
   const isSelected = controls.selectedId === blockId && controls.selectedField === field;
