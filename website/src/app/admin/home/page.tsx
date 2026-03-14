@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   type HomeSection,
@@ -12,8 +12,9 @@ import {
   homepagePalette,
   legacySectionsFromHomepageBlocks,
   slugify,
-  splitPipeText,
 } from "@/lib/cms/homepageBlocks";
+import { HomepageRenderer } from "@/components/homepage/HomepageRenderer";
+import { buildHomepageRenderModelFromBlocks } from "@/lib/cms/homepageRenderModel";
 
 type HomepageDocumentRow = {
   id: string;
@@ -24,421 +25,8 @@ type HomepageDocumentRow = {
 
 const DOCUMENT_SLUG = "homepage";
 
-function renderSelectableClass(isSelected: boolean, isEnabled: boolean) {
-  const stateClass = isSelected ? "ring-2 ring-sky-200 border-sky-400" : "border-slate-200";
-  const enabledClass = isEnabled ? "bg-white" : "bg-slate-50 opacity-60";
-  return `cursor-pointer rounded-2xl border transition ${stateClass} ${enabledClass}`;
-}
-
 function blockLabel(type: HomepageBlockType) {
   return homepagePalette.find((item) => item.type === type)?.label || type;
-}
-
-function CanvasActionBar({
-  uid,
-  onDuplicate,
-  onRemove,
-}: {
-  uid: string;
-  onDuplicate: (uid: string) => void;
-  onRemove: (uid: string) => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onDuplicate(uid);
-        }}
-        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700"
-      >
-        Duplicate
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onRemove(uid);
-        }}
-        className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-      >
-        Remove
-      </button>
-    </div>
-  );
-}
-
-function CanvasBlockShell({
-  block,
-  children,
-  isSelected,
-  onSelect,
-  onDuplicate,
-  onRemove,
-  onDragStart,
-  onDrop,
-}: {
-  block: HomepageBlock;
-  children: ReactNode;
-  isSelected: boolean;
-  onSelect: (uid: string) => void;
-  onDuplicate: (uid: string) => void;
-  onRemove: (uid: string) => void;
-  onDragStart: (uid: string) => void;
-  onDrop: (uid: string) => void;
-}) {
-  return (
-    <article
-      draggable
-      onDragStart={() => onDragStart(block.uid)}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={() => onDrop(block.uid)}
-      onClick={() => onSelect(block.uid)}
-      className={renderSelectableClass(isSelected, block.enabled)}
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-          <span className="cursor-grab">::</span>
-          <span className="rounded-full bg-slate-100 px-2 py-1 tracking-normal text-slate-700">{blockLabel(block.type)}</span>
-          <span className="tracking-normal">{block.key}</span>
-        </div>
-        <CanvasActionBar uid={block.uid} onDuplicate={onDuplicate} onRemove={onRemove} />
-      </div>
-      {children}
-    </article>
-  );
-}
-
-function GenericBlockPreview({ block }: { block: HomepageBlock }) {
-  if (block.type === "image" || block.type === "video") {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="grid min-h-40 place-items-center rounded-2xl border border-dashed border-sky-200 bg-gradient-to-br from-sky-50 to-slate-50 text-sm font-semibold text-sky-700">
-          {block.type === "image" ? "Image preview" : "Video preview"}
-        </div>
-        <h3 className="mt-4 text-xl font-semibold text-slate-900">{block.title || "Media block"}</h3>
-        <p className="mt-2 text-sm text-slate-600">{block.subtitle || "Standalone media module."}</p>
-      </div>
-    );
-  }
-
-  if (block.type === "html") {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h3 className="text-xl font-semibold text-slate-900">{block.title || "HTML embed"}</h3>
-        <code className="mt-4 block rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-          {block.subtitle || "<div>Custom HTML</div>"}
-        </code>
-      </div>
-    );
-  }
-
-  if (block.type === "columns-2" || block.type === "columns-3") {
-    const columns = block.items.length ? block.items : ["Column one", "Column two"];
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h3 className="text-xl font-semibold text-slate-900">{block.title || "Columns block"}</h3>
-        <div className={`mt-4 grid gap-3 ${block.type === "columns-3" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-          {columns.map((column, index) => (
-            <div key={`${block.uid}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
-              {column}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6">
-      <h3 className="text-xl font-semibold text-slate-900">{block.title || "Standalone block"}</h3>
-      <p className="mt-2 text-sm text-slate-600">{block.subtitle || "Flexible homepage module."}</p>
-    </div>
-  );
-}
-
-function HomepageCanvas({
-  blocks,
-  selectedUid,
-  onSelect,
-  onDuplicate,
-  onRemove,
-  onDragStart,
-  onDrop,
-}: {
-  blocks: HomepageBlock[];
-  selectedUid: string;
-  onSelect: (uid: string) => void;
-  onDuplicate: (uid: string) => void;
-  onRemove: (uid: string) => void;
-  onDragStart: (uid: string) => void;
-  onDrop: (uid: string) => void;
-}) {
-  const enabledBlocks = blocks.filter((block) => block.enabled);
-  const hero = enabledBlocks.find((block) => block.type === "hero") || null;
-  const heroHighlights = enabledBlocks.find((block) => block.type === "hero-highlights") || null;
-  const featureCards = enabledBlocks.filter((block) => block.type === "feature-card");
-  const steps = enabledBlocks.find((block) => block.type === "steps") || null;
-  const audience = enabledBlocks.find((block) => block.type === "audience") || null;
-  const proofGrid = enabledBlocks.find((block) => block.type === "proof-grid") || null;
-  const cta = enabledBlocks.find((block) => block.type === "cta") || null;
-  const flexBlocks = enabledBlocks.filter(
-    (block) => !["hero", "hero-highlights", "feature-card", "steps", "audience", "proof-grid", "cta"].includes(block.type)
-  );
-
-  return (
-    <div className="space-y-6">
-      {hero ? (
-        <CanvasBlockShell
-          block={hero}
-          isSelected={selectedUid === hero.uid}
-          onSelect={onSelect}
-          onDuplicate={onDuplicate}
-          onRemove={onRemove}
-          onDragStart={onDragStart}
-          onDrop={onDrop}
-        >
-          <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-8 sm:p-10">
-            <p className="mb-3 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-              {hero.eyebrow || "Chrome Extension for Intentional Work"}
-            </p>
-            <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              {hero.title || "Focus deeper in Chrome with a timer built for real workdays."}
-            </h1>
-            <p className="mt-4 max-w-2xl text-lg text-slate-600">
-              {hero.subtitle ||
-                "DeepFocus Time combines session timing, mindful breaks, account sync, and advanced productivity settings in one lightweight extension."}
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <span className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white">
-                {hero.primaryLabel || "Add to Chrome"}
-              </span>
-              <span className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800">
-                {hero.secondaryLabel || "Compare Plans"}
-              </span>
-              <span className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800">
-                Start Free Trial
-              </span>
-            </div>
-            {heroHighlights ? (
-              <div
-                className={`mt-6 ${renderSelectableClass(selectedUid === heroHighlights.uid, heroHighlights.enabled)} border-0 p-0 shadow-none`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onSelect(heroHighlights.uid);
-                }}
-                draggable
-                onDragStart={() => onDragStart(heroHighlights.uid)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={() => onDrop(heroHighlights.uid)}
-              >
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
-                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    <span className="cursor-grab">::</span>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 tracking-normal text-slate-700">{blockLabel(heroHighlights.type)}</span>
-                    <span className="tracking-normal">{heroHighlights.key}</span>
-                  </div>
-                  <CanvasActionBar uid={heroHighlights.uid} onDuplicate={onDuplicate} onRemove={onRemove} />
-                </div>
-                <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-                  {(heroHighlights.items.length
-                    ? heroHighlights.items
-                    : [
-                        "No card needed to start trial",
-                        "Built for focused browser workflows",
-                        "Secure account auth with Supabase",
-                      ]).map((item, index) => (
-                    <p key={`${heroHighlights.uid}-${index}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                      {item}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </section>
-        </CanvasBlockShell>
-      ) : null}
-
-      {featureCards.length ? (
-        <section className="grid gap-4 lg:grid-cols-3">
-          {featureCards.map((block) => (
-            <CanvasBlockShell
-              key={block.uid}
-              block={block}
-              isSelected={selectedUid === block.uid}
-              onSelect={onSelect}
-              onDuplicate={onDuplicate}
-              onRemove={onRemove}
-              onDragStart={onDragStart}
-              onDrop={onDrop}
-            >
-              <article className="rounded-2xl border border-slate-200 bg-white p-5">
-                <h2 className="text-lg font-semibold text-slate-900">{block.title || "Feature title"}</h2>
-                <p className="mt-2 text-sm text-slate-600">{block.subtitle || "Feature description."}</p>
-              </article>
-            </CanvasBlockShell>
-          ))}
-        </section>
-      ) : null}
-
-      {steps || audience ? (
-        <section className="grid gap-4 lg:grid-cols-2">
-          {steps ? (
-            <CanvasBlockShell
-              block={steps}
-              isSelected={selectedUid === steps.uid}
-              onSelect={onSelect}
-              onDuplicate={onDuplicate}
-              onRemove={onRemove}
-              onDragStart={onDragStart}
-              onDrop={onDrop}
-            >
-              <article className="rounded-2xl border border-slate-200 bg-white p-6">
-                <h2 className="text-xl font-semibold text-slate-900">{steps.title || "How it works"}</h2>
-                <ol className="mt-4 space-y-3 text-sm text-slate-700">
-                  {(steps.items.length ? steps.items : splitPipeText(steps.subtitle)).map((item, index) => (
-                    <li key={`${steps.uid}-${index}`} className="flex items-start gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
-                        {index + 1}
-                      </span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ol>
-                <div className="mt-5 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800">
-                  {steps.primaryLabel || "View Setup Help"}
-                </div>
-              </article>
-            </CanvasBlockShell>
-          ) : null}
-
-          {audience ? (
-            <CanvasBlockShell
-              block={audience}
-              isSelected={selectedUid === audience.uid}
-              onSelect={onSelect}
-              onDuplicate={onDuplicate}
-              onRemove={onRemove}
-              onDragStart={onDragStart}
-              onDrop={onDrop}
-            >
-              <article className="rounded-2xl border border-slate-200 bg-white p-6">
-                <h2 className="text-xl font-semibold text-slate-900">{audience.title || "Designed for people who work in Chrome"}</h2>
-                <div className="mt-4 space-y-3 text-sm text-slate-700">
-                  {(audience.items.length ? audience.items : splitPipeText(audience.subtitle)).map((item, index) => {
-                    const [label, ...rest] = item.split(":");
-                    return (
-                      <p key={`${audience.uid}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                        {rest.length ? (
-                          <>
-                            <span className="font-semibold text-slate-900">{label}:</span> {rest.join(":").trim()}
-                          </>
-                        ) : (
-                          item
-                        )}
-                      </p>
-                    );
-                  })}
-                </div>
-                <div className="mt-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {audience.eyebrow || "Product preview"}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-700">
-                    {audience.mediaUrl ||
-                      "Popup controls for Focus/Break, reminders, keyboard shortcuts, and Advanced Settings are available from a single compact interface."}
-                  </p>
-                </div>
-              </article>
-            </CanvasBlockShell>
-          ) : null}
-        </section>
-      ) : null}
-
-      {proofGrid ? (
-        <CanvasBlockShell
-          block={proofGrid}
-          isSelected={selectedUid === proofGrid.uid}
-          onSelect={onSelect}
-          onDuplicate={onDuplicate}
-          onRemove={onRemove}
-          onDragStart={onDragStart}
-          onDrop={onDrop}
-        >
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-slate-900">{proofGrid.title || "Why teams choose DeepFocus Time"}</h2>
-            <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-              {(proofGrid.items.length ? proofGrid.items : splitPipeText(proofGrid.subtitle)).map((item, index) => (
-                <p key={`${proofGrid.uid}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  {item}
-                </p>
-              ))}
-            </div>
-          </section>
-        </CanvasBlockShell>
-      ) : null}
-
-      {cta ? (
-        <CanvasBlockShell
-          block={cta}
-          isSelected={selectedUid === cta.uid}
-          onSelect={onSelect}
-          onDuplicate={onDuplicate}
-          onRemove={onRemove}
-          onDragStart={onDragStart}
-          onDrop={onDrop}
-        >
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="text-xl font-semibold text-slate-900">{cta.title || "Ready to improve focus consistency?"}</h2>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              {cta.subtitle ||
-                "Install the extension, run your first session, and refine your setup with features that match your workflow."}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <span className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white">
-                {cta.primaryLabel || "Add to Chrome"}
-              </span>
-              <span className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800">
-                {cta.secondaryLabel || "Read FAQ"}
-              </span>
-            </div>
-          </section>
-        </CanvasBlockShell>
-      ) : null}
-
-      {flexBlocks.length ? (
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            Flexible blocks below are stored in the new block schema and stay inside admin planning until you map them to live rendering.
-          </div>
-          {flexBlocks.map((block) => (
-            <CanvasBlockShell
-              key={block.uid}
-              block={block}
-              isSelected={selectedUid === block.uid}
-              onSelect={onSelect}
-              onDuplicate={onDuplicate}
-              onRemove={onRemove}
-              onDragStart={onDragStart}
-              onDrop={onDrop}
-            >
-              <GenericBlockPreview block={block} />
-            </CanvasBlockShell>
-          ))}
-        </section>
-      ) : null}
-
-      {!enabledBlocks.length ? (
-        <div className="grid min-h-80 place-items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">No blocks yet</h3>
-            <p className="mt-2 text-sm">Load the current homepage or add blocks from the library.</p>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 export default function AdminHome() {
@@ -722,14 +310,16 @@ export default function AdminHome() {
             {loading ? (
               <p className="text-sm text-slate-600">Loading homepage blocks...</p>
             ) : (
-              <HomepageCanvas
-                blocks={blocks}
-                selectedUid={selectedUid}
-                onSelect={setSelectedUid}
-                onDuplicate={duplicateBlock}
-                onRemove={removeBlock}
-                onDragStart={setDragUid}
-                onDrop={(targetUid) => moveBlock(dragUid, targetUid)}
+              <HomepageRenderer
+                model={buildHomepageRenderModelFromBlocks(blocks)}
+                editable={{
+                  selectedId: selectedUid,
+                  onSelect: setSelectedUid,
+                  onDuplicate: duplicateBlock,
+                  onRemove: removeBlock,
+                  onDragStart: setDragUid,
+                  onDrop: (targetUid) => moveBlock(dragUid, targetUid),
+                }}
               />
             )}
           </section>
@@ -876,3 +466,4 @@ export default function AdminHome() {
     </section>
   );
 }
+
