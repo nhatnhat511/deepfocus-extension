@@ -655,13 +655,13 @@ function ActionButton({
 }) {
   const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
   const className = primary
-    ? `rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
+    ? `inline-flex items-center justify-center rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
     : variant === "accent"
-      ? `rounded-lg border border-amber-400 bg-amber-300 ${padding} font-semibold text-slate-900 hover:bg-amber-200`
-      : `rounded-lg border border-slate-300 ${padding} font-semibold text-slate-800 hover:bg-slate-100`;
+      ? `inline-flex items-center justify-center rounded-lg border border-amber-400 bg-amber-300 ${padding} font-semibold text-slate-900 hover:bg-amber-200`
+      : `inline-flex items-center justify-center rounded-lg border border-slate-300 ${padding} font-semibold text-slate-800 hover:bg-slate-100`;
 
   if (inert) {
-    return <span className={`${className} inline-flex`}>{action.label}</span>;
+    return <span className={className}>{action.label}</span>;
   }
 
   if (action.href.startsWith("http")) {
