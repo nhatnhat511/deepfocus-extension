@@ -33,6 +33,16 @@ const emptyForm = {
   published_at: "",
 };
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function AdminPages() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [pages, setPages] = useState<PageRow[]>([]);
@@ -40,6 +50,7 @@ export default function AdminPages() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ ...emptyForm });
+  const [slugLocked, setSlugLocked] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -101,11 +112,13 @@ export default function AdminPages() {
       og_image_url: row.og_image_url || "",
       published_at: row.published_at ? row.published_at.slice(0, 16) : "",
     });
+    setSlugLocked(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function resetForm() {
     setForm({ ...emptyForm });
+    setSlugLocked(false);
   }
 
   async function savePage() {
@@ -203,14 +216,20 @@ export default function AdminPages() {
                 className="wp-field text-3xl font-semibold"
                 placeholder="Add title"
                 value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => {
+                  const nextTitle = e.target.value;
+                  setForm((prev) => ({ ...prev, title: nextTitle, slug: slugLocked ? prev.slug : slugify(nextTitle) }));
+                }}
               />
               <div className="grid gap-3 md:grid-cols-[1fr,220px]">
                 <input
                   className="wp-field"
                   placeholder="Slug"
                   value={form.slug}
-                  onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
+                  onChange={(e) => {
+                    setSlugLocked(true);
+                    setForm((prev) => ({ ...prev, slug: slugify(e.target.value) }));
+                  }}
                 />
                 <input
                   className="wp-field"

@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import sanitizeHtml from "sanitize-html";
-import { getPublicPostBySlug } from "@/lib/cms/publicContent.server";
+import { getPublicPostByCategorySlug } from "@/lib/cms/publicContent.server";
 
-type BlogPageProps = {
-  params: { slug: string };
+type CategoryPostPageProps = {
+  params: { category: string; slug: string };
 };
 
 function formatPostDate(value?: string | null) {
@@ -59,8 +59,8 @@ function sanitizePostHtml(source: string) {
   });
 }
 
-export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
-  const post = await getPublicPostBySlug(params.slug);
+export async function generateMetadata({ params }: CategoryPostPageProps): Promise<Metadata> {
+  const post = await getPublicPostByCategorySlug(params.category, params.slug);
   if (!post) {
     return {
       title: "Blog",
@@ -73,8 +73,8 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
   };
 }
 
-export default async function BlogPostPage({ params }: BlogPageProps) {
-  const post = await getPublicPostBySlug(params.slug);
+export default async function CategoryPostPage({ params }: CategoryPostPageProps) {
+  const post = await getPublicPostByCategorySlug(params.category, params.slug);
   if (!post) {
     notFound();
   }

@@ -19,6 +19,12 @@ type PostRow = {
   updated_at: string | null;
 };
 
+type CategoryRow = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
 const emptyForm = {
   id: "",
   slug: "",
@@ -27,7 +33,6 @@ const emptyForm = {
   content: "",
   status: "draft",
   tags: "",
-  categories: "",
   published_at: "",
 };
 
@@ -38,19 +43,34 @@ function parseList(value: string) {
     .filter(Boolean);
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function AdminPosts() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [posts, setPosts] = useState<PostRow[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ ...emptyForm });
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [categoryName, setCategoryName] = useState("");
+  const [categorySlug, setCategorySlug] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState("none");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [slugLocked, setSlugLocked] = useState(false);
 
   async function loadPosts() {
     setLoading(true);
@@ -62,6 +82,13 @@ export default function AdminPosts() {
         .order("updated_at", { ascending: false });
       if (fetchError) throw fetchError;
       setPosts((data as PostRow[]) || []);
+
+      const { data: categoryData, error: categoryError } = await supabase
+        .from("cms_categories")
+        .select("*")
+        .order("name", { ascending: true });
+      if (categoryError) throw categoryError;
+      setCategories((categoryData as CategoryRow[]) || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load posts.");
     } finally {
@@ -94,6 +121,7 @@ export default function AdminPosts() {
   }, [page, pageCount]);
 
   function startEdit(row: PostRow) {
+    const categorySlugValue = row.categories?.[0] || "";
     setForm({
       id: row.id,
       slug: row.slug || "",
@@ -102,14 +130,19 @@ export default function AdminPosts() {
       content: row.content || "",
       status: row.status || "draft",
       tags: row.tags ? row.tags.join(", ") : "",
-      categories: row.categories ? row.categories.join(", ") : "",
       published_at: row.published_at ? row.published_at.slice(0, 16) : "",
     });
+    setSelectedCategory(categorySlugValue);
+    setSlugLocked(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function resetForm() {
     setForm({ ...emptyForm });
+    setSelectedCategory("");
+    setCategoryName("");
+    setCategorySlug("");
+    setSlugLocked(false);
   }
 
   async function savePost() {
@@ -128,7 +161,7 @@ export default function AdminPosts() {
         content: form.content.trim() || null,
         status: form.status,
         tags: parseList(form.tags),
-        categories: parseList(form.categories),
+        categories: selectedCategory ? [selectedCategory] : [],
         published_at: form.published_at ? new Date(form.published_at).toISOString() : null,
       };
 
@@ -146,6 +179,27 @@ export default function AdminPosts() {
       setError(err instanceof Error ? err.message : "Unable to save post.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function createCategory() {
+    const name = categoryName.trim();
+    if (!name) return;
+    const slug = categorySlug.trim() || slugify(name);
+    if (!slug) return;
+    setError("");
+    try {
+      const { error: insertError } = await supabase.from("cms_categories").insert({
+        name,
+        slug,
+      });
+      if (insertError) throw insertError;
+      setCategoryName("");
+      setCategorySlug("");
+      await loadPosts();
+      setSelectedCategory(slug);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create category.");
     }
   }
 
@@ -182,15 +236,27 @@ export default function AdminPosts() {
     }
   }
 
+  function getPostViewUrl(post: PostRow, categorySlugOverride?: string) {
+    const categorySlugValue = categorySlugOverride ?? post.categories?.[0];
+    if (categorySlugValue) {
+      return `/categories/${categorySlugValue}/${post.slug}`;
+    }
+    return `/blog/${post.slug}`;
+  }
+
+  const previewUrl = form.slug
+    ? `https://deepfocustime.com${selectedCategory ? `/categories/${selectedCategory}/${form.slug}` : `/blog/${form.slug}`}`
+    : "https://deepfocustime.com/blog/post-slug";
+
   return (
     <section className="space-y-6">
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="wp-page-title">Posts</h1>
-          <p className="mt-1 text-sm text-slate-600">Author posts with a WordPress-like editor, publish box, and taxonomy controls.</p>
+          <p className="mt-1 text-sm text-slate-600">Create, edit, and publish posts.</p>
         </div>
         <button type="button" className="wp-btn" onClick={resetForm}>
-          Add New
+          New post
         </button>
       </header>
 
@@ -198,41 +264,28 @@ export default function AdminPosts() {
         <section className="border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</section>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[1fr,320px]">
-        <div className="space-y-4">
-          <section className="wp-metabox">
-            <div className="wp-metabox-body space-y-4">
-              <input
-                className="wp-field text-3xl font-semibold"
-                placeholder="Add title"
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              />
+      <section className="flex justify-center">
+        <div className="w-full max-w-4xl space-y-4">
+          <section className="wp-card p-6 space-y-4">
+            <input
+              className="wp-field text-3xl font-semibold"
+              placeholder="Post title"
+              value={form.title}
+              onChange={(e) => {
+                const nextTitle = e.target.value;
+                setForm((prev) => ({ ...prev, title: nextTitle, slug: slugLocked ? prev.slug : slugify(nextTitle) }));
+              }}
+            />
+            <div className="grid gap-3 md:grid-cols-2">
               <input
                 className="wp-field"
                 placeholder="Slug"
                 value={form.slug}
-                onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
+                onChange={(e) => {
+                  setSlugLocked(true);
+                  setForm((prev) => ({ ...prev, slug: slugify(e.target.value) }));
+                }}
               />
-            </div>
-          </section>
-
-          <section className="wp-metabox">
-            <div className="wp-metabox-title">Content</div>
-            <div className="wp-metabox-body">
-              <RichTextEditor
-                value={form.content}
-                onChange={(value) => setForm((prev) => ({ ...prev, content: value }))}
-                placeholder="Start writing your post..."
-              />
-            </div>
-          </section>
-        </div>
-
-        <aside className="space-y-4">
-          <section className="wp-metabox">
-            <div className="wp-metabox-title">Publish</div>
-            <div className="wp-metabox-body space-y-3">
               <select
                 className="wp-select"
                 value={form.status}
@@ -244,68 +297,105 @@ export default function AdminPosts() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                className="wp-field"
+                placeholder="Tags (comma-separated)"
+                value={form.tags}
+                onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))}
+              />
               <input
                 type="datetime-local"
                 className="wp-field"
                 value={form.published_at}
                 onChange={(e) => setForm((prev) => ({ ...prev, published_at: e.target.value }))}
               />
-              <div className="flex gap-2">
-                <button type="button" className="wp-btn wp-btn-primary" onClick={savePost} disabled={saving}>
-                  {saving ? "Saving..." : form.id ? "Update" : "Publish"}
-                </button>
-                <button type="button" className="wp-btn" onClick={resetForm}>
-                  Clear
-                </button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <select
+                className="wp-select"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Select category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <div className="grid gap-2">
+                <input
+                  className="wp-field"
+                  placeholder="New category name"
+                  value={categoryName}
+                  onChange={(e) => {
+                    const nextName = e.target.value;
+                    setCategoryName(nextName);
+                    if (!categorySlug) {
+                      setCategorySlug(slugify(nextName));
+                    }
+                  }}
+                />
+                <div className="flex gap-2">
+                  <input
+                    className="wp-field"
+                    placeholder="Category slug"
+                    value={categorySlug}
+                    onChange={(e) => setCategorySlug(slugify(e.target.value))}
+                  />
+                  <button type="button" className="wp-btn" onClick={createCategory}>
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
+            <div className="text-xs text-slate-500">Preview URL: {previewUrl}</div>
           </section>
 
-          <section className="wp-metabox">
-            <div className="wp-metabox-title">Categories</div>
-            <div className="wp-metabox-body">
-              <textarea
-                className="wp-textarea"
-                placeholder="productivity, updates"
-                value={form.categories}
-                onChange={(e) => setForm((prev) => ({ ...prev, categories: e.target.value }))}
+          <section className="wp-card p-6">
+            <div className="wp-panel-title text-base text-slate-900">Content</div>
+            <div className="mt-3">
+              <RichTextEditor
+                value={form.content}
+                onChange={(value) => setForm((prev) => ({ ...prev, content: value }))}
+                placeholder="Start writing your post..."
               />
             </div>
           </section>
 
-          <section className="wp-metabox">
-            <div className="wp-metabox-title">Tags</div>
-            <div className="wp-metabox-body">
-              <textarea
-                className="wp-textarea"
-                placeholder="focus, timer, chrome"
-                value={form.tags}
-                onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))}
-              />
-            </div>
+          <section className="wp-card p-6">
+            <div className="wp-panel-title text-base text-slate-900">Summary</div>
+            <textarea
+              className="wp-textarea mt-3"
+              placeholder="Short excerpt"
+              value={form.excerpt}
+              onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+            />
           </section>
 
-          <section className="wp-metabox">
-            <div className="wp-metabox-title">Featured Image</div>
-            <div className="wp-metabox-body">
-              <p className="text-sm text-slate-600">
-                Use the Media Library to upload artwork, then paste its URL into the content or excerpt workflow.
-              </p>
+          <section className="wp-card p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="wp-btn wp-btn-primary" onClick={savePost} disabled={saving}>
+                {saving ? "Saving..." : form.id ? "Update" : "Publish"}
+              </button>
+              <button type="button" className="wp-btn" onClick={resetForm}>
+                Clear
+              </button>
+              {form.slug ? (
+                <a
+                  className="wp-btn"
+                  href={getPostViewUrl(form as PostRow, selectedCategory)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View
+                </a>
+              ) : null}
             </div>
           </section>
-
-          <section className="wp-metabox">
-            <div className="wp-metabox-title">Summary</div>
-            <div className="wp-metabox-body">
-              <textarea
-                className="wp-textarea"
-                placeholder="Short excerpt"
-                value={form.excerpt}
-                onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
-              />
-            </div>
-          </section>
-        </aside>
+        </div>
       </section>
 
       <section className="wp-card p-5">
@@ -393,6 +483,9 @@ export default function AdminPosts() {
                           <button type="button" className="wp-btn" onClick={() => startEdit(item)}>
                             Edit
                           </button>
+                          <a className="wp-btn" href={getPostViewUrl(item)} target="_blank" rel="noreferrer">
+                            View
+                          </a>
                           <button type="button" className="wp-btn wp-btn-danger" onClick={() => deletePost(item.id)}>
                             Delete
                           </button>
@@ -409,7 +502,12 @@ export default function AdminPosts() {
                 {filteredPosts.length}
               </span>
               <div className="wp-pagination">
-                <button type="button" className="wp-btn" disabled={activePage === 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+                <button
+                  type="button"
+                  className="wp-btn"
+                  disabled={activePage === 1}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                >
                   Previous
                 </button>
                 <span className="wp-muted">

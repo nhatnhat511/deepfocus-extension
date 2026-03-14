@@ -53,6 +53,13 @@ create table if not exists public.cms_posts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.cms_categories (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.cms_home_sections (
   id uuid primary key default gen_random_uuid(),
   key text not null unique,
@@ -124,6 +131,7 @@ create table if not exists public.cms_homepage_documents (
 alter table public.cms_admins enable row level security;
 alter table public.cms_pages enable row level security;
 alter table public.cms_posts enable row level security;
+alter table public.cms_categories enable row level security;
 alter table public.cms_home_sections enable row level security;
 alter table public.cms_menus enable row level security;
 alter table public.cms_faq enable row level security;
@@ -157,6 +165,19 @@ create policy "cms_posts_insert" on public.cms_posts
 create policy "cms_posts_update" on public.cms_posts
   for update using (public.is_cms_admin());
 create policy "cms_posts_delete" on public.cms_posts
+  for delete using (public.is_cms_admin());
+
+drop policy if exists "cms_posts_public_select" on public.cms_posts;
+create policy "cms_posts_public_select" on public.cms_posts
+  for select using (status = 'published');
+
+create policy "cms_categories_select" on public.cms_categories
+  for select using (public.is_cms_admin());
+create policy "cms_categories_insert" on public.cms_categories
+  for insert with check (public.is_cms_admin());
+create policy "cms_categories_update" on public.cms_categories
+  for update using (public.is_cms_admin());
+create policy "cms_categories_delete" on public.cms_categories
   for delete using (public.is_cms_admin());
 
 drop policy if exists "cms_home_sections_select" on public.cms_home_sections;

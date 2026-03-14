@@ -46,6 +46,18 @@ type SiteSettingEntry = {
   value: unknown;
 };
 
+type PublicPost = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string | null;
+  status: string;
+  categories: string[] | null;
+  published_at: string | null;
+  updated_at: string | null;
+};
+
 async function fetchCmsRows<T>(path: string) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
@@ -82,6 +94,32 @@ export async function getPublicChangelog() {
 
 export async function getPublicRoadmap() {
   return (await fetchCmsRows<RoadmapEntry>("cms_roadmap?select=*&is_published=eq.true&order=sort_order.asc")) ?? [];
+}
+
+export async function getPublicPosts() {
+  return (
+    (await fetchCmsRows<PublicPost>(
+      "cms_posts?select=*&status=eq.published&order=published_at.desc,updated_at.desc"
+    )) ?? []
+  );
+}
+
+export async function getPublicPostBySlug(slug: string) {
+  const rows =
+    (await fetchCmsRows<PublicPost>(
+      `cms_posts?select=*&status=eq.published&slug=eq.${encodeURIComponent(slug)}&limit=1`
+    )) ?? [];
+  return rows[0] ?? null;
+}
+
+export async function getPublicPostByCategorySlug(categorySlug: string, slug: string) {
+  const rows =
+    (await fetchCmsRows<PublicPost>(
+      `cms_posts?select=*&status=eq.published&slug=eq.${encodeURIComponent(slug)}&categories=cs.{${encodeURIComponent(
+        categorySlug
+      )}}&limit=1`
+    )) ?? [];
+  return rows[0] ?? null;
 }
 
 export async function getPublicSiteSetting(settingKey: string) {

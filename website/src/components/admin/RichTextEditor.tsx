@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type RichTextEditorProps = {
   value: string;
@@ -36,9 +37,13 @@ function IconButton({
 }
 
 export default function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [isHtmlMode, setIsHtmlMode] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState("p");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bucket = process.env.NEXT_PUBLIC_CMS_MEDIA_BUCKET || "cms-media";
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -83,8 +88,26 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     );
   }
 
+  async function addMediaFile(file: File) {
+    setUploading(true);
+    const path = `${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+    setUploading(false);
+    if (uploadError) {
+      window.alert("Unable to upload media file.");
+      return;
+    }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    if (data?.publicUrl) {
+      runCommand("insertImage", data.publicUrl);
+    }
+  }
+
   function addMedia() {
-    insertImage();
+    fileInputRef.current?.click();
   }
 
   function addForm() {
@@ -97,8 +120,22 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     <div className="wp-editor">
       <div className="wp-editor-header">
         <div className="wp-editor-header-actions">
-          <button type="button" className="wp-editor-add-btn" onClick={addMedia}>
-            Add Media
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                void addMediaFile(file);
+              }
+              if (event.target) {
+                event.target.value = "";
+              }
+            }}
+          />
+          <button type="button" className="wp-editor-add-btn" onClick={addMedia} disabled={uploading}>
+            {uploading ? "Uploading..." : "Add Media"}
           </button>
           <button type="button" className="wp-editor-add-btn" onClick={addForm}>
             Add Form
