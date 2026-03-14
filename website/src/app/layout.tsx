@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
 import AppChrome from "@/components/AppChrome";
+import { getPublicMenus } from "@/lib/cms/publicMenus.server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -48,11 +49,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { headerMenu, footerMenu } = await getPublicMenus();
+
   return (
     <html lang="en">
       <head>
@@ -70,7 +73,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthHashRedirect />
-        <AppChrome>{children}</AppChrome>
+        <AppChrome headerMenu={headerMenu} footerMenu={footerMenu}>
+          {children}
+        </AppChrome>
       </body>
     </html>
   );

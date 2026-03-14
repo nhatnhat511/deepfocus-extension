@@ -1,15 +1,6 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-
 export type PublicMenuItem = {
   href: string;
   label: string;
-};
-
-type MenuRow = {
-  items: PublicMenuItem[] | null;
 };
 
 export const defaultHeaderMenu: PublicMenuItem[] = [
@@ -36,38 +27,7 @@ export const defaultFooterMenu: PublicMenuItem[] = [
   { href: "/contact", label: "Contact" },
 ];
 
-function sanitizeMenu(items: PublicMenuItem[] | null | undefined, fallback: PublicMenuItem[]) {
+export function sanitizeMenu(items: PublicMenuItem[] | null | undefined, fallback: PublicMenuItem[]) {
   const cleaned = (items || []).filter((item) => item?.href?.trim() && item?.label?.trim());
   return cleaned.length ? cleaned : fallback;
-}
-
-export function usePublicMenu(location: string, fallback: PublicMenuItem[]) {
-  const supabaseRef = useRef(createSupabaseBrowserClient());
-  const [menu, setMenu] = useState<PublicMenuItem[]>(fallback);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadMenu() {
-      const supabase = supabaseRef.current;
-      const { data, error } = await supabase.from("cms_menus").select("items").eq("location", location).maybeSingle();
-
-      if (!mounted) return;
-
-      if (error) {
-        setMenu(fallback);
-        return;
-      }
-
-      setMenu(sanitizeMenu((data as MenuRow | null)?.items, fallback));
-    }
-
-    void loadMenu();
-
-    return () => {
-      mounted = false;
-    };
-  }, [fallback, location]);
-
-  return menu;
 }

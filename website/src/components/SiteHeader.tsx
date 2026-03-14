@@ -6,14 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { defaultHeaderMenu, usePublicMenu } from "@/lib/cms/publicMenus";
+import type { PublicMenuItem } from "@/lib/cms/publicMenus";
 
-export default function SiteHeader() {
+export default function SiteHeader({ navLinks }: { navLinks: PublicMenuItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const supabaseRef = useRef(createSupabaseBrowserClient());
   const pathname = usePathname();
-  const navLinks = usePublicMenu("header", defaultHeaderMenu);
 
   useEffect(() => {
     if (pathname?.startsWith("/auth/callback")) {
