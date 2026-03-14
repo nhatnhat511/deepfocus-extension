@@ -643,15 +643,22 @@ function EditableFrame({
 function ActionButton({
   action,
   primary = false,
+  variant = "default",
+  size = "md",
   inert = false,
 }: {
   action: { label: string; href: string };
   primary?: boolean;
+  variant?: "default" | "accent";
+  size?: "md" | "lg";
   inert?: boolean;
 }) {
+  const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
   const className = primary
-    ? "rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700"
-    : "rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-100";
+    ? `rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
+    : variant === "accent"
+      ? `rounded-lg border border-amber-400 bg-amber-300 ${padding} font-semibold text-slate-900 hover:bg-amber-200`
+      : `rounded-lg border border-slate-300 ${padding} font-semibold text-slate-800 hover:bg-slate-100`;
 
   if (inert) {
     return <span className={`${className} inline-flex`}>{action.label}</span>;
@@ -916,6 +923,7 @@ export function HomepageRenderer({
                   label:
                     editable?.selectedId === model.hero.id && editable?.selectedField === "secondaryLabel" ? "" : model.hero.secondaryAction.label,
                 }}
+                variant="accent"
                 inert
               />
             </FieldTarget>
@@ -987,8 +995,8 @@ export function HomepageRenderer({
               className="grid items-center gap-6 rounded-2xl border border-slate-200 bg-white p-6 md:grid-cols-2"
             >
               <div className={reverse ? "md:order-2" : ""}>
-                <h3 className="text-2xl font-semibold tracking-tight text-slate-900">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
+                <h3 className="text-3xl font-semibold tracking-tight text-slate-900">{item.title}</h3>
+                <p className="mt-3 text-base leading-7 text-slate-600">{item.description}</p>
               </div>
               <div className={reverse ? "md:order-1" : ""}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1041,132 +1049,137 @@ export function HomepageRenderer({
         ))}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <EditableFrame
-          id={model.steps.id}
-          label="Steps"
-          selectedId={editable?.selectedId}
-          controls={editable}
-          fieldOptions={[
-            { id: "title", label: "Title" },
-            { id: "items", label: "Items" },
-            { id: "primaryLabel", label: "Button" },
-          ]}
-        >
-          <article className="rounded-2xl border border-slate-200 bg-white p-6">
-            <FieldTarget blockId={model.steps.id} field="title" controls={editable} className="block" label="Title">
-              <InlineEditableText
-                blockId={model.steps.id}
-                field="title"
-                value={model.steps.title}
-                controls={editable}
-                className="text-xl font-semibold text-slate-900"
-              />
-            </FieldTarget>
-            <FieldTarget blockId={model.steps.id} field="items" controls={editable} label="Items">
-              {editable?.selectedId === model.steps.id && editable?.selectedField === "items" ? (
-                <InlineEditableList
-                  blockId={model.steps.id}
-                  field="items"
-                  items={model.steps.items}
-                  controls={editable}
-                  className="mt-4"
-                />
-              ) : (
-                <ol className="mt-4 space-y-3 text-sm text-slate-700">
-                  {model.steps.items.map((step, index) => (
-                    <li key={step} className="flex items-start gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
-                        {index + 1}
-                      </span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </FieldTarget>
-            <div className="mt-5">
-              <FieldTarget blockId={model.steps.id} field="primaryLabel" controls={editable} label="Button">
-                <ActionButton action={model.steps.primaryAction} inert={!!editable} />
-              </FieldTarget>
-            </div>
-            {editable?.selectedId === model.steps.id && editable?.selectedField === "primaryLabel" ? (
-              <div className="mt-3 max-w-xs">
+      <section className="space-y-4">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-center text-lg font-semibold text-slate-900 sm:text-xl">
+          And there are many more practical, time-saving features beyond these.
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <EditableFrame
+            id={model.steps.id}
+            label="Steps"
+            selectedId={editable?.selectedId}
+            controls={editable}
+            fieldOptions={[
+              { id: "title", label: "Title" },
+              { id: "items", label: "Items" },
+              { id: "primaryLabel", label: "Button" },
+            ]}
+          >
+            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+              <FieldTarget blockId={model.steps.id} field="title" controls={editable} className="block" label="Title">
                 <InlineEditableText
                   blockId={model.steps.id}
-                  field="primaryLabel"
-                  value={model.steps.primaryAction.label}
+                  field="title"
+                  value={model.steps.title}
                   controls={editable}
-                  className="text-sm font-semibold text-slate-900"
+                  className="text-2xl font-semibold text-slate-900"
                 />
+              </FieldTarget>
+              <FieldTarget blockId={model.steps.id} field="items" controls={editable} label="Items">
+                {editable?.selectedId === model.steps.id && editable?.selectedField === "items" ? (
+                  <InlineEditableList
+                    blockId={model.steps.id}
+                    field="items"
+                    items={model.steps.items}
+                    controls={editable}
+                    className="mt-4"
+                  />
+                ) : (
+                  <ol className="mt-4 space-y-3 text-base text-slate-700">
+                    {model.steps.items.map((step, index) => (
+                      <li key={step} className="flex items-start gap-3">
+                        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">
+                          {index + 1}
+                        </span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </FieldTarget>
+              <div className="mt-5">
+                <FieldTarget blockId={model.steps.id} field="primaryLabel" controls={editable} label="Button">
+                  <ActionButton action={model.steps.primaryAction} size="lg" inert={!!editable} />
+                </FieldTarget>
               </div>
-            ) : null}
-          </article>
-        </EditableFrame>
-
-        <EditableFrame
-          id={model.audience.id}
-          label="Audience"
-          selectedId={editable?.selectedId}
-          controls={editable}
-          fieldOptions={[
-            { id: "title", label: "Title" },
-            { id: "items", label: "Items" },
-            { id: "eyebrow", label: "Preview Label" },
-            { id: "mediaUrl", label: "Preview Text" },
-          ]}
-        >
-          <article className="rounded-2xl border border-slate-200 bg-white p-6">
-            <FieldTarget blockId={model.audience.id} field="title" controls={editable} className="block" label="Title">
-              <InlineEditableText
-                blockId={model.audience.id}
-                field="title"
-                value={model.audience.title}
-                controls={editable}
-                className="text-xl font-semibold text-slate-900"
-              />
-            </FieldTarget>
-            <FieldTarget blockId={model.audience.id} field="items" controls={editable} className="mt-4 block" label="Items">
-              {editable?.selectedId === model.audience.id && editable?.selectedField === "items" ? (
-                <InlineEditableRoleList
-                  blockId={model.audience.id}
-                  field="items"
-                  items={model.audience.items}
-                  controls={editable}
-                  className="mt-2"
-                />
-              ) : (
-                <div className="space-y-3 text-sm text-slate-700">
-                  {model.audience.items.map((item) => (
-                    <p key={`${item.role}-${item.note}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <span className="font-semibold text-slate-900">{item.role}:</span> {item.note}
-                    </p>
-                  ))}
+              {editable?.selectedId === model.steps.id && editable?.selectedField === "primaryLabel" ? (
+                <div className="mt-3 max-w-xs">
+                  <InlineEditableText
+                    blockId={model.steps.id}
+                    field="primaryLabel"
+                    value={model.steps.primaryAction.label}
+                    controls={editable}
+                    className="text-sm font-semibold text-slate-900"
+                  />
                 </div>
-              )}
-            </FieldTarget>
-            <div className="mt-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
-              <FieldTarget blockId={model.audience.id} field="eyebrow" controls={editable} className="block" label="Preview Label">
+              ) : null}
+            </article>
+          </EditableFrame>
+
+          <EditableFrame
+            id={model.audience.id}
+            label="Audience"
+            selectedId={editable?.selectedId}
+            controls={editable}
+            fieldOptions={[
+              { id: "title", label: "Title" },
+              { id: "items", label: "Items" },
+              { id: "eyebrow", label: "Preview Label" },
+              { id: "mediaUrl", label: "Preview Text" },
+            ]}
+          >
+            <article className="rounded-2xl border border-slate-200 bg-white p-6">
+              <FieldTarget blockId={model.audience.id} field="title" controls={editable} className="block" label="Title">
                 <InlineEditableText
                   blockId={model.audience.id}
-                  field="eyebrow"
-                  value={model.audience.previewLabel}
+                  field="title"
+                  value={model.audience.title}
                   controls={editable}
-                  className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  className="text-2xl font-semibold text-slate-900"
                 />
               </FieldTarget>
-              <FieldTarget blockId={model.audience.id} field="mediaUrl" controls={editable} className="mt-2 block" label="Preview Text">
-                <InlineEditableMarkdown
-                  blockId={model.audience.id}
-                  field="mediaUrl"
-                  value={model.audience.previewText}
-                  controls={editable}
-                  className="text-sm text-slate-700"
-                />
+              <FieldTarget blockId={model.audience.id} field="items" controls={editable} className="mt-4 block" label="Items">
+                {editable?.selectedId === model.audience.id && editable?.selectedField === "items" ? (
+                  <InlineEditableRoleList
+                    blockId={model.audience.id}
+                    field="items"
+                    items={model.audience.items}
+                    controls={editable}
+                    className="mt-2"
+                  />
+                ) : (
+                  <div className="space-y-3 text-base text-slate-700">
+                    {model.audience.items.map((item) => (
+                      <p key={`${item.role}-${item.note}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <span className="font-semibold text-slate-900">{item.role}:</span> {item.note}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </FieldTarget>
-            </div>
-          </article>
-        </EditableFrame>
+              <div className="mt-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+                <FieldTarget blockId={model.audience.id} field="eyebrow" controls={editable} className="block" label="Preview Label">
+                  <InlineEditableText
+                    blockId={model.audience.id}
+                    field="eyebrow"
+                    value={model.audience.previewLabel}
+                    controls={editable}
+                    className="text-sm font-semibold uppercase tracking-wide text-slate-500"
+                  />
+                </FieldTarget>
+                <FieldTarget blockId={model.audience.id} field="mediaUrl" controls={editable} className="mt-2 block" label="Preview Text">
+                  <InlineEditableMarkdown
+                    blockId={model.audience.id}
+                    field="mediaUrl"
+                    value={model.audience.previewText}
+                    controls={editable}
+                    className="text-base text-slate-700"
+                  />
+                </FieldTarget>
+              </div>
+            </article>
+          </EditableFrame>
+        </div>
       </section>
 
       <EditableFrame
@@ -1186,7 +1199,7 @@ export function HomepageRenderer({
               field="title"
               value={model.proofGrid.title}
               controls={editable}
-              className="text-xl font-semibold text-slate-900"
+              className="text-2xl font-semibold text-slate-900"
             />
           </FieldTarget>
           <FieldTarget blockId={model.proofGrid.id} field="items" controls={editable} className="block" label="Items">
@@ -1199,7 +1212,7 @@ export function HomepageRenderer({
                 className="mt-4 grid gap-3 sm:grid-cols-2"
               />
             ) : (
-              <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 text-base text-slate-700 sm:grid-cols-2">
                 {model.proofGrid.items.map((item) => (
                   <p key={item} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     {item}
@@ -1230,7 +1243,7 @@ export function HomepageRenderer({
               field="title"
               value={model.cta.title}
               controls={editable}
-              className="text-xl font-semibold text-slate-900"
+              className="text-2xl font-semibold text-slate-900"
             />
           </FieldTarget>
           <FieldTarget blockId={model.cta.id} field="subtitle" controls={editable} className="mt-2 block" label="Body">
@@ -1239,15 +1252,15 @@ export function HomepageRenderer({
               field="subtitle"
               value={model.cta.subtitle}
               controls={editable}
-              className="max-w-3xl text-sm text-slate-600"
+              className="max-w-3xl text-base text-slate-600"
             />
           </FieldTarget>
           <div className="mt-5 flex flex-wrap gap-3">
             <FieldTarget blockId={model.cta.id} field="primaryLabel" controls={editable} label="Primary CTA">
-              <ActionButton action={model.cta.primaryAction} primary inert={!!editable} />
+              <ActionButton action={model.cta.primaryAction} primary size="lg" inert={!!editable} />
             </FieldTarget>
             <FieldTarget blockId={model.cta.id} field="secondaryLabel" controls={editable} label="Secondary CTA">
-              <ActionButton action={model.cta.secondaryAction} inert={!!editable} />
+              <ActionButton action={model.cta.secondaryAction} size="lg" inert={!!editable} />
             </FieldTarget>
           </div>
           {editable?.selectedId === model.cta.id && editable?.selectedField === "primaryLabel" ? (

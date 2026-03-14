@@ -130,7 +130,7 @@ export function buildHomepageRenderModelFromBlocks(blocks: HomepageBlock[]): Hom
       },
       secondaryAction: {
         label: hero?.secondaryLabel || "Compare Plans",
-        href: hero?.secondaryHref || "/pricing",
+        href: "/pricing",
       },
       tertiaryAction: {
         label: "Start Free Trial",
