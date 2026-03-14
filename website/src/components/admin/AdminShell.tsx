@@ -133,36 +133,49 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <AdminGuard>
-      <div className="grid gap-6 lg:grid-cols-[240px,1fr]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
-            <h2 className="text-lg font-semibold text-slate-900">DeepFocus CMS</h2>
+      <div className="min-h-[80vh] rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-lg lg:p-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Administration</p>
+            <h1 className="text-xl font-semibold text-slate-900">DeepFocus Control Center</h1>
           </div>
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold ${
-                    active
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "text-slate-700 hover:bg-slate-100"
-                  }`}
-                >
-                  <span>{item.label}</span>
-                  {active ? <span className="text-xs text-emerald-700">Active</span> : null}
-                </a>
-              );
-            })}
-          </nav>
-          <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-            This admin is isolated from the public site. Connect content rendering when ready.
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">Production</span>
+            <span>CMS modules active</span>
           </div>
-        </aside>
-        <main className="space-y-6">{children}</main>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[260px,1fr]">
+          <aside className="rounded-2xl border border-slate-900/10 bg-gradient-to-b from-slate-900 to-slate-800 p-4 text-slate-100 shadow-lg">
+            <div className="mb-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">DeepFocus CMS</p>
+              <h2 className="text-lg font-semibold text-white">Admin Workspace</h2>
+            </div>
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                      active
+                        ? "bg-emerald-400/20 text-emerald-200"
+                        : "text-slate-200 hover:bg-white/10"
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    {active ? <span className="text-xs text-emerald-200">Active</span> : null}
+                  </a>
+                );
+              })}
+            </nav>
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
+              Public site remains unchanged until CMS data is wired into rendering.
+            </div>
+          </aside>
+          <main className="space-y-6">{children}</main>
+        </div>
       </div>
     </AdminGuard>
   );
