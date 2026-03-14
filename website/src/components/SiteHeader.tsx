@@ -6,9 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import type { PublicMenuItem } from "@/lib/cms/publicMenus";
 
-export default function SiteHeader({ navLinks }: { navLinks: PublicMenuItem[] }) {
+type NavItem = {
+  label: string;
+  href: string;
+};
+
+export default function SiteHeader({ navLinks }: { navLinks: NavItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const supabaseRef = useRef(createSupabaseBrowserClient());

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getPublicChangelog } from "@/lib/cms/publicContent.server";
 
 export const metadata: Metadata = {
   title: "Changelog",
@@ -31,17 +30,8 @@ const changes = [
   },
 ];
 
-export default async function ChangelogPage() {
-  const cmsChanges = await getPublicChangelog();
-  const entries =
-    cmsChanges.length > 0
-      ? cmsChanges.map((entry) => ({
-          date: entry.release_date
-            ? new Date(entry.release_date).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-            : entry.title,
-          items: Array.isArray(entry.items) ? entry.items : [],
-        }))
-      : changes;
+export default function ChangelogPage() {
+  const entries = changes;
 
   return (
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">

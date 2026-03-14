@@ -2,9 +2,12 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
-import type { PublicMenuItem } from "@/lib/cms/publicMenus";
+
+type NavItem = {
+  label: string;
+  href: string;
+};
 
 export default function AppChrome({
   children,
@@ -12,16 +15,9 @@ export default function AppChrome({
   footerMenu,
 }: {
   children: ReactNode;
-  headerMenu: PublicMenuItem[];
-  footerMenu: PublicMenuItem[];
+  headerMenu: NavItem[];
+  footerMenu: NavItem[];
 }) {
-  const pathname = usePathname();
-  const isAdmin = pathname?.startsWith("/admin");
-
-  if (isAdmin) {
-    return <>{children}</>;
-  }
-
   return (
     <>
       <SiteHeader navLinks={headerMenu} />

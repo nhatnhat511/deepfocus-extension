@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { getPublicRoadmap } from "@/lib/cms/publicContent.server";
 
 export const metadata: Metadata = {
   title: "Roadmap",
@@ -35,15 +34,8 @@ const roadmap = [
   },
 ];
 
-export default async function RoadmapPage() {
-  const cmsRoadmap = await getPublicRoadmap();
-  const blocks =
-    cmsRoadmap.length > 0
-      ? cmsRoadmap.map((entry) => ({
-          stage: entry.stage,
-          points: Array.isArray(entry.points) ? entry.points : [],
-        }))
-      : roadmap;
+export default function RoadmapPage() {
+  const blocks = roadmap;
 
   return (
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">

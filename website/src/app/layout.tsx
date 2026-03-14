@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
 import AppChrome from "@/components/AppChrome";
-import { getPublicMenus } from "@/lib/cms/publicMenus.server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -54,7 +53,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { headerMenu, footerMenu } = await getPublicMenus();
+  const headerMenu = [
+    { label: "Home", href: "/" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Roadmap", href: "/roadmap" },
+    { label: "Changelog", href: "/changelog" },
+    { label: "Blog", href: "/blog" },
+  ];
+  const footerMenu = [
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+    { label: "Support", href: "/support" },
+    { label: "Contact", href: "/contact" },
+  ];
 
   return (
     <html lang="en">

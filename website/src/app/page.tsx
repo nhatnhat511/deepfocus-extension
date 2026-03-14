@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { HomepageRenderer } from "@/components/homepage/HomepageRenderer";
-import { getPublicHomeSections, getPublicSiteSetting } from "@/lib/cms/publicContent.server";
-import { buildHomepageRenderModelFromSections } from "@/lib/cms/homepageRenderModel";
+import { buildHomepageRenderModelFromBlocks } from "@/lib/cms/homepageRenderModel";
 
 export const metadata: Metadata = {
   title: {
@@ -12,13 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const cmsSections = await getPublicHomeSections();
-  const flexAllowlist = await getPublicSiteSetting("homepage_flex_allowlist");
-  const htmlRenderSetting = await getPublicSiteSetting("homepage_html_render");
-  const htmlRenderEnabled = ["1", "true", "enabled", "yes", "on"].includes(htmlRenderSetting.trim().toLowerCase());
-  const model = buildHomepageRenderModelFromSections(cmsSections);
+  const model = buildHomepageRenderModelFromBlocks([]);
 
-  return <HomepageRenderer model={model} flexAllowlist={flexAllowlist} htmlRenderEnabled={htmlRenderEnabled} />;
+  return <HomepageRenderer model={model} flexAllowlist="" htmlRenderEnabled={false} />;
 }
 
 // redeploy trigger

@@ -1,59 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicPostBySlug } from "@/lib/cms/publicContent.server";
-import { basicSanitizeHtml } from "@/lib/sanitize/basicSanitize";
-
-export const runtime = "edge";
+import { blogPosts } from "../posts";
 
 type BlogPageProps = {
   params: { slug: string };
 };
 
-function formatPostDate(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString();
+function getPostBySlug(slug: string) {
+  return blogPosts.find((post) => post.slug === slug) || null;
 }
 
-function sanitizePostHtml(source: string) {
-  return basicSanitizeHtml(source, {
-    allowedTags: [
-      "p",
-      "br",
-      "strong",
-      "em",
-      "b",
-      "i",
-      "u",
-      "s",
-      "ul",
-      "ol",
-      "li",
-      "a",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "blockquote",
-      "code",
-      "pre",
-      "hr",
-      "span",
-      "div",
-      "img",
-    ],
-    allowedAttributes: {
-      a: ["href", "target", "rel"],
-      img: ["src", "alt", "title", "width", "height", "loading"],
-    },
-    allowDataImages: true,
-  });
+export function generateStaticParams() {
+  return blogPosts.map((post) => ({ slug: post.slug }));
 }
 
-export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
-  const post = await getPublicPostBySlug(params.slug);
+export const dynamicParams = false;
+
+export function generateMetadata({ params }: BlogPageProps): Metadata {
+  const post = getPostBySlug(params.slug);
   if (!post) {
     return {
       title: "Blog",
@@ -62,33 +27,52 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
   }
   return {
     title: post.title,
-    description: post.excerpt ?? "DeepFocus Time insights on focus routines and productivity.",
+    description: post.excerpt,
+    openGraph: post.featuredImage
+      ? {
+          images: [
+            {
+              url: post.featuredImage,
+              alt: post.title,
+            },
+          ],
+        }
+      : undefined,
   };
 }
 
-export default async function BlogPostPage({ params }: BlogPageProps) {
-  const post = await getPublicPostBySlug(params.slug);
+export default function BlogPostPage({ params }: BlogPageProps) {
+  const post = getPostBySlug(params.slug);
   if (!post) {
     notFound();
   }
 
-  const dateLabel = formatPostDate(post.published_at ?? post.updated_at);
-  const sanitized = sanitizePostHtml(post.content || "");
-
   return (
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
       <header>
-        {dateLabel ? (
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{dateLabel}</p>
-        ) : null}
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {new Date(post.date).toLocaleDateString()}
+          {post.author ? ` - ${post.author}` : ""}
+        </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{post.title}</h1>
-        {post.excerpt ? <p className="mt-2 text-sm text-slate-600">{post.excerpt}</p> : null}
+        <p className="mt-2 text-sm text-slate-600">{post.excerpt}</p>
       </header>
 
-      <section
-        className="prose prose-slate max-w-none text-sm leading-6"
-        dangerouslySetInnerHTML={{ __html: sanitized || "<p>No content yet.</p>" }}
-      />
+      {post.featuredImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={post.featuredImage}
+          alt={post.title}
+          className="h-56 w-full rounded-xl border border-slate-200 object-contain bg-slate-50"
+          loading="lazy"
+        />
+      ) : null}
+
+      <section className="space-y-4 text-sm leading-6 text-slate-700">
+        {post.content.map((paragraph, index) => (
+          <p key={`${post.slug}-${index}`}>{paragraph}</p>
+        ))}
+      </section>
 
       <div>
         <Link
