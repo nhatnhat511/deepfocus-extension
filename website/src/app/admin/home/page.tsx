@@ -50,6 +50,7 @@ export default function AdminHome() {
   const [flexSaving, setFlexSaving] = useState(false);
   const [flexStatus, setFlexStatus] = useState("");
   const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number; label: string } | null>(null);
+  const [previewPublic, setPreviewPublic] = useState(false);
   const inspectorRefs = useRef<Record<string, HTMLLabelElement | null>>({});
 
   const normalizeBlocks = useCallback((source: HomepageBlock[]) => {
@@ -203,7 +204,7 @@ export default function AdminHome() {
       window.removeEventListener("scroll", updateToolbar, true);
       window.removeEventListener("resize", updateToolbar);
     };
-  }, [selectedField, selectedUid]);
+  }, [previewPublic, selectedField, selectedUid]);
 
   async function saveFlexAllowlist() {
     setFlexSaving(true);
@@ -554,7 +555,16 @@ export default function AdminHome() {
                 <h2 className="wp-panel-title text-base text-slate-900">Live Canvas</h2>
                 <p className="mt-1 text-xs text-slate-500">Centered working surface using the current homepage structure and styles.</p>
               </div>
-              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{blocks.length} blocks</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{blocks.length} blocks</span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewPublic((prev) => !prev)}
+                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-slate-300"
+                >
+                  {previewPublic ? "Exit Public Preview" : "Preview Public"}
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -562,23 +572,28 @@ export default function AdminHome() {
             ) : (
               <HomepageRenderer
                 model={buildHomepageRenderModelFromBlocks(blocks)}
-                editable={{
-                  selectedId: selectedUid,
-                  selectedField,
-                  onSelect: (id) => {
-                    setSelectedUid(id);
-                    setSelectedField("");
-                  },
-                  onFocusField: (id, field) => {
-                    setSelectedUid(id);
-                    setSelectedField(field);
-                  },
-                  onInlineChange: handleInlineChange,
-                  onDuplicate: duplicateBlock,
-                  onRemove: removeBlock,
-                  onDragStart: setDragUid,
-                  onDrop: (targetUid) => moveBlock(dragUid, targetUid),
-                }}
+                flexAllowlist={publicFlexAllowlist}
+                editable={
+                  previewPublic
+                    ? undefined
+                    : {
+                        selectedId: selectedUid,
+                        selectedField,
+                        onSelect: (id) => {
+                          setSelectedUid(id);
+                          setSelectedField("");
+                        },
+                        onFocusField: (id, field) => {
+                          setSelectedUid(id);
+                          setSelectedField(field);
+                        },
+                        onInlineChange: handleInlineChange,
+                        onDuplicate: duplicateBlock,
+                        onRemove: removeBlock,
+                        onDragStart: setDragUid,
+                        onDrop: (targetUid) => moveBlock(dragUid, targetUid),
+                      }
+                }
               />
             )}
           </section>
