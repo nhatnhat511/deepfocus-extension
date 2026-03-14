@@ -29,11 +29,16 @@ function blockLabel(type: HomepageBlockType) {
   return homepagePalette.find((item) => item.type === type)?.label || type;
 }
 
+function inspectorFieldClass(isFocused: boolean) {
+  return `grid gap-1 rounded-xl border px-3 py-3 text-xs font-semibold ${isFocused ? "border-sky-300 bg-sky-50 text-sky-800 ring-2 ring-sky-100" : "border-slate-200 text-slate-600"}`;
+}
+
 export default function AdminHome() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [documentId, setDocumentId] = useState("");
   const [blocks, setBlocks] = useState<HomepageBlock[]>([]);
   const [selectedUid, setSelectedUid] = useState("");
+  const [selectedField, setSelectedField] = useState("");
   const [dragUid, setDragUid] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,6 +109,7 @@ export default function AdminHome() {
     const normalized = nextBlocks.map((block, index) => ({ ...block, sortOrder: index }));
     setBlocks(normalized);
     setSelectedUid(normalized[0]?.uid || "");
+    setSelectedField("");
     setStatus(nextStatus);
     setError("");
   }
@@ -112,6 +118,7 @@ export default function AdminHome() {
     const nextBlock = createHomepageBlock(type, seed);
     setBlocks((current) => [...current, { ...nextBlock, sortOrder: current.length }]);
     setSelectedUid(nextBlock.uid);
+    setSelectedField("");
     setStatus(`Added ${blockLabel(type)}.`);
   }
 
@@ -149,6 +156,7 @@ export default function AdminHome() {
         .map((block, index) => ({ ...block, sortOrder: index }))
     );
     setSelectedUid(copy.uid);
+    setSelectedField("");
     setStatus(`Duplicated ${blockLabel(source.type)}.`);
   }
 
@@ -156,6 +164,7 @@ export default function AdminHome() {
     const next = blocks.filter((block) => block.uid !== uid).map((block, index) => ({ ...block, sortOrder: index }));
     setBlocks(next);
     setSelectedUid(next[0]?.uid || "");
+    setSelectedField("");
     setStatus("Removed block.");
   }
 
@@ -314,7 +323,15 @@ export default function AdminHome() {
                 model={buildHomepageRenderModelFromBlocks(blocks)}
                 editable={{
                   selectedId: selectedUid,
-                  onSelect: setSelectedUid,
+                  selectedField,
+                  onSelect: (id) => {
+                    setSelectedUid(id);
+                    setSelectedField("");
+                  },
+                  onFocusField: (id, field) => {
+                    setSelectedUid(id);
+                    setSelectedField(field);
+                  },
                   onDuplicate: duplicateBlock,
                   onRemove: removeBlock,
                   onDragStart: setDragUid,
@@ -329,7 +346,7 @@ export default function AdminHome() {
             <p className="mt-1 text-xs text-slate-500">Edit the selected block and see the homepage canvas respond immediately.</p>
             {selectedBlock ? (
               <div className="mt-4 grid gap-4">
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "key")}>
                   Block key
                   <input
                     className="wp-field"
@@ -337,7 +354,7 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { key: event.target.value })}
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "type")}>
                   Block type
                   <select
                     className="wp-select"
@@ -356,7 +373,7 @@ export default function AdminHome() {
                     ))}
                   </select>
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "eyebrow")}>
                   Eyebrow / label
                   <input
                     className="wp-field"
@@ -365,7 +382,7 @@ export default function AdminHome() {
                     placeholder="Optional small label above the block"
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "title")}>
                   Title
                   <input
                     className="wp-field"
@@ -373,7 +390,7 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { title: event.target.value })}
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "subtitle")}>
                   Body / copy
                   <textarea
                     className="wp-textarea"
@@ -383,7 +400,7 @@ export default function AdminHome() {
                     placeholder="Primary descriptive copy for this block"
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "items")}>
                   Multi-item content
                   <textarea
                     className="wp-textarea"
@@ -397,7 +414,7 @@ export default function AdminHome() {
                     placeholder="One line per item"
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "primaryLabel")}>
                   Primary button label
                   <input
                     className="wp-field"
@@ -405,7 +422,7 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { primaryLabel: event.target.value })}
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "primaryHref")}>
                   Primary button URL
                   <input
                     className="wp-field"
@@ -413,7 +430,7 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { primaryHref: event.target.value })}
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "secondaryLabel")}>
                   Secondary button label
                   <input
                     className="wp-field"
@@ -421,7 +438,7 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { secondaryLabel: event.target.value })}
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "secondaryHref")}>
                   Secondary button URL
                   <input
                     className="wp-field"
@@ -429,7 +446,7 @@ export default function AdminHome() {
                     onChange={(event) => updateBlock(selectedBlock.uid, { secondaryHref: event.target.value })}
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "mediaUrl")}>
                   Media / note field
                   <textarea
                     className="wp-textarea"
@@ -439,7 +456,7 @@ export default function AdminHome() {
                     placeholder="Media URL, demo URL, or internal preview note"
                   />
                 </label>
-                <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                <label className={inspectorFieldClass(selectedField === "enabled")}>
                   Visibility
                   <select
                     className="wp-select"
