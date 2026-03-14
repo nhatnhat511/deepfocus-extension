@@ -810,7 +810,7 @@ export function HomepageRenderer({
           { id: "secondaryLabel", label: "Secondary CTA" },
         ]}
       >
-        <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-8 sm:p-10">
+        <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8">
           <p className="mb-3 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
             <FieldTarget blockId={model.hero.id} field="eyebrow" controls={editable} label="Label">
               <InlineEditableText
@@ -886,36 +886,38 @@ export function HomepageRenderer({
               />
             </div>
           ) : null}
-          <div className="mt-6">
-            <EditableFrame
-              id={model.heroHighlights.id}
-              label="Hero Highlights"
-              selectedId={editable?.selectedId}
-              controls={editable}
-              compact
-              fieldOptions={[{ id: "items", label: "Items" }]}
-            >
-              <FieldTarget blockId={model.heroHighlights.id} field="items" controls={editable} className="block" label="Items">
-                {editable?.selectedId === model.heroHighlights.id && editable?.selectedField === "items" ? (
-                  <InlineEditableList
-                    blockId={model.heroHighlights.id}
-                    field="items"
-                    items={model.heroHighlights.items}
-                    controls={editable}
-                    className="grid gap-2 sm:grid-cols-3"
-                  />
-                ) : (
-                  <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-                    {model.heroHighlights.items.map((item) => (
-                      <p key={item} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                        {item}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </FieldTarget>
-            </EditableFrame>
-          </div>
+          {model.heroHighlights.items.length ? (
+            <div className="mt-6">
+              <EditableFrame
+                id={model.heroHighlights.id}
+                label="Hero Highlights"
+                selectedId={editable?.selectedId}
+                controls={editable}
+                compact
+                fieldOptions={[{ id: "items", label: "Items" }]}
+              >
+                <FieldTarget blockId={model.heroHighlights.id} field="items" controls={editable} className="block" label="Items">
+                  {editable?.selectedId === model.heroHighlights.id && editable?.selectedField === "items" ? (
+                    <InlineEditableList
+                      blockId={model.heroHighlights.id}
+                      field="items"
+                      items={model.heroHighlights.items}
+                      controls={editable}
+                      className="grid gap-2 sm:grid-cols-3"
+                    />
+                  ) : (
+                    <div className="grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
+                      {model.heroHighlights.items.map((item) => (
+                        <p key={item} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                          {item}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </FieldTarget>
+              </EditableFrame>
+            </div>
+          ) : null}
         </section>
       </EditableFrame>
 
