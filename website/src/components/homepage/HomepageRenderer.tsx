@@ -7,11 +7,59 @@ type EditableControls = {
   selectedField?: string;
   onSelect?: (id: string) => void;
   onFocusField?: (id: string, field: string) => void;
+  onInlineChange?: (id: string, field: string, value: string) => void;
   onDuplicate?: (id: string) => void;
   onRemove?: (id: string) => void;
   onDragStart?: (id: string) => void;
   onDrop?: (id: string) => void;
 };
+
+function InlineEditableText({
+  blockId,
+  field,
+  value,
+  controls,
+  className,
+  multiline = false,
+}: {
+  blockId: string;
+  field: string;
+  value: string;
+  controls?: EditableControls;
+  className: string;
+  multiline?: boolean;
+}) {
+  const active = controls?.selectedId === blockId && controls?.selectedField === field;
+
+  if (!controls?.onInlineChange) {
+    return multiline ? <p className={className}>{value}</p> : <span className={className}>{value}</span>;
+  }
+
+  if (active) {
+    if (multiline) {
+      return (
+        <textarea
+          value={value}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => controls.onInlineChange?.(blockId, field, event.target.value)}
+          className={`w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-inherit shadow-sm outline-none ring-2 ring-sky-100 ${className}`}
+          rows={3}
+        />
+      );
+    }
+
+    return (
+      <input
+        value={value}
+        onClick={(event) => event.stopPropagation()}
+        onChange={(event) => controls.onInlineChange?.(blockId, field, event.target.value)}
+        className={`w-full rounded-xl border border-sky-300 bg-white px-3 py-2 text-inherit shadow-sm outline-none ring-2 ring-sky-100 ${className}`}
+      />
+    );
+  }
+
+  return multiline ? <p className={className}>{value}</p> : <span className={className}>{value}</span>;
+}
 
 function FieldTarget({
   blockId,
@@ -234,24 +282,73 @@ export function HomepageRenderer({
         <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-8 sm:p-10">
           <p className="mb-3 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
             <FieldTarget blockId={model.hero.id} field="eyebrow" controls={editable}>
-              <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{model.hero.eyebrow}</span>
+              <InlineEditableText
+                blockId={model.hero.id}
+                field="eyebrow"
+                value={model.hero.eyebrow}
+                controls={editable}
+                className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700"
+              />
             </FieldTarget>
           </p>
           <FieldTarget blockId={model.hero.id} field="title" controls={editable} className="block">
-            <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">{model.hero.title}</h1>
+            <InlineEditableText
+              blockId={model.hero.id}
+              field="title"
+              value={model.hero.title}
+              controls={editable}
+              className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl"
+            />
           </FieldTarget>
           <FieldTarget blockId={model.hero.id} field="subtitle" controls={editable} className="mt-4 block">
             <p className="max-w-2xl text-lg text-slate-600">{model.hero.subtitle}</p>
           </FieldTarget>
           <div className="mt-8 flex flex-wrap gap-3">
             <FieldTarget blockId={model.hero.id} field="primaryLabel" controls={editable}>
-              <ActionButton action={model.hero.primaryAction} primary inert={!!editable} />
+              <ActionButton
+                action={{
+                  ...model.hero.primaryAction,
+                  label:
+                    editable?.selectedId === model.hero.id && editable?.selectedField === "primaryLabel" ? "" : model.hero.primaryAction.label,
+                }}
+                primary
+                inert
+              />
             </FieldTarget>
             <FieldTarget blockId={model.hero.id} field="secondaryLabel" controls={editable}>
-              <ActionButton action={model.hero.secondaryAction} inert={!!editable} />
+              <ActionButton
+                action={{
+                  ...model.hero.secondaryAction,
+                  label:
+                    editable?.selectedId === model.hero.id && editable?.selectedField === "secondaryLabel" ? "" : model.hero.secondaryAction.label,
+                }}
+                inert
+              />
             </FieldTarget>
             <ActionButton action={model.hero.tertiaryAction} inert={!!editable} />
           </div>
+          {editable?.selectedId === model.hero.id && editable?.selectedField === "primaryLabel" ? (
+            <div className="mt-3 max-w-xs">
+              <InlineEditableText
+                blockId={model.hero.id}
+                field="primaryLabel"
+                value={model.hero.primaryAction.label}
+                controls={editable}
+                className="text-sm font-semibold text-slate-900"
+              />
+            </div>
+          ) : null}
+          {editable?.selectedId === model.hero.id && editable?.selectedField === "secondaryLabel" ? (
+            <div className="mt-3 max-w-xs">
+              <InlineEditableText
+                blockId={model.hero.id}
+                field="secondaryLabel"
+                value={model.hero.secondaryAction.label}
+                controls={editable}
+                className="text-sm font-semibold text-slate-900"
+              />
+            </div>
+          ) : null}
           <div className="mt-6">
             <EditableFrame
               id={model.heroHighlights.id}
@@ -288,7 +385,13 @@ export function HomepageRenderer({
           >
             <article className="rounded-2xl border border-slate-200 bg-white p-5">
               <FieldTarget blockId={feature.id} field="title" controls={editable} className="block">
-                <h2 className="text-lg font-semibold text-slate-900">{feature.title}</h2>
+                <InlineEditableText
+                  blockId={feature.id}
+                  field="title"
+                  value={feature.title}
+                  controls={editable}
+                  className="text-lg font-semibold text-slate-900"
+                />
               </FieldTarget>
               <FieldTarget blockId={feature.id} field="subtitle" controls={editable} className="mt-2 block">
                 <p className="text-sm text-slate-600">{feature.description}</p>
@@ -312,7 +415,13 @@ export function HomepageRenderer({
         >
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <FieldTarget blockId={model.steps.id} field="title" controls={editable} className="block">
-              <h2 className="text-xl font-semibold text-slate-900">{model.steps.title}</h2>
+              <InlineEditableText
+                blockId={model.steps.id}
+                field="title"
+                value={model.steps.title}
+                controls={editable}
+                className="text-xl font-semibold text-slate-900"
+              />
             </FieldTarget>
             <ol className="mt-4 space-y-3 text-sm text-slate-700">
               {model.steps.items.map((step, index) => (
@@ -331,6 +440,17 @@ export function HomepageRenderer({
                 <ActionButton action={model.steps.primaryAction} inert={!!editable} />
               </FieldTarget>
             </div>
+            {editable?.selectedId === model.steps.id && editable?.selectedField === "primaryLabel" ? (
+              <div className="mt-3 max-w-xs">
+                <InlineEditableText
+                  blockId={model.steps.id}
+                  field="primaryLabel"
+                  value={model.steps.primaryAction.label}
+                  controls={editable}
+                  className="text-sm font-semibold text-slate-900"
+                />
+              </div>
+            ) : null}
           </article>
         </EditableFrame>
 
@@ -348,7 +468,13 @@ export function HomepageRenderer({
         >
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <FieldTarget blockId={model.audience.id} field="title" controls={editable} className="block">
-              <h2 className="text-xl font-semibold text-slate-900">{model.audience.title}</h2>
+              <InlineEditableText
+                blockId={model.audience.id}
+                field="title"
+                value={model.audience.title}
+                controls={editable}
+                className="text-xl font-semibold text-slate-900"
+              />
             </FieldTarget>
             <div className="mt-4 space-y-3 text-sm text-slate-700">
               {model.audience.items.map((item) => (
@@ -361,7 +487,13 @@ export function HomepageRenderer({
             </div>
             <div className="mt-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
               <FieldTarget blockId={model.audience.id} field="eyebrow" controls={editable} className="block">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{model.audience.previewLabel}</p>
+                <InlineEditableText
+                  blockId={model.audience.id}
+                  field="eyebrow"
+                  value={model.audience.previewLabel}
+                  controls={editable}
+                  className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                />
               </FieldTarget>
               <FieldTarget blockId={model.audience.id} field="mediaUrl" controls={editable} className="mt-2 block">
                 <p className="text-sm text-slate-700">{model.audience.previewText}</p>
@@ -383,7 +515,13 @@ export function HomepageRenderer({
       >
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <FieldTarget blockId={model.proofGrid.id} field="title" controls={editable} className="block">
-            <h2 className="text-xl font-semibold text-slate-900">{model.proofGrid.title}</h2>
+            <InlineEditableText
+              blockId={model.proofGrid.id}
+              field="title"
+              value={model.proofGrid.title}
+              controls={editable}
+              className="text-xl font-semibold text-slate-900"
+            />
           </FieldTarget>
           <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
             {model.proofGrid.items.map((item) => (
@@ -409,7 +547,13 @@ export function HomepageRenderer({
       >
         <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <FieldTarget blockId={model.cta.id} field="title" controls={editable} className="block">
-            <h2 className="text-xl font-semibold text-slate-900">{model.cta.title}</h2>
+            <InlineEditableText
+              blockId={model.cta.id}
+              field="title"
+              value={model.cta.title}
+              controls={editable}
+              className="text-xl font-semibold text-slate-900"
+            />
           </FieldTarget>
           <FieldTarget blockId={model.cta.id} field="subtitle" controls={editable} className="mt-2 block">
             <p className="max-w-3xl text-sm text-slate-600">{model.cta.subtitle}</p>
@@ -422,6 +566,28 @@ export function HomepageRenderer({
               <ActionButton action={model.cta.secondaryAction} inert={!!editable} />
             </FieldTarget>
           </div>
+          {editable?.selectedId === model.cta.id && editable?.selectedField === "primaryLabel" ? (
+            <div className="mt-3 max-w-xs">
+              <InlineEditableText
+                blockId={model.cta.id}
+                field="primaryLabel"
+                value={model.cta.primaryAction.label}
+                controls={editable}
+                className="text-sm font-semibold text-slate-900"
+              />
+            </div>
+          ) : null}
+          {editable?.selectedId === model.cta.id && editable?.selectedField === "secondaryLabel" ? (
+            <div className="mt-3 max-w-xs">
+              <InlineEditableText
+                blockId={model.cta.id}
+                field="secondaryLabel"
+                value={model.cta.secondaryAction.label}
+                controls={editable}
+                className="text-sm font-semibold text-slate-900"
+              />
+            </div>
+          ) : null}
         </section>
       </EditableFrame>
 

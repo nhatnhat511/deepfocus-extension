@@ -183,6 +183,20 @@ export default function AdminHome() {
     });
   }
 
+  function handleInlineChange(uid: string, field: string, value: string) {
+    if (field === "items") {
+      updateBlock(uid, { items: value.split("\n").map((item) => item.trim()).filter(Boolean) });
+      return;
+    }
+
+    if (field === "enabled") {
+      updateBlock(uid, { enabled: value === "enabled" });
+      return;
+    }
+
+    updateBlock(uid, { [field]: value } as Partial<HomepageBlock>);
+  }
+
   async function saveHomepage() {
     setSaving(true);
     setError("");
@@ -332,6 +346,7 @@ export default function AdminHome() {
                     setSelectedUid(id);
                     setSelectedField(field);
                   },
+                  onInlineChange: handleInlineChange,
                   onDuplicate: duplicateBlock,
                   onRemove: removeBlock,
                   onDragStart: setDragUid,
