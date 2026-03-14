@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 const STATUS_OPTIONS = ["draft", "scheduled", "published", "archived"] as const;
 
@@ -71,8 +72,8 @@ export default function AdminPages() {
   const filteredPages = pages.filter((item) => {
     const matchesSearch =
       !normalizedSearch ||
-      item.title?.toLowerCase().includes(normalizedSearch) ||
-      item.slug?.toLowerCase().includes(normalizedSearch);
+      item.title.toLowerCase().includes(normalizedSearch) ||
+      item.slug.toLowerCase().includes(normalizedSearch);
     const matchesStatus = statusFilter === "all" || item.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -98,8 +99,9 @@ export default function AdminPages() {
       seo_title: row.seo_title || "",
       seo_description: row.seo_description || "",
       og_image_url: row.og_image_url || "",
-      published_at: row.published_at || "",
+      published_at: row.published_at ? row.published_at.slice(0, 16) : "",
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function resetForm() {
@@ -111,6 +113,7 @@ export default function AdminPages() {
       setError("Slug and title are required.");
       return;
     }
+
     setSaving(true);
     setError("");
     try {
@@ -125,6 +128,7 @@ export default function AdminPages() {
         og_image_url: form.og_image_url.trim() || null,
         published_at: form.published_at ? new Date(form.published_at).toISOString() : null,
       };
+
       if (form.id) {
         const { error: updateError } = await supabase.from("cms_pages").update(payload).eq("id", form.id);
         if (updateError) throw updateError;
@@ -132,6 +136,7 @@ export default function AdminPages() {
         const { error: insertError } = await supabase.from("cms_pages").insert(payload);
         if (insertError) throw insertError;
       }
+
       resetForm();
       await loadPages();
     } catch (err) {
@@ -176,130 +181,142 @@ export default function AdminPages() {
 
   return (
     <section className="space-y-6">
-      <header className="wp-card p-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Pages</h1>
-        <p className="mt-2 text-sm text-slate-600">Create and manage static pages like FAQ, Pricing, or Support.</p>
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="wp-page-title">Pages</h1>
+          <p className="mt-1 text-sm text-slate-600">Edit static pages with a WordPress-style authoring layout.</p>
+        </div>
+        <button type="button" className="wp-btn" onClick={resetForm}>
+          Add New
+        </button>
       </header>
 
-      <section className="wp-card p-6">
-        <h2 className="wp-panel-title text-base text-slate-900">Page editor</h2>
-        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm text-slate-700">
-            Title
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.title}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            />
-          </label>
-          <label className="text-sm text-slate-700">
-            Slug
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.slug}
-              onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
-              placeholder="privacy"
-            />
-          </label>
-          <label className="text-sm text-slate-700 md:col-span-2">
-            Excerpt
-            <textarea
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              rows={2}
-              value={form.excerpt}
-              onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
-            />
-          </label>
-          <label className="text-sm text-slate-700 md:col-span-2">
-            Content
-            <textarea
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              rows={6}
-              value={form.content}
-              onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-            />
-          </label>
-          <label className="text-sm text-slate-700">
-            Status
-            <select
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.status}
-              onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm text-slate-700">
-            Publish at
-            <input
-              type="datetime-local"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.published_at}
-              onChange={(e) => setForm((prev) => ({ ...prev, published_at: e.target.value }))}
-            />
-          </label>
-          <label className="text-sm text-slate-700">
-            SEO title
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.seo_title}
-              onChange={(e) => setForm((prev) => ({ ...prev, seo_title: e.target.value }))}
-            />
-          </label>
-          <label className="text-sm text-slate-700">
-            SEO description
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.seo_description}
-              onChange={(e) => setForm((prev) => ({ ...prev, seo_description: e.target.value }))}
-            />
-          </label>
-          <label className="text-sm text-slate-700 md:col-span-2">
-            OG image URL
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              value={form.og_image_url}
-              onChange={(e) => setForm((prev) => ({ ...prev, og_image_url: e.target.value }))}
-            />
-          </label>
+      {error ? (
+        <section className="border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</section>
+      ) : null}
+
+      <section className="grid gap-5 xl:grid-cols-[1fr,300px]">
+        <div className="space-y-4">
+          <section className="wp-metabox">
+            <div className="wp-metabox-body space-y-4">
+              <input
+                className="wp-field text-3xl font-semibold"
+                placeholder="Add title"
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              />
+              <div className="grid gap-3 md:grid-cols-[1fr,220px]">
+                <input
+                  className="wp-field"
+                  placeholder="Slug"
+                  value={form.slug}
+                  onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
+                />
+                <input
+                  className="wp-field"
+                  placeholder="Page folder / section"
+                  value={form.seo_title}
+                  onChange={(e) => setForm((prev) => ({ ...prev, seo_title: e.target.value }))}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Content</div>
+            <div className="wp-metabox-body">
+              <RichTextEditor
+                value={form.content}
+                onChange={(value) => setForm((prev) => ({ ...prev, content: value }))}
+                placeholder="Write your page content here..."
+              />
+            </div>
+          </section>
+
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Excerpt</div>
+            <div className="wp-metabox-body">
+              <textarea
+                className="wp-textarea"
+                placeholder="Optional summary"
+                value={form.excerpt}
+                onChange={(e) => setForm((prev) => ({ ...prev, excerpt: e.target.value }))}
+              />
+            </div>
+          </section>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={savePage}
-            disabled={saving}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {saving ? "Saving..." : form.id ? "Update page" : "Create page"}
-          </button>
-          <button
-            type="button"
-            onClick={resetForm}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-          >
-            Clear
-          </button>
-        </div>
+
+        <aside className="space-y-4">
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Publish</div>
+            <div className="wp-metabox-body space-y-3">
+              <select
+                className="wp-select"
+                value={form.status}
+                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="datetime-local"
+                className="wp-field"
+                value={form.published_at}
+                onChange={(e) => setForm((prev) => ({ ...prev, published_at: e.target.value }))}
+              />
+              <div className="flex gap-2">
+                <button type="button" className="wp-btn wp-btn-primary" onClick={savePage} disabled={saving}>
+                  {saving ? "Saving..." : form.id ? "Update" : "Publish"}
+                </button>
+                <button type="button" className="wp-btn" onClick={resetForm}>
+                  Clear
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Featured Image</div>
+            <div className="wp-metabox-body space-y-3">
+              <input
+                className="wp-field"
+                placeholder="https://..."
+                value={form.og_image_url}
+                onChange={(e) => setForm((prev) => ({ ...prev, og_image_url: e.target.value }))}
+              />
+              <p className="text-xs text-slate-500">Use a URL from the Media Library for the featured image.</p>
+            </div>
+          </section>
+
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">SEO</div>
+            <div className="wp-metabox-body space-y-3">
+              <textarea
+                className="wp-textarea"
+                placeholder="SEO description"
+                value={form.seo_description}
+                onChange={(e) => setForm((prev) => ({ ...prev, seo_description: e.target.value }))}
+              />
+            </div>
+          </section>
+        </aside>
       </section>
 
-      <section className="wp-card p-6">
-        <h2 className="wp-panel-title text-base text-slate-900">Existing pages</h2>
+      <section className="wp-card p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="wp-panel-title text-base">All Pages</h2>
+          <span className="text-xs text-slate-500">{filteredPages.length} items</span>
+        </div>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading pages...</p>
         ) : filteredPages.length ? (
           <>
             <div className="wp-controls">
               <div className="wp-bulk">
-                <select
-                  className="wp-select"
-                  value={bulkAction}
-                  onChange={(e) => setBulkAction(e.target.value)}
-                >
+                <select className="wp-select" value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
                   <option value="none">Bulk actions</option>
                   <option value="delete">Delete</option>
                 </select>
@@ -309,11 +326,7 @@ export default function AdminPages() {
                 <span className="text-xs text-slate-500">{selectedIds.length} selected</span>
               </div>
               <div className="wp-group">
-                <select
-                  className="wp-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
+                <select className="wp-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                   <option value="all">All statuses</option>
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
@@ -331,101 +344,84 @@ export default function AdminPages() {
                 />
               </div>
             </div>
-          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-            <table className="wp-table">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      className="wp-checkbox"
-                      checked={allSelected}
-                      onChange={(e) => toggleSelectAll(e.target.checked)}
-                    />
-                  </th>
-                  <th>Title</th>
-                  <th>Slug</th>
-                  <th>Status</th>
-                  <th>Updated</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedPages.map((page) => (
-                  <tr key={page.id}>
-                    <td>
+            <div className="mt-4 overflow-hidden border border-slate-200 bg-white">
+              <table className="wp-table">
+                <thead>
+                  <tr>
+                    <th>
                       <input
                         type="checkbox"
                         className="wp-checkbox"
-                        checked={selectedIds.includes(page.id)}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setSelectedIds((prev) =>
-                            checked ? [...prev, page.id] : prev.filter((id) => id !== page.id),
-                          );
-                        }}
+                        checked={allSelected}
+                        onChange={(e) => toggleSelectAll(e.target.checked)}
                       />
-                    </td>
-                    <td className="font-semibold text-slate-900">{page.title}</td>
-                    <td className="text-slate-600">/{page.slug}</td>
-                    <td>
-                      <span className={`wp-pill ${page.status === "published" ? "is-live" : ""}`}>
-                        {page.status}
-                      </span>
-                    </td>
-                    <td className="text-slate-600">
-                      {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : "-"}
-                    </td>
-                    <td>
-                      <div className="wp-actions">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(page)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deletePage(page.id)}
-                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+                    </th>
+                    <th>Title</th>
+                    <th>Slug</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-            <span>
-              Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredPages.length)} of{" "}
-              {filteredPages.length}
-            </span>
-            <div className="wp-pagination">
-              <button
-                type="button"
-                className="wp-btn"
-                disabled={activePage === 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                Previous
-              </button>
-              <span className="wp-muted">
-                Page {activePage} of {pageCount}
-              </span>
-              <button
-                type="button"
-                className="wp-btn"
-                disabled={activePage === pageCount}
-                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
-              >
-                Next
-              </button>
+                </thead>
+                <tbody>
+                  {pagedPages.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          className="wp-checkbox"
+                          checked={selectedIds.includes(item.id)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSelectedIds((prev) =>
+                              checked ? [...prev, item.id] : prev.filter((id) => id !== item.id),
+                            );
+                          }}
+                        />
+                      </td>
+                      <td className="font-semibold">{item.title}</td>
+                      <td>/{item.slug}</td>
+                      <td>
+                        <span className={`wp-pill ${item.status === "published" ? "is-live" : ""}`}>{item.status}</span>
+                      </td>
+                      <td>{item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "-"}</td>
+                      <td>
+                        <div className="wp-actions">
+                          <button type="button" className="wp-btn" onClick={() => startEdit(item)}>
+                            Edit
+                          </button>
+                          <button type="button" className="wp-btn wp-btn-danger" onClick={() => deletePage(item.id)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+              <span>
+                Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredPages.length)} of{" "}
+                {filteredPages.length}
+              </span>
+              <div className="wp-pagination">
+                <button type="button" className="wp-btn" disabled={activePage === 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+                  Previous
+                </button>
+                <span className="wp-muted">
+                  Page {activePage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  className="wp-btn"
+                  disabled={activePage === pageCount}
+                  onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </>
         ) : (
           <p className="mt-3 text-sm text-slate-600">No pages match the current filters.</p>
@@ -434,4 +430,3 @@ export default function AdminPages() {
     </section>
   );
 }
-

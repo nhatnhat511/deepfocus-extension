@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -11,9 +11,14 @@ type MenuRow = {
 
 type MenuItem = { label: string; href: string };
 
+const defaultLocations = [
+  { key: "header", label: "Header Navigation" },
+  { key: "footer", label: "Footer Navigation" },
+];
+
 const emptyMenu = {
   id: "",
-  location: "main",
+  location: "header",
   items: [{ label: "Home", href: "/" }],
 };
 
@@ -24,12 +29,6 @@ export default function AdminMenus() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [locationFilter, setLocationFilter] = useState("all");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkAction, setBulkAction] = useState("none");
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
 
   async function loadMenus() {
     setLoading(true);
@@ -49,30 +48,11 @@ export default function AdminMenus() {
     void loadMenus();
   }, []);
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const uniqueLocations = Array.from(new Set(menus.map((menu) => menu.location))).filter(Boolean);
-  const filteredMenus = menus.filter((menu) => {
-    const matchesSearch =
-      !normalizedSearch ||
-      menu.location?.toLowerCase().includes(normalizedSearch) ||
-      (menu.items || []).some((item) => item.label.toLowerCase().includes(normalizedSearch));
-    const matchesLocation = locationFilter === "all" || menu.location === locationFilter;
-    return matchesSearch && matchesLocation;
-  });
-
-  const pageCount = Math.max(1, Math.ceil(filteredMenus.length / pageSize));
-  const activePage = Math.min(page, pageCount);
-  const pagedMenus = filteredMenus.slice((activePage - 1) * pageSize, activePage * pageSize);
-  const currentIds = pagedMenus.map((menu) => menu.id);
-  const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedIds.includes(id));
-
-  useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
-
   function updateItem(index: number, field: keyof MenuItem, value: string) {
     setForm((prev) => {
-      const nextItems = prev.items.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+      const nextItems = prev.items.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      );
       return { ...prev, items: nextItems };
     });
   }
@@ -82,19 +62,19 @@ export default function AdminMenus() {
   }
 
   function removeItem(index: number) {
-    setForm((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== index) }));
+    setForm((prev) => ({ ...prev, items: prev.items.filter((_, itemIndex) => itemIndex !== index) }));
   }
 
   function startEdit(menu: MenuRow) {
     setForm({
       id: menu.id,
-      location: menu.location || "main",
+      location: menu.location || "header",
       items: menu.items?.length ? menu.items : [{ label: "", href: "" }],
     });
   }
 
-  function resetForm() {
-    setForm({ ...emptyMenu });
+  function resetForm(location = "header") {
+    setForm({ id: "", location, items: [{ label: "Home", href: "/" }] });
   }
 
   async function saveMenu() {
@@ -102,25 +82,34 @@ export default function AdminMenus() {
       setError("Menu location is required.");
       return;
     }
+
     const sanitizedItems = form.items
       .map((item) => ({ label: item.label.trim(), href: item.href.trim() }))
       .filter((item) => item.label && item.href);
+
     if (!sanitizedItems.length) {
       setError("Add at least one menu item.");
       return;
     }
+
     setSaving(true);
     setError("");
     try {
       const payload = { location: form.location.trim(), items: sanitizedItems };
+      const existing = menus.find((item) => item.location === form.location && item.id !== form.id);
+
       if (form.id) {
         const { error: updateError } = await supabase.from("cms_menus").update(payload).eq("id", form.id);
         if (updateError) throw updateError;
+      } else if (existing) {
+        const { error: updateExistingError } = await supabase.from("cms_menus").update(payload).eq("id", existing.id);
+        if (updateExistingError) throw updateExistingError;
       } else {
         const { error: insertError } = await supabase.from("cms_menus").insert(payload);
         if (insertError) throw insertError;
       }
-      resetForm();
+
+      resetForm(form.location);
       await loadMenus();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save menu.");
@@ -140,231 +129,175 @@ export default function AdminMenus() {
     }
   }
 
-  async function applyBulkAction() {
-    if (bulkAction !== "delete" || selectedIds.length === 0) return;
-    setError("");
-    try {
-      const { error: bulkError } = await supabase.from("cms_menus").delete().in("id", selectedIds);
-      if (bulkError) throw bulkError;
-      setSelectedIds([]);
-      setBulkAction("none");
-      await loadMenus();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to apply bulk action.");
-    }
-  }
-
-  function toggleSelectAll(checked: boolean) {
-    if (checked) {
-      setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])));
-    } else {
-      setSelectedIds((prev) => prev.filter((id) => !currentIds.includes(id)));
-    }
-  }
+  const menuByLocation = new Map(menus.map((menu) => [menu.location, menu]));
 
   return (
     <section className="space-y-6">
-      <header className="wp-card p-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Menus</h1>
-        <p className="mt-2 text-sm text-slate-600">Build navigation menus for header and footer.</p>
+      <header>
+        <h1 className="wp-page-title">Menus</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Manage header and footer navigation with dedicated menu locations, similar to WordPress Appearance &gt; Menus.
+        </p>
       </header>
 
-      <section className="wp-card p-6">
-        <h2 className="wp-panel-title text-base text-slate-900">Menu editor</h2>
-        {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
-        <label className="mt-4 block text-sm text-slate-700">
-          Menu location
-          <input
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            value={form.location}
-            onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
-            placeholder="main"
-          />
-        </label>
-        <div className="mt-4 space-y-3">
-          {form.items.map((item, index) => (
-            <div key={index} className="grid gap-2 md:grid-cols-[1fr,1fr,auto]">
-              <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                placeholder="Label"
-                value={item.label}
-                onChange={(e) => updateItem(index, "label", e.target.value)}
-              />
-              <input
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                placeholder="/pricing"
-                value={item.href}
-                onChange={(e) => updateItem(index, "href", e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => removeItem(index)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={addItem}
-          className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700"
-        >
-          Add item
-        </button>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={saveMenu}
-            disabled={saving}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {saving ? "Saving..." : form.id ? "Update menu" : "Create menu"}
-          </button>
-          <button
-            type="button"
-            onClick={resetForm}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
-          >
-            Clear
-          </button>
-        </div>
-      </section>
+      {error ? (
+        <section className="border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</section>
+      ) : null}
 
-      <section className="wp-card p-6">
-        <h2 className="wp-panel-title text-base text-slate-900">Existing menus</h2>
-        {loading ? (
-          <p className="mt-3 text-sm text-slate-600">Loading menus...</p>
-        ) : filteredMenus.length ? (
-          <>
-            <div className="wp-controls">
-              <div className="wp-bulk">
+      <section className="grid gap-5 xl:grid-cols-[360px,1fr]">
+        <aside className="space-y-4">
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Menu Locations</div>
+            <div className="wp-metabox-body space-y-3">
+              {defaultLocations.map((location) => {
+                const linkedMenu = menuByLocation.get(location.key);
+                const active = form.location === location.key;
+                return (
+                  <button
+                    key={location.key}
+                    type="button"
+                    className={`flex w-full items-center justify-between border px-3 py-3 text-left ${active ? "border-[#2271b1] bg-[#f0f6fc]" : "border-slate-200 bg-white"}`}
+                    onClick={() => {
+                      if (linkedMenu) {
+                        startEdit(linkedMenu);
+                      } else {
+                        resetForm(location.key);
+                      }
+                    }}
+                  >
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-900">{location.label}</span>
+                      <span className="block text-xs text-slate-500">{location.key}</span>
+                    </span>
+                    <span className={`wp-pill ${linkedMenu ? "is-live" : ""}`}>{linkedMenu ? "configured" : "empty"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Assigned Menus</div>
+            <div className="wp-metabox-body space-y-3">
+              {defaultLocations.map((location) => {
+                const linkedMenu = menuByLocation.get(location.key);
+                return (
+                  <div key={location.key} className="border border-slate-200 px-3 py-3">
+                    <div className="text-sm font-semibold text-slate-900">{location.label}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {linkedMenu ? `${linkedMenu.items.length} items assigned` : "No menu assigned"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </aside>
+
+        <div className="space-y-4">
+          <section className="wp-metabox">
+            <div className="wp-metabox-title">Edit Menu Structure</div>
+            <div className="wp-metabox-body space-y-4">
+              <div className="grid gap-3 md:grid-cols-[220px,1fr]">
                 <select
                   className="wp-select"
-                  value={bulkAction}
-                  onChange={(e) => setBulkAction(e.target.value)}
+                  value={form.location}
+                  onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))}
                 >
-                  <option value="none">Bulk actions</option>
-                  <option value="delete">Delete</option>
-                </select>
-                <button type="button" className="wp-btn" onClick={applyBulkAction}>
-                  Apply
-                </button>
-                <span className="text-xs text-slate-500">{selectedIds.length} selected</span>
-              </div>
-              <div className="wp-group">
-                <select
-                  className="wp-select"
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                >
-                  <option value="all">All locations</option>
-                  {uniqueLocations.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
+                  {defaultLocations.map((location) => (
+                    <option key={location.key} value={location.key}>
+                      {location.label}
                     </option>
                   ))}
                 </select>
+                <div className="text-sm text-slate-600">
+                  Each location is edited independently. Header and footer can have different link structures.
+                </div>
               </div>
-              <div className="wp-search">
-                <input
-                  className="wp-input"
-                  placeholder="Search menus..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-            <table className="wp-table">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      className="wp-checkbox"
-                      checked={allSelected}
-                      onChange={(e) => toggleSelectAll(e.target.checked)}
-                    />
-                  </th>
-                  <th>Location</th>
-                  <th>Items</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedMenus.map((menu) => (
-                  <tr key={menu.id}>
-                    <td>
+
+              <div className="space-y-3">
+                {form.items.map((item, index) => (
+                  <div key={`${form.location}-${index}`} className="border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold text-slate-900">Menu Item {index + 1}</div>
+                      <button type="button" className="wp-btn wp-btn-danger" onClick={() => removeItem(index)}>
+                        Remove
+                      </button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
                       <input
-                        type="checkbox"
-                        className="wp-checkbox"
-                        checked={selectedIds.includes(menu.id)}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setSelectedIds((prev) =>
-                            checked ? [...prev, menu.id] : prev.filter((id) => id !== menu.id),
-                          );
-                        }}
+                        className="wp-field"
+                        placeholder="Navigation label"
+                        value={item.label}
+                        onChange={(e) => updateItem(index, "label", e.target.value)}
                       />
-                    </td>
-                    <td className="font-semibold text-slate-900">{menu.location}</td>
-                    <td className="text-slate-600">{menu.items?.length || 0}</td>
-                    <td>
-                      <div className="wp-actions">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(menu)}
-                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteMenu(menu.id)}
-                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      <input
+                        className="wp-field"
+                        placeholder="/pricing"
+                        value={item.href}
+                        onChange={(e) => updateItem(index, "href", e.target.value)}
+                      />
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-            <span>
-              Showing {(activePage - 1) * pageSize + 1}-{Math.min(activePage * pageSize, filteredMenus.length)} of{" "}
-              {filteredMenus.length}
-            </span>
-            <div className="wp-pagination">
-              <button
-                type="button"
-                className="wp-btn"
-                disabled={activePage === 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                Previous
-              </button>
-              <span className="wp-muted">
-                Page {activePage} of {pageCount}
-              </span>
-              <button
-                type="button"
-                className="wp-btn"
-                disabled={activePage === pageCount}
-                onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
-              >
-                Next
-              </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="wp-btn" onClick={addItem}>
+                  Add Menu Item
+                </button>
+                <button type="button" className="wp-btn wp-btn-primary" onClick={saveMenu} disabled={saving}>
+                  {saving ? "Saving..." : form.id ? "Update Menu" : "Save Menu"}
+                </button>
+                <button type="button" className="wp-btn" onClick={() => resetForm(form.location)}>
+                  Reset
+                </button>
+              </div>
             </div>
-          </div>
-          </>
-        ) : (
-          <p className="mt-3 text-sm text-slate-600">No menus match the current filters.</p>
-        )}
+          </section>
+
+          <section className="wp-card p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="wp-panel-title text-base">All Configured Menus</h2>
+              <span className="text-xs text-slate-500">{menus.length} menus</span>
+            </div>
+            {loading ? (
+              <p className="mt-3 text-sm text-slate-600">Loading menus...</p>
+            ) : menus.length ? (
+              <div className="mt-4 overflow-hidden border border-slate-200 bg-white">
+                <table className="wp-table">
+                  <thead>
+                    <tr>
+                      <th>Location</th>
+                      <th>Items</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {menus.map((menu) => (
+                      <tr key={menu.id}>
+                        <td className="font-semibold">{menu.location}</td>
+                        <td>{menu.items?.length || 0}</td>
+                        <td>
+                          <div className="wp-actions">
+                            <button type="button" className="wp-btn" onClick={() => startEdit(menu)}>
+                              Edit
+                            </button>
+                            <button type="button" className="wp-btn wp-btn-danger" onClick={() => deleteMenu(menu.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-600">No menus configured yet.</p>
+            )}
+          </section>
+        </div>
       </section>
     </section>
   );

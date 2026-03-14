@@ -3,7 +3,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="admin-shell mx-auto max-w-6xl space-y-6">
+    <div className="admin-shell min-h-screen">
       <AdminShell>{children}</AdminShell>
     </div>
   );

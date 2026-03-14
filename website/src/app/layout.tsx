@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import SiteHeader from "@/components/SiteHeader";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
+import AppChrome from "@/components/AppChrome";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -71,45 +70,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthHashRedirect />
-        <SiteHeader />
-        <main className="mx-auto min-h-[calc(100vh-9rem)] w-full max-w-6xl px-4 py-10">{children}</main>
-        <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 px-4 py-5 text-sm text-slate-600">
-            <span>&copy; {new Date().getFullYear()} DeepFocus Time</span>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link href="/pricing" className="hover:text-slate-900">
-                Pricing
-              </Link>
-              <Link href="/faq" className="hover:text-slate-900">
-                FAQ
-              </Link>
-              <Link href="/blog" className="hover:text-slate-900">
-                Blog
-              </Link>
-              <Link href="/privacy" className="hover:text-slate-900">
-                Privacy
-              </Link>
-              <Link href="/terms" className="hover:text-slate-900">
-                Terms
-              </Link>
-              <Link href="/refund" className="hover:text-slate-900">
-                Refund
-              </Link>
-              <Link href="/support" className="hover:text-slate-900">
-                Support
-              </Link>
-              <Link href="/changelog" className="hover:text-slate-900">
-                Changelog
-              </Link>
-              <Link href="/roadmap" className="hover:text-slate-900">
-                Roadmap
-              </Link>
-              <Link href="/contact" className="hover:text-slate-900">
-                Contact
-              </Link>
-            </div>
-          </div>
-        </footer>
+        <AppChrome>{children}</AppChrome>
       </body>
     </html>
   );
