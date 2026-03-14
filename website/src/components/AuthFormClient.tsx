@@ -664,7 +664,7 @@ export default function AuthFormClient({ mode }: { mode: AuthMode }) {
         </h1>
         <p className="mt-2 text-sm text-slate-600">
           {mode === "signup"
-            ? "Create your account to activate premium tools and keep your focus data organized."
+            ? "Create your account to get started with DeepFocus Time."
             : mode === "forgot"
               ? "Enter your account email to receive a reset link."
               : mode === "update"
