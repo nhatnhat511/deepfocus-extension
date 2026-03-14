@@ -40,17 +40,32 @@ const steps = [
   "Start a session and keep momentum with reminders and smart controls.",
 ];
 
+function splitPipeText(value: string | null | undefined) {
+  return (value || "")
+    .split("|")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export default async function Home() {
   const cmsSections = await getPublicHomeSections();
   const heroSection = cmsSections.find((section) => section.key === "hero");
+  const heroHighlightsSection = cmsSections.find((section) => section.key === "hero-highlights");
   const ctaSection = cmsSections.find((section) => section.key === "cta");
-  const featureSections = cmsSections.filter((section) => !["hero", "cta"].includes(section.key));
+  const featureSections = cmsSections.filter((section) => section.key.startsWith("feature"));
+  const stepsSection = cmsSections.find((section) => section.key.startsWith("steps"));
+  const audienceSection = cmsSections.find((section) => section.key.startsWith("audience"));
+  const proofSection = cmsSections.find((section) => section.key.startsWith("proof"));
+  const heroHighlights = splitPipeText(heroHighlightsSection?.subtitle);
+  const stepItems = splitPipeText(stepsSection?.subtitle);
+  const audienceItems = splitPipeText(audienceSection?.subtitle);
+  const proofItems = splitPipeText(proofSection?.subtitle);
 
   return (
     <div className="space-y-10">
       <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-sky-50 to-white p-8 sm:p-10">
         <p className="mb-3 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-          {heroSection?.key === "hero" && heroSection.title ? "Homepage Hero" : "Chrome Extension for Intentional Work"}
+          {heroSection?.image_url || "Chrome Extension for Intentional Work"}
         </p>
         <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
           {heroSection?.title || "Focus deeper in Chrome with a timer built for real workdays."}
@@ -91,9 +106,17 @@ export default async function Home() {
           </Link>
         </div>
         <div className="mt-6 grid gap-2 text-sm text-slate-600 sm:grid-cols-3">
-          <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">No card needed to start trial</p>
-          <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">Built for focused browser workflows</p>
-          <p className="rounded-lg border border-slate-200 bg-white px-3 py-2">Secure account auth with Supabase</p>
+          {(heroHighlights.length
+            ? heroHighlights
+            : [
+                "No card needed to start trial",
+                "Built for focused browser workflows",
+                "Secure account auth with Supabase",
+              ]).map((item) => (
+            <p key={item} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+              {item}
+            </p>
+          ))}
         </div>
       </section>
 
@@ -114,9 +137,9 @@ export default async function Home() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-slate-900">How it works</h2>
+          <h2 className="text-xl font-semibold text-slate-900">{stepsSection?.title || "How it works"}</h2>
           <ol className="mt-4 space-y-3 text-sm text-slate-700">
-            {steps.map((step, index) => (
+            {(stepItems.length ? stepItems : steps).map((step, index) => (
               <li key={step} className="flex items-start gap-3">
                 <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
                   {index + 1}
@@ -126,47 +149,56 @@ export default async function Home() {
             ))}
           </ol>
           <Link
-            href="/support"
+            href={stepsSection?.cta_href || "/support"}
             className="mt-5 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
           >
-            View Setup Help
+            {stepsSection?.cta_label || "View Setup Help"}
           </Link>
         </article>
 
         <article className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-xl font-semibold text-slate-900">Designed for people who work in Chrome</h2>
+          <h2 className="text-xl font-semibold text-slate-900">{audienceSection?.title || "Designed for people who work in Chrome"}</h2>
           <div className="mt-4 space-y-3 text-sm text-slate-700">
-            {useCases.map((item) => (
+            {(audienceItems.length
+              ? audienceItems.map((item) => {
+                  const [role, ...rest] = item.split(":");
+                  return { role: role.trim(), note: rest.join(":").trim() };
+                })
+              : useCases).map((item) => (
               <p key={item.role} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <span className="font-semibold text-slate-900">{item.role}:</span> {item.note}
               </p>
             ))}
           </div>
           <div className="mt-5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Product preview</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {audienceSection?.cta_label || "Product preview"}
+            </p>
             <p className="mt-2 text-sm text-slate-700">
-              Popup controls for Focus/Break, reminders, keyboard shortcuts, and Advanced Settings are available from a
-              single compact interface.
+              {audienceSection?.image_url ||
+                "Popup controls for Focus/Break, reminders, keyboard shortcuts, and Advanced Settings are available from a single compact interface."}
             </p>
           </div>
         </article>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold text-slate-900">Why teams choose DeepFocus Time</h2>
+        <h2 className="text-xl font-semibold text-slate-900">
+          {proofSection?.title || "Why teams choose DeepFocus Time"}
+        </h2>
         <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            Clear, practical feature set focused on daily execution instead of noisy dashboards.
-          </p>
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            Consistent account state across extension and website for trial and premium management.
-          </p>
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            Legal pages, support flow, and contact path ready for professional SaaS operations.
-          </p>
-          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            Lightweight UX built to reduce friction before, during, and after each focus session.
-          </p>
+          {(proofItems.length
+            ? proofItems
+            : [
+                "Clear, practical feature set focused on daily execution instead of noisy dashboards.",
+                "Consistent account state across extension and website for trial and premium management.",
+                "Legal pages, support flow, and contact path ready for professional SaaS operations.",
+                "Lightweight UX built to reduce friction before, during, and after each focus session.",
+              ]).map((item) => (
+            <p key={item} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              {item}
+            </p>
+          ))}
         </div>
       </section>
 

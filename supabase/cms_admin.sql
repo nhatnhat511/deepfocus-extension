@@ -112,6 +112,15 @@ create table if not exists public.cms_site_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.cms_homepage_documents (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique default 'homepage',
+  title text not null default 'Homepage',
+  blocks jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.cms_admins enable row level security;
 alter table public.cms_pages enable row level security;
 alter table public.cms_posts enable row level security;
@@ -121,6 +130,7 @@ alter table public.cms_faq enable row level security;
 alter table public.cms_changelog enable row level security;
 alter table public.cms_roadmap enable row level security;
 alter table public.cms_site_settings enable row level security;
+alter table public.cms_homepage_documents enable row level security;
 
 create policy "cms_admins_select" on public.cms_admins
   for select using (public.is_cms_admin());
@@ -241,6 +251,20 @@ create policy "cms_site_settings_insert" on public.cms_site_settings
 create policy "cms_site_settings_update" on public.cms_site_settings
   for update using (public.is_cms_admin());
 create policy "cms_site_settings_delete" on public.cms_site_settings
+  for delete using (public.is_cms_admin());
+
+drop policy if exists "cms_homepage_documents_select" on public.cms_homepage_documents;
+drop policy if exists "cms_homepage_documents_insert" on public.cms_homepage_documents;
+drop policy if exists "cms_homepage_documents_update" on public.cms_homepage_documents;
+drop policy if exists "cms_homepage_documents_delete" on public.cms_homepage_documents;
+
+create policy "cms_homepage_documents_select" on public.cms_homepage_documents
+  for select using (public.is_cms_admin());
+create policy "cms_homepage_documents_insert" on public.cms_homepage_documents
+  for insert with check (public.is_cms_admin());
+create policy "cms_homepage_documents_update" on public.cms_homepage_documents
+  for update using (public.is_cms_admin());
+create policy "cms_homepage_documents_delete" on public.cms_homepage_documents
   for delete using (public.is_cms_admin());
 
 commit;
