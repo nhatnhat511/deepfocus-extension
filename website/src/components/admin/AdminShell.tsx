@@ -395,11 +395,35 @@ export function AdminShell({ children }: AdminShellProps) {
           border: 1px solid #c3c4c7;
           background: #fff;
         }
-        .admin-shell .wp-editor-toolbar {
-          display: grid;
-          gap: 8px;
+        .admin-shell .wp-editor-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
           padding: 8px;
           background: #f6f7f7;
+          border-bottom: 1px solid #dcdcde;
+        }
+        .admin-shell .wp-editor-header-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .admin-shell .wp-editor-add-btn {
+          border: 1px solid #2271b1;
+          color: #2271b1;
+          background: #fff;
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 700;
+          border-radius: 4px;
+        }
+        .admin-shell .wp-editor-toolbar {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 8px;
+          background: #fff;
           border-bottom: 1px solid #dcdcde;
         }
         .admin-shell .wp-editor-tabs {
@@ -423,6 +447,7 @@ export function AdminShell({ children }: AdminShellProps) {
           display: flex;
           flex-wrap: wrap;
           gap: 6px;
+          align-items: center;
         }
         .admin-shell .wp-editor-group {
           display: inline-flex;
@@ -437,14 +462,43 @@ export function AdminShell({ children }: AdminShellProps) {
           padding: 6px 10px;
           font-size: 12px;
           font-weight: 700;
+          height: 30px;
         }
         .admin-shell .wp-editor-btn {
           border: 1px solid #c3c4c7;
           background: #fff;
           color: #1d2327;
-          padding: 6px 10px;
+          width: 30px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           font-size: 12px;
           font-weight: 700;
+        }
+        .admin-shell .wp-editor-divider {
+          width: 1px;
+          height: 24px;
+          background: #dcdcde;
+          margin: 0 4px;
+        }
+        .admin-shell .wp-editor-icon {
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .admin-shell .wp-editor-icon-italic {
+          font-style: italic;
+        }
+        .admin-shell .wp-editor-icon-underline {
+          text-decoration: underline;
+        }
+        .admin-shell .wp-editor-icon-strike {
+          text-decoration: line-through;
+        }
+        .admin-shell .wp-editor-svg {
+          width: 16px;
+          height: 16px;
+          fill: currentColor;
         }
         .admin-shell .wp-editor-surface {
           min-height: 480px;
@@ -453,6 +507,19 @@ export function AdminShell({ children }: AdminShellProps) {
           line-height: 1.7;
           color: #1d2327;
           outline: none;
+        }
+        .admin-shell .wp-editor-surface table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        .admin-shell .wp-editor-surface td,
+        .admin-shell .wp-editor-surface th {
+          border: 1px solid #dcdcde;
+          padding: 6px 8px;
+        }
+        .admin-shell .wp-editor-surface img {
+          max-width: 100%;
+          height: auto;
         }
         .admin-shell .wp-editor-html {
           min-height: 480px;
