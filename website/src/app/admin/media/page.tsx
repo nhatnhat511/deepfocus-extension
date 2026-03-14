@@ -77,13 +77,13 @@ export default function AdminMedia() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Media Library</h1>
         <p className="mt-2 text-sm text-slate-600">Upload logos, images, and files to Supabase Storage.</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Upload new media</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Upload new media</h2>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <input
@@ -103,41 +103,54 @@ export default function AdminMedia() {
         <p className="mt-3 text-xs text-slate-500">Bucket: {bucket}</p>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Files</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Files</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading media...</p>
         ) : files.length ? (
-          <div className="mt-4 space-y-3">
-            {files.map((file) => {
-              const url = getPublicUrl(file.name);
-              return (
-                <div key={file.name} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{file.name}</p>
-                    <a href={url} className="text-xs text-emerald-700 hover:underline" target="_blank" rel="noreferrer">
-                      {url}
-                    </a>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => navigator.clipboard.writeText(url)}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                    >
-                      Copy URL
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(file.name)}
-                      className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <table className="wp-table">
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>URL</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {files.map((file) => {
+                  const url = getPublicUrl(file.name);
+                  return (
+                    <tr key={file.name}>
+                      <td className="font-semibold text-slate-900">{file.name}</td>
+                      <td>
+                        <a href={url} className="text-emerald-700 hover:underline" target="_blank" rel="noreferrer">
+                          View
+                        </a>
+                      </td>
+                      <td>
+                        <div className="wp-actions">
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(url)}
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                          >
+                            Copy URL
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(file.name)}
+                            className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-600">No media uploaded yet.</p>

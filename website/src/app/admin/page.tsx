@@ -15,7 +15,7 @@ const quickLinks = [
 export default function AdminDashboard() {
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Admin Dashboard</h1>
         <p className="mt-2 text-sm text-slate-600">
           Manage homepage, content, and global settings. Public site is unchanged until you wire rendering to CMS data.
@@ -27,7 +27,7 @@ export default function AdminDashboard() {
           <a
             key={item.href}
             href={item.href}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-emerald-300"
+            className="wp-card p-5 hover:border-emerald-300"
           >
             <h2 className="text-base font-semibold text-slate-900">{item.label}</h2>
             <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
@@ -35,8 +35,8 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Setup checklist</h2>
+      <div className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Setup checklist</h2>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
           <li>Create CMS tables with the provided SQL script.</li>
           <li>Add at least one admin user in the cms_admins table.</li>

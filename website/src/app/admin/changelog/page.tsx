@@ -129,13 +129,13 @@ export default function AdminChangelog() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Changelog</h1>
         <p className="mt-2 text-sm text-slate-600">Track product updates by release.</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Changelog editor</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Changelog editor</h2>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-slate-700">
@@ -221,36 +221,55 @@ export default function AdminChangelog() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Entries</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Entries</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading changelog...</p>
         ) : entries.length ? (
-          <div className="mt-4 space-y-3">
-            {entries.map((entry) => (
-              <div key={entry.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{entry.title}</p>
-                  <p className="text-xs text-slate-600">{entry.release_date || "No date"}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(entry)}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteEntry(entry.id)}
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <table className="wp-table">
+              <thead>
+                <tr>
+                  <th>Release</th>
+                  <th>Date</th>
+                  <th>Items</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td className="font-semibold text-slate-900">{entry.title}</td>
+                    <td className="text-slate-600">{entry.release_date || "No date"}</td>
+                    <td className="text-slate-600">{entry.items?.length || 0}</td>
+                    <td>
+                      <span className={`wp-pill ${entry.is_published ? "is-live" : ""}`}>
+                        {entry.is_published ? "published" : "hidden"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="wp-actions">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(entry)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteEntry(entry.id)}
+                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-600">No changelog entries yet.</p>

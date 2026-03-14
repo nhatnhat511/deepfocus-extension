@@ -91,7 +91,7 @@ export default function AdminLegal() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Legal</h1>
         <p className="mt-2 text-sm text-slate-600">Edit Privacy Policy and Terms of Service content.</p>
       </header>
@@ -99,13 +99,13 @@ export default function AdminLegal() {
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
       {loading ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="wp-card p-6">
           <p className="text-sm text-slate-600">Loading legal pages...</p>
         </section>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">Privacy Policy</h2>
+          <section className="wp-card p-6">
+            <h2 className="wp-panel-title text-base text-slate-900">Privacy Policy</h2>
             <label className="mt-4 block text-sm text-slate-700">
               Title
               <input
@@ -133,8 +133,8 @@ export default function AdminLegal() {
             </button>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">Terms of Service</h2>
+          <section className="wp-card p-6">
+            <h2 className="wp-panel-title text-base text-slate-900">Terms of Service</h2>
             <label className="mt-4 block text-sm text-slate-700">
               Title
               <input

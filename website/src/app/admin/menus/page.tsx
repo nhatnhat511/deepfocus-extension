@@ -115,13 +115,13 @@ export default function AdminMenus() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Menus</h1>
         <p className="mt-2 text-sm text-slate-600">Build navigation menus for header and footer.</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Menu editor</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Menu editor</h2>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         <label className="mt-4 block text-sm text-slate-700">
           Menu location
@@ -183,36 +183,47 @@ export default function AdminMenus() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Existing menus</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Existing menus</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading menus...</p>
         ) : menus.length ? (
-          <div className="mt-4 space-y-3">
-            {menus.map((menu) => (
-              <div key={menu.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{menu.location}</p>
-                  <p className="text-xs text-slate-600">{menu.items?.length || 0} items</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(menu)}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteMenu(menu.id)}
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <table className="wp-table">
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th>Items</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {menus.map((menu) => (
+                  <tr key={menu.id}>
+                    <td className="font-semibold text-slate-900">{menu.location}</td>
+                    <td className="text-slate-600">{menu.items?.length || 0}</td>
+                    <td>
+                      <div className="wp-actions">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(menu)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMenu(menu.id)}
+                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-600">No menus created yet.</p>

@@ -109,19 +109,71 @@ export function AdminGuard({ children }: AdminGuardProps) {
 }
 
 const navItems = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/home", label: "Homepage" },
-  { href: "/admin/pages", label: "Pages" },
-  { href: "/admin/posts", label: "Posts" },
-  { href: "/admin/media", label: "Media" },
-  { href: "/admin/menus", label: "Menus" },
-  { href: "/admin/faq", label: "FAQ" },
-  { href: "/admin/changelog", label: "Changelog" },
-  { href: "/admin/roadmap", label: "Roadmap" },
-  { href: "/admin/legal", label: "Legal" },
-  { href: "/admin/seo", label: "SEO" },
-  { href: "/admin/settings", label: "Settings" },
-  { href: "/admin/users", label: "Users & Roles" },
+  {
+    href: "/admin",
+    label: "Dashboard",
+    icon: "M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z",
+  },
+  {
+    href: "/admin/home",
+    label: "Homepage",
+    icon: "M4 11.5L12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1Z",
+  },
+  {
+    href: "/admin/pages",
+    label: "Pages",
+    icon: "M6 3h9l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm8 1.5V7h2.5Z",
+  },
+  {
+    href: "/admin/posts",
+    label: "Posts",
+    icon: "M4 5h16v3H4V5Zm0 5h16v3H4v-3Zm0 5h10v3H4v-3Z",
+  },
+  {
+    href: "/admin/media",
+    label: "Media",
+    icon: "M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Zm3 2a2 2 0 1 0 0 4a2 2 0 0 0 0-4Zm-1 9 3.2-3.2a1 1 0 0 1 1.4 0L14 16l2-2 2 2v1H6Z",
+  },
+  {
+    href: "/admin/menus",
+    label: "Menus",
+    icon: "M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h10v2H4v-2Z",
+  },
+  {
+    href: "/admin/faq",
+    label: "FAQ",
+    icon: "M12 3a9 9 0 1 0 0 18h4v-4h2v6H12a11 11 0 1 1 0-22Zm0 5a3 3 0 0 0-3 3h2a1 1 0 1 1 2 1c-1.7.7-2 1.6-2 3h2c0-1 .2-1.4 1.3-2a3 3 0 0 0-1.3-5Zm-1 9h2v2h-2v-2Z",
+  },
+  {
+    href: "/admin/changelog",
+    label: "Changelog",
+    icon: "M6 3h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm1 4h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h6v2H7v-2Z",
+  },
+  {
+    href: "/admin/roadmap",
+    label: "Roadmap",
+    icon: "M4 5h10l2-2h4v4l-2 2v10H4V5Zm2 2v10h10V7H6Zm3 2h5v2H9V9Zm0 4h5v2H9v-2Z",
+  },
+  {
+    href: "/admin/legal",
+    label: "Legal",
+    icon: "M6 2h9l3 3v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V6h2.5Z",
+  },
+  {
+    href: "/admin/seo",
+    label: "SEO",
+    icon: "M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3Zm2 5h7v2h-7V8Zm-2 4h9v2h-9v-2Zm2 4h7v2h-7v-2Z",
+  },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: "M12 8a4 4 0 1 0 4 4a4 4 0 0 0-4-4Zm8 3h-1.2a7 7 0 0 0-1.3-2.5l.9-.9-1.4-1.4-.9.9A7 7 0 0 0 13 5.2V4h-2v1.2a7 7 0 0 0-2.5 1.3l-.9-.9-1.4 1.4.9.9A7 7 0 0 0 5.2 11H4v2h1.2a7 7 0 0 0 1.3 2.5l-.9.9 1.4 1.4.9-.9A7 7 0 0 0 11 18.8V20h2v-1.2a7 7 0 0 0 2.5-1.3l.9.9 1.4-1.4-.9-.9A7 7 0 0 0 18.8 13H20v-2Z",
+  },
+  {
+    href: "/admin/users",
+    label: "Users & Roles",
+    icon: "M7 8a3 3 0 1 0 3-3a3 3 0 0 0-3 3Zm9 2a3 3 0 1 0-3-3a3 3 0 0 0 3 3Zm-9 2c-2.8 0-5 1.5-5 3.5V18h10v-2.5c0-2-2.2-3.5-5-3.5Zm9 1c-.4 0-.8 0-1.2.1a4.8 4.8 0 0 1 1.7 3.4V18h6v-1.5c0-2-2.2-3.5-5-3.5Z",
+  },
 ];
 
 type AdminShellProps = {
@@ -133,7 +185,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <AdminGuard>
-      <div className="min-h-[80vh] rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-lg lg:p-6">
+      <div className="min-h-[80vh] rounded-3xl border border-slate-200 bg-slate-50/90 p-4 shadow-lg lg:p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Administration</p>
@@ -164,7 +216,14 @@ export function AdminShell({ children }: AdminShellProps) {
                         : "text-slate-200 hover:bg-white/10"
                     }`}
                   >
-                    <span>{item.label}</span>
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-emerald-200">
+                          <path fill="currentColor" d={item.icon} />
+                        </svg>
+                      </span>
+                      {item.label}
+                    </span>
                     {active ? <span className="text-xs text-emerald-200">Active</span> : null}
                   </a>
                 );
@@ -177,6 +236,63 @@ export function AdminShell({ children }: AdminShellProps) {
           <main className="space-y-6">{children}</main>
         </div>
       </div>
+      <style jsx global>{`
+        @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+        .admin-shell {
+          font-family: "Manrope", "Segoe UI", sans-serif;
+        }
+        .admin-shell .wp-card {
+          border-radius: 16px;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          background: #fff;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        }
+        .admin-shell .wp-panel-title {
+          font-weight: 700;
+          letter-spacing: -0.01em;
+        }
+        .admin-shell .wp-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.875rem;
+        }
+        .admin-shell .wp-table thead th {
+          text-align: left;
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #64748b;
+          padding: 12px;
+          border-bottom: 1px solid #e2e8f0;
+          background: #f8fafc;
+        }
+        .admin-shell .wp-table tbody td {
+          padding: 12px;
+          border-bottom: 1px solid #e2e8f0;
+          color: #0f172a;
+        }
+        .admin-shell .wp-table tbody tr:hover {
+          background: #f8fafc;
+        }
+        .admin-shell .wp-table .wp-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .admin-shell .wp-pill {
+          border-radius: 999px;
+          padding: 2px 10px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          background: #e2e8f0;
+          color: #475569;
+        }
+        .admin-shell .wp-pill.is-live {
+          background: rgba(16, 185, 129, 0.16);
+          color: #047857;
+        }
+      `}</style>
     </AdminGuard>
   );
 }

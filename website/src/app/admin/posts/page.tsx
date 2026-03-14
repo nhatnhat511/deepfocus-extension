@@ -131,13 +131,13 @@ export default function AdminPosts() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">Posts</h1>
         <p className="mt-2 text-sm text-slate-600">Manage blog posts and product updates.</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Post editor</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Post editor</h2>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-slate-700">
@@ -234,36 +234,57 @@ export default function AdminPosts() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Existing posts</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Existing posts</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading posts...</p>
         ) : posts.length ? (
-          <div className="mt-4 space-y-3">
-            {posts.map((post) => (
-              <div key={post.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{post.title}</p>
-                  <p className="text-xs text-slate-600">/{post.slug} - {post.status}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(post)}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deletePost(post.id)}
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <table className="wp-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Slug</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr key={post.id}>
+                    <td className="font-semibold text-slate-900">{post.title}</td>
+                    <td className="text-slate-600">/{post.slug}</td>
+                    <td>
+                      <span className={`wp-pill ${post.status === "published" ? "is-live" : ""}`}>
+                        {post.status}
+                      </span>
+                    </td>
+                    <td className="text-slate-600">
+                      {post.updated_at ? new Date(post.updated_at).toLocaleDateString() : "-"}
+                    </td>
+                    <td>
+                      <div className="wp-actions">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(post)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deletePost(post.id)}
+                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-600">No posts created yet.</p>

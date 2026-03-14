@@ -105,13 +105,13 @@ export default function AdminFaq() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">FAQ</h1>
         <p className="mt-2 text-sm text-slate-600">Manage frequently asked questions.</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">FAQ editor</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">FAQ editor</h2>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-slate-700 md:col-span-2">
@@ -171,36 +171,53 @@ export default function AdminFaq() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">FAQ list</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">FAQ list</h2>
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading FAQ...</p>
         ) : items.length ? (
-          <div className="mt-4 space-y-3">
-            {items.map((item) => (
-              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{item.question}</p>
-                  <p className="text-xs text-slate-600">Order {item.sort_order ?? 0}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(item)}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteFaq(item.id)}
-                    className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+            <table className="wp-table">
+              <thead>
+                <tr>
+                  <th>Question</th>
+                  <th>Order</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id}>
+                    <td className="font-semibold text-slate-900">{item.question}</td>
+                    <td className="text-slate-600">{item.sort_order ?? 0}</td>
+                    <td>
+                      <span className={`wp-pill ${item.is_published ? "is-live" : ""}`}>
+                        {item.is_published ? "published" : "hidden"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="wp-actions">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(item)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteFaq(item.id)}
+                          className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-600">No FAQ entries yet.</p>

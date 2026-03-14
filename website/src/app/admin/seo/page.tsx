@@ -78,13 +78,13 @@ export default function AdminSeo() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="wp-card p-6">
         <h1 className="text-2xl font-semibold text-slate-900">SEO</h1>
         <p className="mt-2 text-sm text-slate-600">Set global meta titles and open graph data.</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900">Global SEO settings</h2>
+      <section className="wp-card p-6">
+        <h2 className="wp-panel-title text-base text-slate-900">Global SEO settings</h2>
         {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
         {loading ? (
           <p className="mt-3 text-sm text-slate-600">Loading SEO settings...</p>
