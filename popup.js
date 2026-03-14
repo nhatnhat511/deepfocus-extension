@@ -18,6 +18,7 @@ const detailView = document.getElementById("detailView")
 const detailTitle = document.getElementById("detailTitle")
 const detailText = document.getElementById("detailText")
 const detailList = document.getElementById("detailList")
+const detailFooter = document.getElementById("detailFooter")
 const shortcutSettingsBtn = document.getElementById("shortcutSettingsBtn")
 const advancedQuickBtn = document.getElementById("advancedQuickBtn")
 const detailActionBtn = document.getElementById("detailActionBtn")
@@ -199,14 +200,15 @@ actionLabel: ""
 },
 support: {
 title: "Support",
-text: "Need help with DeepFocus Time? Contact the publisher support team:",
+text: "Need help with DeepFocus Time? Contact our support team:",
 list: [
 "Email: support@deepfocustime.com",
-"Privacy: https://deepfocustime.com/privacy",
-"Terms: https://deepfocustime.com/terms",
-"Refund: https://deepfocustime.com/refund"
+"Privacy Policy: https://deepfocustime.com/privacy",
+"Terms of Service: https://deepfocustime.com/terms",
+"Refund Policy: https://deepfocustime.com/refund"
 ],
-actionLabel: ""
+actionLabel: "",
+footerNote: "We usually respond within 24 hours."
 }
 }
 
@@ -234,6 +236,7 @@ activeDetailKey = key
 detailTitle.textContent = cfg.title
 detailText.textContent = cfg.text
 detailList.innerHTML = ""
+if(detailFooter) detailFooter.textContent = cfg.footerNote || ""
 cfg.list.forEach((item)=>{
 const li = document.createElement("li")
 const raw = String(item || "")
@@ -241,14 +244,9 @@ const urlMatch = raw.match(/https?:\/\/\S+/i)
 if(urlMatch){
 const url = urlMatch[0]
 const label = raw.replace(url, "").replace(/[:\s]+$/,"").trim()
-if(label){
-const prefix = document.createElement("span")
-prefix.textContent = `${label}: `
-li.appendChild(prefix)
-}
 const a = document.createElement("a")
 a.href = url
-a.textContent = url
+a.textContent = label || url
 a.target = "_blank"
 a.rel = "noopener noreferrer"
 li.appendChild(a)
