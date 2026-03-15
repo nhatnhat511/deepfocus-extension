@@ -653,28 +653,51 @@ function ActionButton({
   size?: "md" | "lg";
   inert?: boolean;
 }) {
+  const trimmedLabel = action.label.trim();
+  const isAddToChrome = trimmedLabel.toLowerCase() === "add to chrome";
   const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
   const className = primary
     ? `inline-flex items-center justify-center rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
     : variant === "accent"
       ? `inline-flex items-center justify-center rounded-lg border border-amber-400 bg-amber-300 ${padding} font-semibold text-slate-900 hover:bg-amber-200`
       : `inline-flex items-center justify-center rounded-lg border border-slate-300 ${padding} font-semibold text-slate-800 hover:bg-slate-100`;
+  const content = isAddToChrome ? (
+    <span className="inline-flex items-center gap-2">
+      <span className="inline-flex h-4 w-4 items-center justify-center">
+        <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden="true">
+          <path fill="#EA4335" d="M24 4a20 20 0 0 1 17.32 10H24Z" />
+          <path fill="#FBBC05" d="M41.32 14A20 20 0 0 1 44 24H24Z" />
+          <path fill="#34A853" d="M44 24a20 20 0 0 1-7.07 15.27L24 24Z" />
+          <path fill="#4285F4" d="M36.93 39.27A20 20 0 0 1 24 44V24Z" />
+          <path fill="#EA4335" d="M24 44A20 20 0 0 1 6.68 34H24Z" />
+          <path fill="#FBBC05" d="M6.68 34A20 20 0 0 1 4 24h20Z" />
+          <path fill="#34A853" d="M4 24A20 20 0 0 1 11.07 8.73L24 24Z" />
+          <path fill="#4285F4" d="M11.07 8.73A20 20 0 0 1 24 4v20Z" />
+          <circle cx="24" cy="24" r="9" fill="#ffffff" />
+          <circle cx="24" cy="24" r="6.2" fill="#4285F4" />
+        </svg>
+      </span>
+      <span>{trimmedLabel}</span>
+    </span>
+  ) : (
+    trimmedLabel
+  );
 
   if (inert) {
-    return <span className={className}>{action.label}</span>;
+    return <span className={className}>{content}</span>;
   }
 
   if (action.href.startsWith("http")) {
     return (
       <a href={action.href} target="_blank" rel="noreferrer" className={className}>
-        {action.label}
+        {content}
       </a>
     );
   }
 
   return (
     <Link href={action.href} className={className}>
-      {action.label}
+      {content}
     </Link>
   );
 }
