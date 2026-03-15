@@ -33,7 +33,7 @@ export default function HowItWorksPage() {
   return (
     <article className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
       <div className="flex justify-center">
-        <div className="w-full max-w-3xl">
+        <div className="w-full max-w-5xl">
           <video
             src="/Video/HowitWorks.mp4"
             autoPlay
