@@ -55,14 +55,15 @@ export default async function RootLayout({
 }>) {
   const headerMenu = [
     { label: "Home", href: "/" },
+    { label: "How it Works", href: "/how-it-works" },
+    { label: "Pricing", href: "/pricing" },
     { label: "FAQ", href: "/faq" },
-    { label: "Roadmap", href: "/roadmap" },
-    { label: "Changelog", href: "/changelog" },
     { label: "Blog", href: "/blog" },
   ];
   const footerMenu = [
     { label: "Privacy", href: "/privacy" },
     { label: "Terms", href: "/terms" },
+    { label: "Refund", href: "/refund" },
     { label: "Support", href: "/support" },
     { label: "Contact", href: "/contact" },
   ];

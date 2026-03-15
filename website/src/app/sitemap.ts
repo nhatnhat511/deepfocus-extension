@@ -6,6 +6,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://deepfocustime.com"
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     "/",
+    "/how-it-works",
     "/pricing",
     "/blog",
     "/faq",
@@ -14,8 +15,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/privacy",
     "/terms",
     "/refund",
-    "/changelog",
-    "/roadmap",
   ];
 
   const blogRoutes = blogPosts.map((post) => `/blog/${post.slug}`);
