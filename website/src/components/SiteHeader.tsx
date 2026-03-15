@@ -98,11 +98,11 @@ export default function SiteHeader({ navLinks }: { navLinks: NavItem[] }) {
               className="h-8 w-auto sm:h-8 md:h-9"
               priority
             />
-            <span className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">DeepFocus Time</span>
+            <span className="text-base font-bold tracking-tight text-slate-900 sm:text-lg md:text-xl">DeepFocus Time</span>
           </Link>
 
           <div className="flex items-center gap-3">
-            <nav className="flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-700 md:flex">
+            <nav className="flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-700 md:flex md:text-base">
               {navLinks.map((item) => (
                 <Link key={item.href} href={item.href} className="hover:text-slate-900">
                   {item.label}
