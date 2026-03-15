@@ -61,7 +61,7 @@ export default function HowItWorksPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/Chrome/Chrome.webp" alt="" className="h-4 w-4" />
+          <img src="/Chrome/Chrome.webp" alt="" className="h-5 w-5" />
           Add to Chrome
         </Link>
         <Link

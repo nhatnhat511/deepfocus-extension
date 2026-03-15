@@ -661,7 +661,7 @@ function ActionButton({
     : variant === "accent"
       ? `inline-flex items-center justify-center rounded-lg border border-amber-400 bg-amber-300 ${padding} font-semibold text-slate-900 hover:bg-amber-200`
       : `inline-flex items-center justify-center rounded-lg border border-slate-300 ${padding} font-semibold text-slate-800 hover:bg-slate-100`;
-  const iconSize = size === "lg" ? "h-5 w-5" : "h-4 w-4";
+  const iconSize = size === "lg" ? "h-6 w-6" : "h-5 w-5";
   const content = isAddToChrome ? (
     <span className="inline-flex items-center gap-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
