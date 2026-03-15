@@ -82,6 +82,18 @@ let hasBreakVisualCustomImage = false
 let breakVisualBackgroundMeta = null
 let pendingTrialActivation = false
 
+function verifyPremiumAccess(){
+return new Promise((resolve)=>{
+chrome.runtime.sendMessage({ type: "VERIFY_PREMIUM" }, (res)=>{
+if(chrome.runtime.lastError){
+resolve({ ok: false, error: "Unable to verify premium." })
+return
+}
+resolve(res || { ok: false, error: "Unable to verify premium." })
+})
+})
+}
+
 const SUPABASE_URL = "https://jpgywjxztjkayynptjrs.supabase.co"
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0mWntV8P8rGhGhdW5KtR6g_KOXXtHYr"
 const AUTH_STORAGE_KEY = "deepfocusSupabaseSession"
@@ -98,7 +110,7 @@ pauseBtn.textContent = paused ? "\u25B6 Resume" : "\u23F8 Pause"
 }
 
 function isPremiumActive(){
-if(!accountProfile || !["premium","trial","premium_monthly","premium_yearly"].includes(accountProfile.plan)) return false
+if(!accountProfile || !["trial","premium_monthly","premium_yearly"].includes(accountProfile.plan)) return false
 if(!accountProfile.premium_until) return false
 const untilTs = Date.parse(accountProfile.premium_until)
 return Number.isFinite(untilTs) && untilTs > Date.now()
@@ -112,7 +124,7 @@ return Number.isFinite(untilTs) && untilTs > Date.now()
 }
 
 function isPaidPremiumActive(){
-if(!accountProfile || !["premium","premium_monthly","premium_yearly"].includes(accountProfile.plan)) return false
+if(!accountProfile || !["premium_monthly","premium_yearly"].includes(accountProfile.plan)) return false
 if(!accountProfile.premium_until) return false
 const untilTs = Date.parse(accountProfile.premium_until)
 return Number.isFinite(untilTs) && untilTs > Date.now()
@@ -152,7 +164,6 @@ function formatPlanLabel(plan){
 if(plan === "trial") return "Trial"
 if(plan === "premium_monthly") return "Premium (Monthly)"
 if(plan === "premium_yearly") return "Premium (Yearly)"
-if(plan === "premium") return "Premium"
 return "Free"
 }
 
@@ -228,9 +239,10 @@ accountPanel.classList.remove("show")
 setActiveHeadIcon(null)
 }
 
-function openDetailView(key){
+async function openDetailView(key){
 const cfg = detailConfig[key]
 if(!cfg) return
+const premiumNeeded = (key === "shortcuts" || key === "settings")
 
 activeDetailKey = key
 detailTitle.textContent = cfg.title
@@ -272,7 +284,6 @@ advancedSettingsPanel.classList.toggle("show", key==="settings")
 accountPanel.classList.toggle("show", key==="account")
 
 if(cfg.actionLabel){
-const premiumNeeded = (key === "shortcuts" || key === "settings")
 if(premiumNeeded && isPremiumActive()){
 detailActionBtn.style.display = "none"
 detailActionBtn.textContent = ""
@@ -361,10 +372,16 @@ accountAppleLabel.textContent = "GitHub"
 if(accountPasswordNote) accountPasswordNote.classList.add("hidden")
 }
 
-function saveAdvancedSettings(){
+async function saveAdvancedSettings(){
 if(!isPremiumActive()){
 openDetailView("account")
 setAccountStatus("Please sign in and start a trial to use Advanced Settings.", true)
+return
+}
+const verify = await verifyPremiumAccess()
+if(!verify || !verify.ok || !verify.premiumActive){
+setAccountStatus((verify && verify.error) || "Premium verification required for Advanced Settings.", true)
+openDetailView("account")
 return
 }
 
@@ -885,10 +902,14 @@ return null
 
 function mapEntitlement(row){
 if(!row) return null
+const rawPlan = String(row.plan || "free").toLowerCase()
+let plan = rawPlan
+if(rawPlan === "premium") plan = "premium_monthly"
+if(!["free","trial","premium_monthly","premium_yearly"].includes(plan)) plan = "free"
 return {
 id: row.id || "",
 email: row.email || null,
-plan: row.plan || "free",
+plan,
 premium_until: row.premium_until || null,
 trial_used: !!row.trial_used,
 trial_started_at: row.trial_started_at || null
@@ -919,10 +940,10 @@ const premium = isPremiumActive()
 let plan = "free"
 if(premium && accountProfile){
 const rawPlan = String(accountProfile.plan || "").toLowerCase()
-if(rawPlan === "trial" || rawPlan === "premium" || rawPlan === "premium_monthly" || rawPlan === "premium_yearly"){
+if(rawPlan === "trial" || rawPlan === "premium_monthly" || rawPlan === "premium_yearly"){
 plan = rawPlan
-}else{
-plan = "premium"
+}else if(rawPlan === "premium"){
+plan = "premium_monthly"
 }
 }
 const premiumUntil = premium && accountProfile && accountProfile.premium_until ? accountProfile.premium_until : ""

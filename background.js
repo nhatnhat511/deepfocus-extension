@@ -11,12 +11,13 @@ const LUNCH_NOTIFICATION_ID = "deepfocusLunchNotification"
 const DINNER_NOTIFICATION_ID = "deepfocusDinnerNotification"
 const ACCOUNT_STATUS_KEY = "deepfocusAccountStatus"
 const AUTH_STORAGE_KEY = "deepfocusSupabaseSession"
-const ACCOUNT_PLANS = new Set(["free", "trial", "premium", "premium_monthly", "premium_yearly"])
-const PREMIUM_PLANS = new Set(["trial", "premium", "premium_monthly", "premium_yearly"])
+const ACCOUNT_PLANS = new Set(["free", "trial", "premium_monthly", "premium_yearly"])
+const PREMIUM_PLANS = new Set(["trial", "premium_monthly", "premium_yearly"])
 
 function normalizeAccountPlan(value) {
     if (typeof value !== "string") return "free"
     const plan = value.toLowerCase()
+    if (plan === "premium") return "premium_monthly"
     return ACCOUNT_PLANS.has(plan) ? plan : "free"
 }
 
@@ -80,6 +81,8 @@ let currentIdleState = "active"
 let accountPlan = "free"
 let premiumUntil = ""
 let premiumPromptedAt = 0
+let premiumVerifiedAt = 0
+let premiumVerifiedOk = false
 let lastPlayedTickSecond = null
 let loginTabId = null
 let loginExtRedirect = null
@@ -282,47 +285,58 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         }
 
         if (msg.type === "UPDATE_ADVANCED_SETTINGS") {
-            if (!isPremiumActive()) {
-                sendResponse({ ok: false, error: "Premium is required for Advanced Settings." })
-                return
+            const ensurePremium = async () => {
+                const maxAge = 10 * 60 * 1000
+                if (isPremiumActive() && premiumVerifiedOk && Date.now() - premiumVerifiedAt < maxAge) {
+                    return true
+                }
+                const verify = await verifyPremiumFromServer()
+                return verify.ok && verify.premiumActive
             }
 
-            nightWorkEnabled = !!msg.nightWorkEnabled
-            if (typeof msg.nightWorkStrength === "number") {
-                nightWorkStrength = Math.max(10, Math.min(75, Math.round(msg.nightWorkStrength)))
-            }
-            focusBlurEnabled = !!msg.focusBlurEnabled
-            idleAutoPauseEnabled = msg.idleAutoPauseEnabled !== false
-            if (typeof msg.idleAutoPauseMinutes === "number") {
-                idleAutoPauseMinutes = Math.max(1, Math.min(60, Math.round(msg.idleAutoPauseMinutes)))
-            }
-            if (!idleAutoPauseEnabled && isPaused && pauseReason === "idle" && endTime) {
-                handleResumeTimer()
-            }
-            distractionMuteEnabled = msg.distractionMuteEnabled !== false
-            if (Array.isArray(msg.distractionDomains)) {
-                distractionDomains = sanitizeDomainList(msg.distractionDomains)
-            }
-            breakVisualEnabled = !!msg.breakVisualEnabled
-            if (typeof msg.dailyFocusGoal === "number") {
-                dailyFocusGoal = Math.max(1, Math.min(20, Math.round(msg.dailyFocusGoal)))
-                const todayKey = getLocalDateKey(new Date())
-                ensureDailyHistoryEntry(todayKey)
-                statsDailyHistory[todayKey].goal = dailyFocusGoal
-            }
-            meetingAutoPauseEnabled = msg.meetingAutoPauseEnabled !== false
-            if (!breakVisualEnabled) {
-                closeBreakVisualTab()
-            } else if (isWorkSessionRunning() && mode === "break" && !inTransition) {
-                openBreakVisualTab()
-            }
-            persistState()
-            updateIdleDetectionInterval()
-            broadcastAdvancedSettings()
-            applyDistractionMuting()
-            checkMeetingActivity()
-            sendResponse({ ok: true })
-            return
+            ensurePremium().then((allowed) => {
+                if (!allowed) {
+                    sendResponse({ ok: false, error: "Premium verification required for Advanced Settings." })
+                    return
+                }
+
+                nightWorkEnabled = !!msg.nightWorkEnabled
+                if (typeof msg.nightWorkStrength === "number") {
+                    nightWorkStrength = Math.max(10, Math.min(75, Math.round(msg.nightWorkStrength)))
+                }
+                focusBlurEnabled = !!msg.focusBlurEnabled
+                idleAutoPauseEnabled = msg.idleAutoPauseEnabled !== false
+                if (typeof msg.idleAutoPauseMinutes === "number") {
+                    idleAutoPauseMinutes = Math.max(1, Math.min(60, Math.round(msg.idleAutoPauseMinutes)))
+                }
+                if (!idleAutoPauseEnabled && isPaused && pauseReason === "idle" && endTime) {
+                    handleResumeTimer()
+                }
+                distractionMuteEnabled = msg.distractionMuteEnabled !== false
+                if (Array.isArray(msg.distractionDomains)) {
+                    distractionDomains = sanitizeDomainList(msg.distractionDomains)
+                }
+                breakVisualEnabled = !!msg.breakVisualEnabled
+                if (typeof msg.dailyFocusGoal === "number") {
+                    dailyFocusGoal = Math.max(1, Math.min(20, Math.round(msg.dailyFocusGoal)))
+                    const todayKey = getLocalDateKey(new Date())
+                    ensureDailyHistoryEntry(todayKey)
+                    statsDailyHistory[todayKey].goal = dailyFocusGoal
+                }
+                meetingAutoPauseEnabled = msg.meetingAutoPauseEnabled !== false
+                if (!breakVisualEnabled) {
+                    closeBreakVisualTab()
+                } else if (isWorkSessionRunning() && mode === "break" && !inTransition) {
+                    openBreakVisualTab()
+                }
+                persistState()
+                updateIdleDetectionInterval()
+                broadcastAdvancedSettings()
+                applyDistractionMuting()
+                checkMeetingActivity()
+                sendResponse({ ok: true })
+            })
+            return true
         }
 
         if (msg.type === "START_WEB_LOGIN") {
@@ -340,6 +354,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
                 loginTabId = tab.id
                 loginExtRedirect = extRedirect
                 sendResponse({ ok: true })
+            })
+            return true
+        }
+
+        if (msg.type === "VERIFY_PREMIUM") {
+            verifyPremiumFromServer().then((result) => {
+                sendResponse(result)
             })
             return true
         }
@@ -1493,6 +1514,56 @@ function isPremiumActive() {
     const untilTs = Date.parse(premiumUntil)
     if (!Number.isFinite(untilTs)) return false
     return untilTs > Date.now()
+}
+
+function getAuthSessionFromStorage() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get([AUTH_STORAGE_KEY], (result) => {
+            const session = result && result[AUTH_STORAGE_KEY]
+            resolve(session && typeof session === "object" ? session : null)
+        })
+    })
+}
+
+async function verifyPremiumFromServer() {
+    const session = await getAuthSessionFromStorage()
+    if (!session || !session.access_token) {
+        premiumVerifiedAt = Date.now()
+        premiumVerifiedOk = false
+        return { ok: false, error: "Sign in required.", premiumActive: false }
+    }
+    try {
+        const res = await fetch("https://deepfocustime.com/api/me", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${session.access_token}`
+            }
+        })
+        if (!res.ok) {
+            premiumVerifiedAt = Date.now()
+            premiumVerifiedOk = false
+            return { ok: false, error: "Unable to verify premium.", premiumActive: false }
+        }
+        const payload = await res.json().catch(() => ({}))
+        const entitlement = payload && payload.entitlement ? payload.entitlement : null
+        if (entitlement && typeof entitlement.plan === "string") {
+            accountPlan = normalizeAccountPlan(entitlement.plan)
+        } else {
+            accountPlan = "free"
+        }
+        premiumUntil = entitlement && typeof entitlement.premium_until === "string" ? entitlement.premium_until : ""
+        if (!isPremiumActive()) {
+            enforceFreeTierDefaults()
+        }
+        persistAccountStatus()
+        premiumVerifiedAt = Date.now()
+        premiumVerifiedOk = true
+        return { ok: true, premiumActive: isPremiumActive() }
+    } catch (_e) {
+        premiumVerifiedAt = Date.now()
+        premiumVerifiedOk = false
+        return { ok: false, error: "Unable to verify premium.", premiumActive: false }
+    }
 }
 
 function persistAccountStatus() {
