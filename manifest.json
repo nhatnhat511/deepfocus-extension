@@ -1,6 +1,6 @@
-{
+﻿{
   "manifest_version": 3,
-  "name": "DeepFocus - Smart Work Timer",
+  "name": "DeepFocus Time - Smart Work Timer",
   "homepage_url": "https://deepfocustime.com",
   "version": "1.0",
   "icons": {
@@ -78,4 +78,7 @@
     }
   ]
 }
+
+
+
 

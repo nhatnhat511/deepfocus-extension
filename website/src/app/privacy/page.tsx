@@ -9,7 +9,7 @@ export default function PrivacyPage() {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6">
       <h1 className="text-3xl font-bold tracking-tight text-slate-900">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-slate-600">Last updated: March 14, 2026</p>
+      <p className="mt-2 text-sm text-slate-600">Last updated: March 16, 2026</p>
 
       <div className="mt-6 space-y-5 text-sm leading-6 text-slate-700">
         <section>
@@ -29,6 +29,9 @@ export default function PrivacyPage() {
             Account data: email address, account identifiers, trial status, and premium entitlement.
           </p>
           <p>
+            Authentication data: session tokens used to keep you signed in.
+          </p>
+          <p>
             Extension settings: focus and break durations, reminders, distraction lists, and automation preferences.
           </p>
           <p>
@@ -36,6 +39,10 @@ export default function PrivacyPage() {
           </p>
           <p>
             Support communications: messages you send to support and diagnostic details you share with us.
+          </p>
+          <p>
+            Website analytics: basic page usage metrics collected on the website to understand performance and improve
+            the product.
           </p>
           <p>
             Billing data: subscription status and transaction metadata handled by our billing provider. We do not store
@@ -62,8 +69,12 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-base font-semibold text-slate-900">5. Sharing and third parties</h2>
           <p>
-            We rely on trusted providers for hosting, authentication, analytics, and billing. These providers process
-            data on our behalf under contractual safeguards. We do not sell personal information.
+            We rely on trusted providers for hosting, authentication, analytics, email delivery, and billing. These
+            providers process data on our behalf under contractual safeguards. We do not sell personal information.
+          </p>
+          <p>
+            Providers may include Supabase (authentication and account data), Paddle (billing), Resend (contact email
+            delivery), and Google Analytics (website analytics).
           </p>
         </section>
 
