@@ -50,12 +50,6 @@ export default function ContactClient() {
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
-            href="/support"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
-          >
-            Support
-          </Link>
-          <Link
             href="/faq"
             className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
           >

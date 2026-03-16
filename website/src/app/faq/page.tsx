@@ -83,12 +83,6 @@ export default function FaqPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/support"
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
-        >
-          Visit Support
-        </Link>
-        <Link
           href="/contact"
           className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
         >

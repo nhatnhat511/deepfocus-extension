@@ -282,6 +282,9 @@ shortcutSettingsBtn.style.display = key==="shortcuts" ? "inline-flex" : "none"
 }
 advancedSettingsPanel.classList.toggle("show", key==="settings")
 accountPanel.classList.toggle("show", key==="account")
+if(key==="settings"){
+updateNightWorkControls()
+}
 
 if(cfg.actionLabel){
 if(premiumNeeded && isPremiumActive()){
@@ -343,6 +346,9 @@ nightWorkStrengthValue.textContent = `${nightWorkStrengthInput.value}%`
 function updateNightWorkControls(){
 const enabled = !!nightWorkEnabledInput.checked
 nightWorkStrengthInput.disabled = !enabled
+nightWorkStrengthInput.style.pointerEvents = enabled ? "auto" : "none"
+nightWorkStrengthInput.tabIndex = enabled ? 0 : -1
+nightWorkStrengthInput.setAttribute("aria-disabled", enabled ? "false" : "true")
 nightWorkStrengthValue.style.opacity = enabled ? "1" : "0.45"
 }
 
@@ -824,14 +830,25 @@ function updateAccountUpgradeCta(){
   accountUpgradeBtn.dataset.target = ""
 }
 
-async function supabaseRequest(path, options = {}, accessToken){
+async function supabaseRequest(path, options = {}, accessToken, allowRefresh = true){
+let token = accessToken
+if(allowRefresh && token && authSession && typeof authSession.expires_at === "number"){
+  const nowSec = Math.floor(Date.now() / 1000)
+  if(nowSec >= (authSession.expires_at - 60)){
+    const refreshed = await refreshAuthSession()
+    if(refreshed && refreshed.access_token){
+      token = refreshed.access_token
+    }
+  }
+}
+
 const headers = {
 "apikey": SUPABASE_PUBLISHABLE_KEY,
 "Content-Type": "application/json",
 ...(options.headers || {})
 }
-if(accessToken){
-headers["Authorization"] = `Bearer ${accessToken}`
+if(token){
+headers["Authorization"] = `Bearer ${token}`
 }
 
 const res = await fetch(`${SUPABASE_URL}${path}`, {
@@ -848,15 +865,52 @@ payload = null
 
 if(!res.ok){
 const msg = payload && (payload.msg || payload.message || payload.error_description || payload.error) ? (payload.msg || payload.message || payload.error_description || payload.error) : `Request failed (${res.status})`
+if(allowRefresh && token && authSession && authSession.refresh_token && (res.status === 401 || /jwt|token|expired|invalid/i.test(msg))){
+  const refreshed = await refreshAuthSession()
+  if(refreshed && refreshed.access_token){
+    return supabaseRequest(path, options, refreshed.access_token, false)
+  }
+}
 throw new Error(msg)
 }
 
 return payload
 }
 
+async function refreshAuthSession(){
+if(!authSession || !authSession.refresh_token) return null
+try{
+  const payload = await supabaseRequest("/auth/v1/token?grant_type=refresh_token", {
+    method: "POST",
+    body: JSON.stringify({ refresh_token: authSession.refresh_token })
+  }, null, false)
+  if(!payload || !payload.access_token) return null
+  const nextSession = {
+    ...authSession,
+    ...payload,
+    refresh_token: payload.refresh_token || authSession.refresh_token
+  }
+  if(!nextSession.expires_at && nextSession.expires_in){
+    nextSession.expires_at = Math.floor(Date.now() / 1000) + Number(nextSession.expires_in)
+  }
+  authSession = nextSession
+  await saveSessionToStorage(authSession)
+  return authSession
+}catch(_e){
+  return null
+}
+}
+
 function saveSessionToStorage(session){
 return new Promise((resolve)=>{
-chrome.storage.local.set({ [AUTH_STORAGE_KEY]: session }, resolve)
+let nextSession = session
+if(nextSession && nextSession.expires_in && !nextSession.expires_at){
+  nextSession = {
+    ...nextSession,
+    expires_at: Math.floor(Date.now() / 1000) + Number(nextSession.expires_in)
+  }
+}
+chrome.storage.local.set({ [AUTH_STORAGE_KEY]: nextSession }, resolve)
 })
 }
 
@@ -1425,6 +1479,7 @@ if(typeof state.nightWorkStrength === "number"){
 nightWorkStrength = Math.max(10, Math.min(75, Math.round(state.nightWorkStrength)))
 nightWorkStrengthInput.value = String(nightWorkStrength)
 }
+updateNightWorkControls()
 if(typeof state.focusBlurEnabled === "boolean"){
 focusBlurEnabled = state.focusBlurEnabled
 focusBlurEnabledInput.checked = state.focusBlurEnabled
@@ -1581,7 +1636,10 @@ lunchTimeInput.addEventListener("change", saveReminderSettings)
 dinnerEnabledInput.addEventListener("change", saveReminderSettings)
 dinnerTimeInput.addEventListener("change", saveReminderSettings)
 soundEnabledInput.addEventListener("change", saveAudioSettings)
-nightWorkEnabledInput.addEventListener("change", saveAdvancedSettings)
+nightWorkEnabledInput.addEventListener("change", ()=>{
+updateNightWorkControls()
+saveAdvancedSettings()
+})
 nightWorkStrengthInput.addEventListener("input", ()=>{
 saveAdvancedSettings()
 })

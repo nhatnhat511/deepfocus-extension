@@ -64,7 +64,6 @@ export default async function RootLayout({
     { label: "Privacy", href: "/privacy" },
     { label: "Terms", href: "/terms" },
     { label: "Refund", href: "/refund" },
-    { label: "Support", href: "/support" },
     { label: "Contact", href: "/contact" },
   ];
 
