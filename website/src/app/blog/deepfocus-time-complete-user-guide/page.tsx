@@ -77,8 +77,8 @@ export default async function ArticlePage() {
         }
 
         .article-content img {
-          max-width: 100%;
-          width: auto;
+          max-width: 720px;
+          width: 100%;
           height: auto;
           border-radius: 1rem;
           border: 1px solid #e2e8f0;
@@ -103,6 +103,19 @@ export default async function ArticlePage() {
         .article-content ol,
         .article-content ul {
           padding-left: 1.5rem;
+          list-style-position: outside;
+        }
+
+        .article-content ol {
+          list-style-type: decimal;
+        }
+
+        .article-content ul {
+          list-style-type: disc;
+        }
+
+        .article-content .list-spacer {
+          height: 0.75rem;
         }
       `}</style>
     </article>
