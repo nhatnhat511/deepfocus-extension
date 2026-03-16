@@ -48,6 +48,7 @@ export const blogPosts: BlogPost[] = [
       'Both approaches promise to help you stay focused and get more done. But they work in very different ways. Some people swear by long, uninterrupted focus sessions, while others prefer short bursts of work with frequent breaks.',
       'So which method actually works better',
     ],
+    featuredImage: "/deepfocus-logo.svg",
   },
   {
     slug: '10-digital-distractions-that-are-destroying-your-productivity',
@@ -61,6 +62,7 @@ export const blogPosts: BlogPost[] = [
       'Digital distractions have become one of the biggest obstacles to productivity in modern work environments. With notifications, messages, and endless content competing for our attention, staying focused for long periods has become increasingly difficult.',
       'The problem isn’t a lack of discipline. Many of the tools we use every day are intentionally designed to capture and hold our attention.',
     ],
+    featuredImage: "/deepfocus-logo.svg",
   },
   {
     slug: 'the-science-of-focus-why-your-brain-needs-breaks',
@@ -74,6 +76,7 @@ export const blogPosts: BlogPost[] = [
       'But modern neuroscience tells a very different story.',
       'The human brain was not designed to maintain intense concentration for endless hours. In fact, trying to work continuously without breaks often leads to mental fatigue, slower thinking, and lower-quality work .',
     ],
+    featuredImage: "/deepfocus-logo.svg",
   },
   {
     slug: 'best-focus-timer-extensions-for-chrome-2026-guide',
@@ -87,5 +90,6 @@ export const blogPosts: BlogPost[] = [
       'That’s why many professionals use focus timer extensions to structure their work sessions. These tools help create clear boundaries between focused work and breaks, making it easier to maintain concentration throughout the day.',
       'In this guide, we’ll look at some of the best focus timer extensions for Chrome in 2026 , how they work, and which one might be the best fit for your workflow.',
     ],
+    featuredImage: "/deepfocus-logo.svg",
   },
 ];
