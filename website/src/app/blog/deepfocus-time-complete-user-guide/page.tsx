@@ -77,14 +77,14 @@ export default async function ArticlePage() {
         }
 
         .article-content img {
-          max-width: 720px;
-          width: 100%;
+          max-width: 100%;
+          width: auto;
           height: auto;
           border-radius: 1rem;
           border: 1px solid #e2e8f0;
           background: #f8fafc;
           display: block;
-          margin: 1.5rem auto;
+          margin: 1rem auto;
         }
 
         .article-content img[src$=".gif"],
@@ -97,7 +97,7 @@ export default async function ArticlePage() {
 
         .article-content .separator {
           text-align: left !important;
-          margin: 1.5rem 0;
+          margin: 0.75rem 0;
         }
 
         .article-content ol,
