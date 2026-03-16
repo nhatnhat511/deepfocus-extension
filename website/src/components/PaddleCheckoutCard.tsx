@@ -489,6 +489,7 @@ export default function PaddleCheckoutCard({
           </a>
           .
         </p>
+        <p className="mt-1 text-center text-xs text-slate-500">Prices exclude VAT.</p>
       </div>
     </>
   );

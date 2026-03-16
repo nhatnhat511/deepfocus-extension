@@ -126,6 +126,7 @@ export default function PricingPage() {
             ${monthlyPrice.toFixed(2)}<span className="text-base">/month</span>
           </p>
           <p className="mt-2 text-xs text-slate-500">Auto-renews. Cancel anytime.</p>
+          <p className="mt-1 text-xs text-slate-500">Prices exclude VAT.</p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
             {premiumFeatures.map((item) => (
               <li key={item}>{item}</li>
@@ -149,6 +150,7 @@ export default function PricingPage() {
             ${yearlyPriceLabel}<span className="text-base">/year</span>
           </p>
           <p className="mt-2 text-xs text-slate-600">Save 30% (${yearlySavingsLabel})</p>
+          <p className="mt-1 text-xs text-slate-600">Prices exclude VAT.</p>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate-700">
             {premiumFeatures.map((item) => (
               <li key={item}>{item}</li>
