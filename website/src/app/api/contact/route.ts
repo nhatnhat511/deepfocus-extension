@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         from: contactFrom,
         to: [contactTo],
         reply_to: email,
-        subject: `DeepFocus Contact: ${name}`,
+        subject: "New message from contact form",
         text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
       }),
       cache: "no-store",
