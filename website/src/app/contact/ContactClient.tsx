@@ -26,7 +26,7 @@ export default function ContactClient() {
       if (!res.ok) {
         throw new Error(payload.error || `Unable to send message (${res.status})`);
       }
-      setStatus("Your message has been sent. We will reply by email.");
+      setStatus("Your message has been sent successfully. Our team will get back to you via email shortly.");
       setName("");
       setEmail("");
       setMessage("");
