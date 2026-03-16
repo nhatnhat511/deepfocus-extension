@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { blogPosts } from "../posts";
 
+export const runtime = "edge";
+
 type BlogPageProps = {
   params: { slug: string };
 };
