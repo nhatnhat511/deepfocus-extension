@@ -655,6 +655,7 @@ function ActionButton({
 }) {
   const trimmedLabel = action.label.trim();
   const isAddToChrome = trimmedLabel.toLowerCase() === "add to chrome";
+  const isComparePlans = trimmedLabel.toLowerCase() === "compare plans";
   const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
   const className = primary
     ? `inline-flex items-center justify-center rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
@@ -674,6 +675,14 @@ function ActionButton({
 
   if (inert) {
     return <span className={className}>{content}</span>;
+  }
+
+  if (isComparePlans) {
+    return (
+      <Link href="/pricing" className={className}>
+        {content}
+      </Link>
+    );
   }
 
   if (action.href.startsWith("http")) {

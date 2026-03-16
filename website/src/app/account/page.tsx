@@ -945,8 +945,10 @@ export default function AccountPage() {
           href="https://chromewebstore.google.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/Chrome/Chrome.webp" alt="" className="h-5 w-5" />
           Open Chrome Web Store
         </a>
       </section>

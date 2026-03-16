@@ -1376,7 +1376,7 @@ try{
 await fetchCurrentUser()
 await fetchProfile()
 await maybeAutoActivateTrial()
-setAccountStatus("Session restored.", false)
+setAccountStatus("Signed in successfully.", false)
 syncAccountUiBySession()
 }catch(_e){
 authSession = null

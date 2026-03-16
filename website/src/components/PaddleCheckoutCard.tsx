@@ -397,7 +397,7 @@ export default function PaddleCheckoutCard({
           {email || "Not signed in"}
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Premium maps to your signed-in DeepFocus account.
+          Premium will be applied to this DeepFocus account.
         </p>
         <div className="mt-4" id="billing-plan">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Billing plan</p>
