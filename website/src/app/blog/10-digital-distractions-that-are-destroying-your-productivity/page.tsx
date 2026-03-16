@@ -51,6 +51,13 @@ export default function BlogArticlePage() {
         .article-content ol {
           padding-left: 1.5rem;
           margin-top: 0.75rem;
+          list-style-position: outside;
+        }
+        .article-content ul {
+          list-style-type: disc;
+        }
+        .article-content ol {
+          list-style-type: decimal;
         }
       `}</style>
     </article>
