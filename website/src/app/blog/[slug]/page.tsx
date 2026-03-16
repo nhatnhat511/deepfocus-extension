@@ -13,12 +13,6 @@ function getPostBySlug(slug: string) {
   return blogPosts.find((post) => post.slug === slug) || null;
 }
 
-export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
-}
-
-export const dynamicParams = false;
-
 export function generateMetadata({ params }: BlogPageProps): Metadata {
   const post = getPostBySlug(params.slug);
   if (!post) {
