@@ -35,6 +35,7 @@ export const blogPosts: BlogPost[] = [
       'Modern browsers are incredibly powerful tools for work, but they are also the biggest source of digital distraction . Emails, Slack messages, social media feeds, and endless tabs compete for your attention every second.',
       'The problem isn’t that you lack discipline. The real problem is that your work environment inside the browser was never designed for deep focus.',
     ],
+    featuredImage: "/deepfocus-logo.svg",
   },
   {
     slug: 'deep-work-vs-pomodoro-which-method-actually-works-better',
