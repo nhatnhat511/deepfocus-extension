@@ -42,10 +42,16 @@ export default function ContactClient() {
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="rounded-2xl border border-slate-200 bg-white p-6 lg:col-span-1">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Contact</h1>
-        <p className="mt-2 text-sm text-slate-600">Send us your question and we will help you as quickly as possible.</p>
+        <p className="mt-2 text-sm text-slate-600">Have a question? We're here to help.</p>
         <div className="mt-5 space-y-2 text-sm text-slate-700">
-          <p>Email: support@deepfocustime.com</p>
-          <p>Typical response: 1-2 business days</p>
+          <p>
+            Email:{" "}
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden="true">✉️</span>
+              support@deepfocustime.com
+            </span>
+          </p>
+          <p>We usually respond within 24 hours.</p>
           <p>Include clear reproduction steps for technical issues.</p>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -53,7 +59,7 @@ export default function ContactClient() {
             href="/faq"
             className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
           >
-            FAQ
+            View FAQ
           </Link>
         </div>
       </section>
@@ -98,6 +104,7 @@ export default function ContactClient() {
               onChange={(e) => setMessage(e.target.value)}
               required
               rows={6}
+              placeholder="Tell us how we can help..."
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
