@@ -56,6 +56,7 @@ export default async function RootLayout({
   const headerMenu = [
     { label: "Home", href: "/" },
     { label: "How it Works", href: "/how-it-works" },
+    { label: "Guide", href: "/blog/deepfocus-time-complete-user-guide" },
     { label: "Pricing", href: "/pricing" },
     { label: "FAQ", href: "/faq" },
     { label: "Blog", href: "/blog" },
