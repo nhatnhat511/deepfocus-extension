@@ -663,7 +663,7 @@ function ActionButton({
   const isMicrosoftEdge = trimmedLabel.toLowerCase() === "microsoft edge";
   const isComparePlans = trimmedLabel.toLowerCase() === "compare plans";
   const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
-  const className = primary
+  const className = primary || isMicrosoftEdge
     ? `inline-flex items-center justify-center rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
     : variant === "accent"
       ? `inline-flex items-center justify-center rounded-lg border border-amber-400 bg-amber-300 ${padding} font-semibold text-slate-900 hover:bg-amber-200`
