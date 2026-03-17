@@ -15,25 +15,27 @@ export default function RefundPage() {
         <section>
           <h2 className="text-base font-semibold text-slate-900">1. Eligibility</h2>
           <p>
-            Refund requests are reviewed for accidental charges, duplicate charges, or confirmed billing errors. We
-            generally ask that requests be submitted within 14 days of the charge date, unless a longer period is
-            required by law. Approved refunds are issued to the original payment method.
+            Paddle is our Merchant of Record and handles all payments, billing, refunds, and chargebacks. Refund
+            requests are reviewed case by case by Paddle for accidental charges, duplicate charges, or confirmed
+            billing errors. Requests should be submitted within 14 days of the charge date, unless a longer period is
+            required by law.
           </p>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-slate-900">2. How to request</h2>
           <p>
-            Contact support@deepfocustime.com and include the purchase email, order reference, charge date, and a short
-            description of the issue.
+            You can request a refund directly through Paddle at https://paddle.net. You may also contact us at
+            support@deepfocustime.com with the purchase email, order reference, charge date, and a short description of
+            the issue, and we will assist with your request.
           </p>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-slate-900">3. Processing</h2>
           <p>
-            Approved refunds are processed through our billing provider. Timelines may vary based on payment method and
-            bank processing windows.
+            Refunds are processed by Paddle and issued to the original payment method. Please allow 3–5 business days
+            for processing, in addition to any bank or card network timelines.
           </p>
         </section>
 
@@ -48,8 +50,8 @@ export default function RefundPage() {
         <section>
           <h2 className="text-base font-semibold text-slate-900">5. Billing provider</h2>
           <p>
-            Subscriptions are billed by our merchant of record. For disputes or chargebacks, we may request additional
-            information to investigate and resolve the issue quickly.
+            Paddle is the Merchant of Record and is responsible for all payment processing, billing, refunds, and
+            chargebacks. Refund decisions are made by Paddle on a case-by-case basis.
           </p>
         </section>
 
