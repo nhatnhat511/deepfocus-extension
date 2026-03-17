@@ -9,22 +9,23 @@ export default function RefundPage() {
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6">
       <h1 className="text-3xl font-bold tracking-tight text-slate-900">Refund Policy</h1>
-      <p className="mt-2 text-sm text-slate-600">Last updated: March 10, 2026</p>
+      <p className="mt-2 text-sm text-slate-600">Last updated: March 17, 2026</p>
 
       <div className="mt-6 space-y-5 text-sm leading-6 text-slate-700">
         <section>
           <h2 className="text-base font-semibold text-slate-900">1. Eligibility</h2>
           <p>
-            Refund requests are reviewed case by case for accidental charges, duplicate charges, or confirmed billing
-            errors. Approved refunds are issued to the original payment method.
+            Refund requests are reviewed for accidental charges, duplicate charges, or confirmed billing errors. We
+            generally ask that requests be submitted within 14 days of the charge date, unless a longer period is
+            required by law. Approved refunds are issued to the original payment method.
           </p>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-slate-900">2. How to request</h2>
           <p>
-            Contact support@deepfocustime.com and include the purchase email, order reference, and a short description
-            of the issue.
+            Contact support@deepfocustime.com and include the purchase email, order reference, charge date, and a short
+            description of the issue.
           </p>
         </section>
 
@@ -49,6 +50,14 @@ export default function RefundPage() {
           <p>
             Subscriptions are billed by our merchant of record. For disputes or chargebacks, we may request additional
             information to investigate and resolve the issue quickly.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-slate-900">6. Non-refundable cases</h2>
+          <p>
+            Refunds may be declined if there is evidence of misuse, violation of our terms, or if a subscription was
+            used for a substantial portion of the billing period without a billing error.
           </p>
         </section>
       </div>
