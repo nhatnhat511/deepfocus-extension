@@ -66,7 +66,7 @@ export type HomepageRenderModel = {
 const fallbackFeatures: HomepageFeatureCard[] = [];
 
 const fallbackSteps = [
-  "Install DeepFocus Time from the Chrome Web Store.",
+  "Install DeepFocus Time from the Chrome Web Store or Microsoft Edge Add-ons.",
   "Pin the extension and set your focus and break durations.",
   "Start a session and keep momentum with reminders and smart controls.",
 ];
