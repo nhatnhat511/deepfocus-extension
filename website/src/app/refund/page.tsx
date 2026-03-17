@@ -16,9 +16,7 @@ export default function RefundPage() {
           <h2 className="text-base font-semibold text-slate-900">1. Eligibility</h2>
           <p>
             Paddle is our Merchant of Record and handles all payments, billing, refunds, and chargebacks. Refund
-            requests are reviewed case by case by Paddle for accidental charges, duplicate charges, or confirmed
-            billing errors. Requests should be submitted within 14 days of the charge date, unless a longer period is
-            required by law.
+            requests are reviewed by Paddle in accordance with Paddle’s policies and buyer terms.
           </p>
         </section>
 
@@ -34,8 +32,8 @@ export default function RefundPage() {
         <section>
           <h2 className="text-base font-semibold text-slate-900">3. Processing</h2>
           <p>
-            Refunds are processed by Paddle and issued to the original payment method. Please allow 3–5 business days
-            for processing, in addition to any bank or card network timelines.
+            Refunds are processed by Paddle and issued to the original payment method. Card refunds typically take 3–5
+            business days to appear, and other payment methods may vary.
           </p>
         </section>
 
@@ -51,15 +49,7 @@ export default function RefundPage() {
           <h2 className="text-base font-semibold text-slate-900">5. Billing provider</h2>
           <p>
             Paddle is the Merchant of Record and is responsible for all payment processing, billing, refunds, and
-            chargebacks. Refund decisions are made by Paddle on a case-by-case basis.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-base font-semibold text-slate-900">6. Non-refundable cases</h2>
-          <p>
-            Refunds may be declined if there is evidence of misuse, violation of our terms, or if a subscription was
-            used for a substantial portion of the billing period without a billing error.
+            chargebacks. Refund decisions are made by Paddle in accordance with their policies.
           </p>
         </section>
       </div>
