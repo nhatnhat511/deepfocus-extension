@@ -3,6 +3,11 @@ import { basicSanitizeHtml } from "@/lib/sanitize/basicSanitize";
 import type { HomepageBlock } from "@/lib/cms/homepageBlocks";
 import type { HomepageRenderModel } from "@/lib/cms/homepageRenderModel";
 
+const edgeAction = {
+  label: "Microsoft Edge",
+  href: "https://microsoftedge.microsoft.com/addons/",
+};
+
 type EditableControls = {
   selectedId?: string;
   selectedField?: string;
@@ -655,6 +660,7 @@ function ActionButton({
 }) {
   const trimmedLabel = action.label.trim();
   const isAddToChrome = trimmedLabel.toLowerCase() === "add to chrome";
+  const isMicrosoftEdge = trimmedLabel.toLowerCase() === "microsoft edge";
   const isComparePlans = trimmedLabel.toLowerCase() === "compare plans";
   const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
   const className = primary
@@ -667,6 +673,12 @@ function ActionButton({
     <span className="inline-flex items-center gap-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/Chrome/Chrome.webp" alt="" className={`inline-block ${iconSize}`} />
+      <span>{trimmedLabel}</span>
+    </span>
+  ) : isMicrosoftEdge ? (
+    <span className="inline-flex items-center gap-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/Edge/edgelogo.png" alt="" className={`inline-block ${iconSize}`} />
       <span>{trimmedLabel}</span>
     </span>
   ) : (
@@ -937,6 +949,7 @@ export function HomepageRenderer({
                 inert
               />
             </FieldTarget>
+            <ActionButton action={edgeAction} inert={!!editable} />
             <FieldTarget blockId={model.hero.id} field="secondaryLabel" controls={editable} label="Secondary CTA">
               <ActionButton
                 action={{
@@ -1280,6 +1293,7 @@ export function HomepageRenderer({
             <FieldTarget blockId={model.cta.id} field="primaryLabel" controls={editable} label="Primary CTA">
               <ActionButton action={model.cta.primaryAction} primary size="lg" inert={!!editable} />
             </FieldTarget>
+            <ActionButton action={edgeAction} size="lg" inert={!!editable} />
             <FieldTarget blockId={model.cta.id} field="secondaryLabel" controls={editable} label="Secondary CTA">
               <ActionButton action={model.cta.secondaryAction} size="lg" inert={!!editable} />
             </FieldTarget>
