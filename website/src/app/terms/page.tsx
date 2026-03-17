@@ -147,7 +147,8 @@ export default function TermsPage() {
         <section>
           <h2 className="text-base font-semibold text-slate-900">17. Governing law</h2>
           <p>
-            These terms are governed by the laws of Vietnam, unless your local law requires otherwise.
+            These terms are governed by the laws applicable to our place of business, unless your local law requires
+            otherwise.
           </p>
         </section>
 
