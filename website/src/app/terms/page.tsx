@@ -69,16 +69,26 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">8. Billing, renewals, and taxes</h2>
+          <h2 className="text-base font-semibold text-slate-900">8. Payments and Merchant of Record</h2>
           <p>
-            Subscriptions renew automatically unless canceled before the renewal date. You can manage or cancel your
-            subscription from your account page. Prices may exclude VAT or other applicable taxes, which will be shown
-            at checkout when required.
+            Paddle is our Merchant of Record and the legal seller of the subscriptions available through the service.
+            When you purchase a subscription, you are buying from Paddle, not directly from us, and your payment is
+            processed by Paddle in accordance with their terms.
           </p>
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">9. Cancellation</h2>
+          <h2 className="text-base font-semibold text-slate-900">9. Billing, renewals, and taxes</h2>
+          <p>
+            All payments are processed by Paddle. Subscriptions renew automatically unless canceled before the renewal
+            date. You can manage or cancel your subscription from your account page. Paddle is responsible for
+            calculating, collecting, and remitting applicable taxes such as VAT or sales tax, which may be added at
+            checkout.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-slate-900">10. Cancellation</h2>
           <p>
             You can cancel at any time. After cancellation, premium access remains active until the end of the current
             billing period unless otherwise required by law.
@@ -86,9 +96,9 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">10. Refunds</h2>
+          <h2 className="text-base font-semibold text-slate-900">11. Refunds</h2>
           <p>
-            Refunds are handled according to our{" "}
+            Refunds are handled by Paddle according to their policies. Please review our{" "}
             <a href="/refund" className="font-semibold text-sky-700 underline decoration-sky-300">
               Refund Policy
             </a>
@@ -97,15 +107,16 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">11. Third-party services</h2>
+          <h2 className="text-base font-semibold text-slate-900">12. Third-party services</h2>
           <p>
-            We use third-party providers for hosting, authentication, analytics, and payment processing. Your use of
-            those services may be subject to their terms and policies.
+            We use third-party providers for hosting, authentication, analytics, and payment processing. Paddle
+            processes payments as Merchant of Record. Your use of third-party services may be subject to their terms
+            and policies.
           </p>
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">12. Availability and changes</h2>
+          <h2 className="text-base font-semibold text-slate-900">13. Availability and changes</h2>
           <p>
             We aim for stable service but cannot guarantee uninterrupted availability. We may update or change features
             to improve the service or comply with legal requirements.
@@ -113,7 +124,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">13. Intellectual property</h2>
+          <h2 className="text-base font-semibold text-slate-900">14. Intellectual property</h2>
           <p>
             DeepFocus Time, including the extension, website, and related content, is owned by us and protected by
             intellectual property laws. You may not copy, modify, or redistribute it beyond what is allowed by law.
@@ -121,7 +132,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">14. Termination</h2>
+          <h2 className="text-base font-semibold text-slate-900">15. Termination</h2>
           <p>
             We may suspend or terminate access to the service if you violate these terms or if required to protect the
             service or other users. You may stop using the service at any time.
@@ -129,7 +140,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">15. Disclaimers</h2>
+          <h2 className="text-base font-semibold text-slate-900">16. Disclaimers</h2>
           <p>
             The service is provided on an "as is" and "as available" basis. We disclaim all warranties to the maximum
             extent permitted by law.
@@ -137,7 +148,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">16. Limitation of liability</h2>
+          <h2 className="text-base font-semibold text-slate-900">17. Limitation of liability</h2>
           <p>
             To the maximum extent permitted by law, DeepFocus Time will not be liable for any indirect, incidental, or
             consequential damages arising from your use of the service.
@@ -145,7 +156,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">17. Governing law</h2>
+          <h2 className="text-base font-semibold text-slate-900">18. Governing law</h2>
           <p>
             These terms are governed by the laws applicable to our place of business, unless your local law requires
             otherwise.
@@ -153,7 +164,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">18. Contact</h2>
+          <h2 className="text-base font-semibold text-slate-900">19. Contact</h2>
           <p>
             Questions about these terms can be sent to{" "}
             <a href="mailto:support@deepfocustime.com" className="font-semibold text-sky-700 underline decoration-sky-300">
