@@ -45,8 +45,9 @@ export default function PrivacyPage() {
             the product.
           </p>
           <p>
-            Billing data: subscription status and transaction metadata handled by our billing provider. We do not store
-            full payment card details on DeepFocus Time infrastructure.
+            Billing data: subscription status and transaction metadata are processed by Paddle, our Merchant of Record.
+            Paddle handles payment processing, billing, tax calculation, and refunds. We do not store full payment card
+            details on DeepFocus Time infrastructure.
           </p>
         </section>
 
@@ -54,7 +55,8 @@ export default function PrivacyPage() {
           <h2 className="text-base font-semibold text-slate-900">3. How we use data</h2>
           <p>
             We use data to authenticate users, provide premium access, deliver reminders and insights, and respond to
-            support requests. We do not sell personal information.
+            support requests. We only use user data to provide and improve the core functionality of the service. We do
+            not sell or use data for advertising.
           </p>
         </section>
 
@@ -82,8 +84,8 @@ export default function PrivacyPage() {
             providers process data on our behalf under contractual safeguards. We do not sell personal information.
           </p>
           <p>
-            Providers may include Supabase (authentication and account data), Paddle (billing), Resend (contact email
-            delivery), and Google Analytics (website analytics).
+            Providers may include Supabase (authentication and account data), Paddle (payment processing as Merchant of
+            Record), Resend (contact email delivery), and Google Analytics (website analytics).
           </p>
         </section>
 
@@ -96,7 +98,15 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">8. Data retention</h2>
+          <h2 className="text-base font-semibold text-slate-900">8. Payments and Merchant of Record</h2>
+          <p>
+            Paddle is our Merchant of Record and is responsible for payment processing, billing, tax handling, and
+            refunds. When you purchase a subscription, you are transacting with Paddle under their terms.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-slate-900">9. Data retention</h2>
           <p>
             We retain account data for as long as needed to provide the service and meet legal obligations. You can
             request deletion of your account by contacting support@deepfocustime.com, and we will follow applicable laws.
@@ -104,7 +114,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">9. Security</h2>
+          <h2 className="text-base font-semibold text-slate-900">10. Security</h2>
           <p>
             We apply reasonable technical and organizational safeguards to protect your data, including access
             controls and monitoring. We may collect limited diagnostic or error logs to keep the service reliable, but
@@ -113,7 +123,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">10. Your rights and choices</h2>
+          <h2 className="text-base font-semibold text-slate-900">11. Your rights and choices</h2>
           <p>
             You may request access, correction, or deletion of your account data by contacting support@deepfocustime.com.
             We review requests according to applicable law.
@@ -121,7 +131,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">11. International transfers</h2>
+          <h2 className="text-base font-semibold text-slate-900">12. International transfers</h2>
           <p>
             Your information may be processed in countries where we or our providers operate. We apply safeguards
             required by applicable law.
@@ -129,7 +139,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">12. Children's privacy</h2>
+          <h2 className="text-base font-semibold text-slate-900">13. Children's privacy</h2>
           <p>
             DeepFocus Time is not intended for children under 13. We do not knowingly collect personal data from
             children. If you believe a child has provided data, contact us so we can delete it.
@@ -137,7 +147,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-slate-900">13. Contact</h2>
+          <h2 className="text-base font-semibold text-slate-900">14. Contact</h2>
           <p>
             For privacy questions, contact support@deepfocustime.com. We aim to respond promptly and transparently.
           </p>
