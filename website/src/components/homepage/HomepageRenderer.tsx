@@ -3,6 +3,7 @@ import { basicSanitizeHtml } from "@/lib/sanitize/basicSanitize";
 import type { HomepageBlock } from "@/lib/cms/homepageBlocks";
 import type { HomepageRenderModel } from "@/lib/cms/homepageRenderModel";
 
+const chromeStoreUrl = "https://chromewebstore.google.com/detail/deepfocus-time-smart-work/hocagcogehhegknmljfffpgkegdkbfko";
 const edgeAction = {
   label: "Microsoft Edge",
   href: "https://microsoftedge.microsoft.com/addons/detail/pmnpgpbhljgkgnfplkbljhhddneonidh",
@@ -662,6 +663,7 @@ function ActionButton({
   const isAddToChrome = trimmedLabel.toLowerCase() === "add to chrome";
   const isMicrosoftEdge = trimmedLabel.toLowerCase() === "microsoft edge";
   const isComparePlans = trimmedLabel.toLowerCase() === "compare plans";
+  const resolvedHref = isAddToChrome ? chromeStoreUrl : isMicrosoftEdge ? edgeAction.href : action.href;
   const padding = size === "lg" ? "px-6 py-3.5 text-base" : "px-5 py-3 text-sm";
   const className = primary || isMicrosoftEdge
     ? `inline-flex items-center justify-center rounded-lg bg-slate-900 ${padding} font-semibold text-white hover:bg-slate-700`
@@ -697,16 +699,16 @@ function ActionButton({
     );
   }
 
-  if (action.href.startsWith("http")) {
+  if (resolvedHref.startsWith("http")) {
     return (
-      <a href={action.href} target="_blank" rel="noreferrer" className={className}>
+      <a href={resolvedHref} target="_blank" rel="noreferrer" className={className}>
         {content}
       </a>
     );
   }
 
   return (
-    <Link href={action.href} className={className}>
+    <Link href={resolvedHref} className={className}>
       {content}
     </Link>
   );
@@ -946,7 +948,7 @@ export function HomepageRenderer({
                     editable?.selectedId === model.hero.id && editable?.selectedField === "primaryLabel" ? "" : model.hero.primaryAction.label,
                 }}
                 primary
-                inert
+                inert={!!editable}
               />
             </FieldTarget>
             <ActionButton action={edgeAction} inert={!!editable} />
