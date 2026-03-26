@@ -70,7 +70,7 @@ export default function HowItWorksPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href="https://chromewebstore.google.com/"
+          href="https://chromewebstore.google.com/detail/deepfocus-time-smart-work/hocagcogehhegknmljfffpgkegdkbfko"
           className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -78,7 +78,7 @@ export default function HowItWorksPage() {
           Add to Chrome
         </Link>
         <Link
-          href="https://microsoftedge.microsoft.com/addons/"
+          href="https://microsoftedge.microsoft.com/addons/detail/pmnpgpbhljgkgnfplkbljhhddneonidh"
           className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}

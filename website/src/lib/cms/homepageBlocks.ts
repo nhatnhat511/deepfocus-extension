@@ -58,7 +58,7 @@ export const homepagePalette: Array<{
       subtitle:
         "DeepFocus Time combines session timing, mindful breaks, account sync, and advanced productivity settings in one lightweight extension.",
       primaryLabel: "Add to Chrome",
-      primaryHref: "https://chromewebstore.google.com/",
+      primaryHref: "https://chromewebstore.google.com/detail/deepfocus-time-smart-work/hocagcogehhegknmljfffpgkegdkbfko",
     },
   },
   {
@@ -138,7 +138,7 @@ export const homepagePalette: Array<{
       subtitle:
         "Install the extension, run your first session, and refine your setup with features that match your workflow.",
       primaryLabel: "Add to Chrome",
-      primaryHref: "https://chromewebstore.google.com/",
+      primaryHref: "https://chromewebstore.google.com/detail/deepfocus-time-smart-work/hocagcogehhegknmljfffpgkegdkbfko",
       secondaryLabel: "Read FAQ",
       secondaryHref: "/faq",
     },

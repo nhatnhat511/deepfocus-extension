@@ -5,7 +5,7 @@ import type { HomepageRenderModel } from "@/lib/cms/homepageRenderModel";
 
 const edgeAction = {
   label: "Microsoft Edge",
-  href: "https://microsoftedge.microsoft.com/addons/",
+  href: "https://microsoftedge.microsoft.com/addons/detail/pmnpgpbhljgkgnfplkbljhhddneonidh",
 };
 
 type EditableControls = {
